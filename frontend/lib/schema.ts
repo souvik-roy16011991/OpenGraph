@@ -1,5 +1,32 @@
 import { z } from "zod";
 
+// ---------- Workspaces ----------
+export interface WorkspaceSummary {
+  id: string;
+  name: string;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+  file_counts: { knowledge: number; tool: number };
+  last_build_at?: string | null;
+  last_build_status?: string | null;
+  stats?: { total_nodes?: number; total_edges?: number } | null;
+}
+
+export interface WorkspaceFileInfo {
+  id: number;
+  kb_source: "knowledge" | "tool";
+  filename: string;
+  size_bytes: number;
+  chapters: number;
+  title?: string | null;
+  sha256: string;
+  blob_url?: string | null;
+  local_path?: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 // ---------- Domain ----------
 export const DomainPayloadSchema = z.object({
   domain_name: z.string().min(1, "Required"),

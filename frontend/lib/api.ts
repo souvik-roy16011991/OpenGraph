@@ -19,12 +19,36 @@ import type {
   StartBuildRequest,
   UploadHistoryRow,
   UploadResponse,
+  WorkspaceFileInfo,
+  WorkspaceSummary,
 } from "./schema";
 
 // If NEXT_PUBLIC_API_BASE is set (e.g. http://localhost:8000), hit the backend
 // directly — avoids Next.js dev-proxy body-size limits on multipart uploads.
 // Empty string = same-origin, relying on next.config.ts rewrites().
 const BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+
+/** Read the active workspace id from the persisted zustand store at call time. */
+function activeWorkspaceId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    // Dynamic require to avoid SSR import of zustand's persist middleware.
+    const raw = window.localStorage.getItem("kb-active-workspace");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { state?: { activeId?: string | null } };
+    return parsed?.state?.activeId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function withWorkspaceHeader(headers: HeadersInit = {}): HeadersInit {
+  const wid = activeWorkspaceId();
+  if (!wid) return headers;
+  const h = new Headers(headers);
+  h.set("X-Workspace-Id", wid);
+  return h;
+}
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -41,14 +65,17 @@ async function get<T>(path: string, query?: Record<string, string | number | und
         Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       ).toString()
     : "";
-  const res = await fetch(`${BASE}${path}${qs}`, { cache: "no-store" });
+  const res = await fetch(`${BASE}${path}${qs}`, {
+    cache: "no-store",
+    headers: withWorkspaceHeader(),
+  });
   return handle<T>(res);
 }
 
-async function json<T>(path: string, method: "POST" | "PUT" | "DELETE", body?: unknown): Promise<T> {
+async function json<T>(path: string, method: "POST" | "PUT" | "DELETE" | "PATCH", body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: withWorkspaceHeader({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
@@ -60,11 +87,29 @@ export const api = {
   health: () => get<{ status: string; service: string }>("/health"),
   stats: () => get<GraphStats>("/api/v1/graph/stats"),
 
-  // upload
+  // upload — accepts multiple `knowledge_files` + multiple `tool_files`
   uploadKB: async (form: FormData): Promise<UploadResponse> => {
-    const res = await fetch(`${BASE}/api/v1/kb/upload`, { method: "POST", body: form, cache: "no-store" });
+    const res = await fetch(`${BASE}/api/v1/kb/upload`, {
+      method: "POST",
+      body: form,
+      cache: "no-store",
+      headers: withWorkspaceHeader(), // don't set Content-Type on multipart
+    });
     return handle<UploadResponse>(res);
   },
+
+  // workspaces
+  listWorkspaces: () => get<{ workspaces: WorkspaceSummary[] }>("/api/v1/workspaces"),
+  createWorkspace: (body: { name: string; description?: string }) =>
+    json<WorkspaceSummary>("/api/v1/workspaces", "POST", body),
+  getWorkspace: (id: string) => get<WorkspaceSummary>(`/api/v1/workspaces/${id}`),
+  updateWorkspace: (id: string, body: { name?: string; description?: string }) =>
+    json<WorkspaceSummary>(`/api/v1/workspaces/${id}`, "PATCH", body),
+  deleteWorkspace: (id: string) => json<{ ok: true }>(`/api/v1/workspaces/${id}`, "DELETE"),
+  listWorkspaceFiles: (id: string, kb_source?: "knowledge" | "tool") =>
+    get<{ files: WorkspaceFileInfo[] }>(`/api/v1/workspaces/${id}/files`, { kb_source }),
+  deleteWorkspaceFile: (ws_id: string, file_id: number) =>
+    json<{ ok: true }>(`/api/v1/workspaces/${ws_id}/files/${file_id}`, "DELETE"),
 
   // config
   getDomain: () => get<DomainPayload>("/api/v1/config/domain"),
