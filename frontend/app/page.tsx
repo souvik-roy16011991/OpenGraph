@@ -1,10 +1,15 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, Briefcase } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useWorkspaceStore } from "@/store/workspace-store";
 
 const STEPS = [
-  { n: 1, href: "/upload",       icon: Upload,            title: "Upload KB files",  desc: "Drop the two JSONs — the knowledge KB and the tool KB." },
+  { n: 1, href: "/upload",       icon: Upload,            title: "Upload KB files",  desc: "Drop one or more JSONs — knowledge and/or tool." },
   { n: 2, href: "/domain",       icon: Tag,               title: "Configure domain", desc: "Name the domain, organization, and focus areas." },
   { n: 3, href: "/graph-config", icon: Sliders,           title: "Tune graph knobs", desc: "Adjust how dense, how deep, how precise the graph should be." },
   { n: 4, href: "/build",        icon: Hammer,            title: "Run the build",    desc: "Embeddings, edges, cross-KB links. Watch it happen." },
@@ -13,6 +18,14 @@ const STEPS = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const activeId = useWorkspaceStore((s) => s.activeId);
+
+  // If no workspace is active, send the user to the workspace picker first.
+  React.useEffect(() => {
+    if (!activeId) router.replace("/workspaces");
+  }, [activeId, router]);
+
   return (
     <div className="space-y-8">
       <section className="space-y-3">
@@ -21,25 +34,28 @@ export default function Home() {
           Knowledge Graph Engine
         </div>
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight max-w-3xl">
-          Turn two JSON knowledge bases into a queryable, navigable knowledge graph.
+          One workspace per domain. Many files per workspace. Isolated graph &amp; chat per workspace.
         </h1>
         <p className="text-muted-foreground max-w-2xl">
-          Upload your knowledge &amp; tool KB, tune the graph parameters, build, and start asking questions. Everything runs locally;
-          uploaded files mirror to Vercel Blob for durability.
+          Create a workspace, drop in any number of knowledge + tool JSONs, tune the graph parameters,
+          build, and query. Every workspace has its own Memgraph partition, its own Qdrant collection,
+          and its own chat history.
         </p>
         <div className="flex gap-3 pt-2">
           <Button asChild size="lg">
-            <Link href="/upload">Get started <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/workspaces"><Briefcase className="h-4 w-4" /> Manage workspaces</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/explore">View existing graph</Link>
-          </Button>
+          {activeId && (
+            <Button asChild variant="outline" size="lg">
+              <Link href="/upload">Continue current workspace <ArrowRight className="h-4 w-4" /></Link>
+            </Button>
+          )}
         </div>
       </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {STEPS.map((s) => (
-          <Link key={s.n} href={s.href}>
+          <Link key={s.n} href={activeId ? s.href : "/workspaces"}>
             <Card className="group hover:border-primary/50 hover:shadow-md transition cursor-pointer h-full">
               <CardHeader className="space-y-2">
                 <div className="flex items-center gap-3">

@@ -162,8 +162,11 @@ function ThemeToggle() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const completed = useWizardStore((s) => s.completed);
+  const activeWs = useWorkspaceStore((s) => s.activeId);
 
   function isLocked(item: NavItem) {
+    if (!activeWs && item.step !== "upload") return true;
+    if (!activeWs) return true;
     return (item.requires || []).some((r) => !completed[r]);
   }
 
@@ -177,6 +180,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-sm font-semibold leading-tight">KB Engine</span>
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Knowledge graph</span>
           </div>
+        </div>
+        <div className="p-3 border-b">
+          <WorkspaceSwitcher />
         </div>
         <nav className="p-3 flex flex-col gap-1">
           {NAV.map((item, idx) => {
