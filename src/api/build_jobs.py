@@ -164,6 +164,7 @@ async def _upsert_job_async(job: BuildJob, stats: dict | None = None, backends: 
                 stats=stats,
                 backends=backends,
             )
+            from sqlalchemy import func as _func
             stmt = stmt.on_conflict_do_update(
                 index_elements=["job_id"],
                 set_={
@@ -174,8 +175,10 @@ async def _upsert_job_async(job: BuildJob, stats: dict | None = None, backends: 
                     "finished_at": stmt.excluded.finished_at,
                     "error": stmt.excluded.error,
                     "log_tail": stmt.excluded.log_tail,
-                    "stats": stmt.excluded.stats,
-                    "backends": stmt.excluded.backends,
+                    # COALESCE so a later progress update with NULL stats
+                    # cannot clobber stats/backends already written at terminal state.
+                    "stats": _func.coalesce(stmt.excluded.stats, BuildJobRow.stats),
+                    "backends": _func.coalesce(stmt.excluded.backends, BuildJobRow.backends),
                 },
             )
             await s.execute(stmt)

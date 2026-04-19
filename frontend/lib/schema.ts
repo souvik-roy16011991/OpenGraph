@@ -250,6 +250,7 @@ export interface SearchResponse {
 export interface QueryRequest {
   query: string;
   stream?: boolean;
+  session_id?: string;
 }
 export interface QueryResponse {
   query: string;
@@ -262,5 +263,7 @@ export interface QueryResponse {
   knowledge_concepts: Array<Record<string, unknown>>;
   follow_up_suggestions: string[];
   traversal_path: string[];
+  session_id?: string | null;
+  duration_ms?: number | null;
   error?: string | null;
 }

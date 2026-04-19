@@ -1,5 +1,5 @@
-domain_name: wealth management
-domain_display_name: wealth planning
-organization_name: 1 Finance
-knowledge_focus_examples: wealth planning, tax planning
-tool_focus_examples: mutual fund data, tax and wealth planning
+domain_name: loan_assessment
+domain_display_name: Loan App Assessment
+organization_name: Credit Underwriting
+knowledge_focus_examples: FOIR, eligibility
+tool_focus_examples: CIBIL, KYC

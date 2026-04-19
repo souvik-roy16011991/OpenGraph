@@ -2,7 +2,7 @@ embeddings:
   model: qwen/qwen3-embedding-8b
   dimensions: null
   tfidf_fallback_dim: 4096
-  similarity_threshold: 0.82
+  similarity_threshold: 0.83
   max_related_edges_per_node: 8
   skip_related_to_types:
   - glossary
