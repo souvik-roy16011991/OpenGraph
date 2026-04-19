@@ -48,12 +48,14 @@ from src.config import (
     USE_PINECONE,
     USE_QDRANT,
 )
+from src.config import workspace_paths
 from src.graph_config import get_graph_config
 from src.kb_config import get_active_kb_config
 from src.graph_builder.edges import build_edges
 from src.graph_builder.embeddings import EmbeddingPipeline, run_embedding_pipeline, semantic_search
 from src.graph_builder.extractor import extract_all_nodes
-from src.graph_builder.parser import parse_kb_file
+from src.graph_builder.parser import parse_kb_file, parse_kb_files
+from src.workspace_context import get_current_workspace
 from src.models.nodes import (
     BaseNode,
     ChapterNode,
@@ -125,44 +127,74 @@ def _load_embed_model(faiss_path: Path, nodes: dict) -> Any:
 # Build pipeline
 # ---------------------------------------------------------------------------
 
+def _short_wid(wid: str) -> str:
+    """Qdrant-safe short form of a workspace UUID for collection naming."""
+    return wid.replace("-", "")[:12]
+
+
 def build_graph(
     use_llm_cross_links: bool = True,
     skip_embeddings: bool = False,
+    workspace_id: str | None = None,
+    knowledge_paths: list[Path] | None = None,
+    tool_paths: list[Path] | None = None,
 ) -> "KnowledgeGraph":
     """
-    Full build pipeline. Returns a KnowledgeGraph ready for queries.
+    Full build pipeline for a workspace. Returns a KnowledgeGraph ready for queries.
 
     Args:
         use_llm_cross_links: Whether to call the LLM for cross-KB IMPLEMENTS edges.
         skip_embeddings: Set True to skip embedding generation (faster during dev).
+        workspace_id: REQUIRED — every artifact (Memgraph nodes, Qdrant collection,
+            local cache, Neon rows) is scoped to this id.
+        knowledge_paths, tool_paths: lists of local JSON files to merge into a
+            single ParsedKB per kb_source. If None, falls back to
+            get_active_kb_config() single-file paths (legacy CLI mode).
     """
-    logger.info("=== KB Knowledge Graph Build Pipeline ===")
+    if workspace_id is None:
+        workspace_id = get_current_workspace()
+    if not workspace_id:
+        raise ValueError(
+            "build_graph requires workspace_id (explicit arg or via workspace_context)."
+        )
+
+    paths = workspace_paths(workspace_id)
+    qdrant_collection = f"kb-{_short_wid(workspace_id)}"
+
+    logger.info("=== KB Knowledge Graph Build Pipeline (ws=%s) ===", workspace_id)
     if USE_MEMGRAPH:
-        logger.info("  Graph backend: Memgraph")
+        logger.info("  Graph backend: Memgraph (workspace-scoped)")
     elif USE_NEO4J:
-        logger.info("  Graph backend: Neo4j")
+        logger.info("  Graph backend: Neo4j (workspace-scoped)")
     else:
-        logger.info("  Graph backend: NetworkX (local)")
+        logger.info("  Graph backend: NetworkX (local cache only)")
     if USE_QDRANT:
-        logger.info("  Vector backend: Qdrant Cloud")
+        logger.info("  Vector backend: Qdrant Cloud — collection %s", qdrant_collection)
     elif USE_PINECONE:
         logger.info("  Vector backend: Pinecone")
     else:
         logger.info("  Vector backend: FAISS (local)")
 
-    # 1. Parse
+    # 1. Parse — multi-file aware
     logger.info("Step 1/5 – Parsing KB files…")
-    cfg = get_active_kb_config()
-    knowledge_kb = parse_kb_file(cfg.knowledge_kb_path, "knowledge")
-    tool_kb = parse_kb_file(cfg.tool_kb_path, "tool")
+    if knowledge_paths is None or tool_paths is None:
+        cfg = get_active_kb_config()
+        if knowledge_paths is None:
+            knowledge_paths = [cfg.knowledge_kb_path]
+        if tool_paths is None:
+            tool_paths = [cfg.tool_kb_path]
+
+    knowledge_kb = parse_kb_files(knowledge_paths, "knowledge")
+    tool_kb = parse_kb_files(tool_paths, "tool")
     logger.info(
-        f"  Knowledge KB: {len(knowledge_kb.chapters)} chapters | "
-        f"Tool KB: {len(tool_kb.chapters)} chapters"
+        "  Knowledge KB: %d chapters across %d file(s) | Tool KB: %d chapters across %d file(s)",
+        len(knowledge_kb.chapters), len(knowledge_paths),
+        len(tool_kb.chapters), len(tool_paths),
     )
 
-    # 2. Extract nodes
+    # 2. Extract nodes (stamped with workspace_id so every node carries tenancy)
     logger.info("Step 2/5 – Extracting nodes…")
-    nodes = extract_all_nodes(knowledge_kb, tool_kb)
+    nodes = extract_all_nodes(knowledge_kb, tool_kb, workspace_id=workspace_id)
     _log_node_counts(nodes)
 
     # 3. Build edges
@@ -176,7 +208,9 @@ def build_graph(
 
     if not skip_embeddings:
         logger.info("Step 4/5 – Generating embeddings…")
-        embeddings, related_edges, vector_store = run_embedding_pipeline(nodes)
+        embeddings, related_edges, vector_store = run_embedding_pipeline(
+            nodes, workspace_id=workspace_id, qdrant_collection=qdrant_collection,
+        )
         edges.extend(related_edges)
         logger.info(f"  Total edges after RELATED_TO: {len(edges)}")
 
@@ -187,71 +221,70 @@ def build_graph(
     else:
         logger.info("Step 4/5 – Skipping embeddings (skip_embeddings=True)")
 
-    # 5. Persist graph
+    # 5. Persist graph (per-workspace)
     neo4j_store = None
     G: nx.DiGraph | None = None
 
     if USE_MEMGRAPH:
-        logger.info("Step 5/5 – Writing graph to Memgraph…")
+        logger.info("Step 5/5 – Writing graph to Memgraph (ws=%s)…", workspace_id)
         try:
             from src.infra.memgraph_store import MemgraphGraphStore
             neo4j_store = MemgraphGraphStore(
                 MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
             )
-            neo4j_store.clear_graph()
-            neo4j_store.bulk_create_nodes_no_apoc(nodes)
-            neo4j_store.bulk_create_edges(edges)
-            stats = neo4j_store.stats()
+            neo4j_store.clear_workspace(workspace_id)
+            neo4j_store.bulk_create_nodes_no_apoc(nodes, workspace_id=workspace_id)
+            neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
+            ws_stats = neo4j_store.stats(workspace_id=workspace_id)
             logger.info(
-                f"  Memgraph: {stats['total_nodes']} nodes, {stats['total_edges']} edges"
+                "  Memgraph ws=%s: %d nodes, %d edges",
+                workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"],
             )
         except Exception as exc:
             logger.error(
-                f"Memgraph write failed ({exc}). "
-                "Continuing with local NetworkX fallback."
+                "Memgraph write failed (%s). Continuing with local NetworkX fallback.", exc
             )
             neo4j_store = None
 
         G = _build_networkx_graph(nodes, edges)
-        logger.info(f"  NetworkX cache: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
-        _save_graph(G, nodes)
+        logger.info("  NetworkX cache: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
+        _save_graph(G, nodes, workspace_id=workspace_id)
     elif USE_NEO4J:
-        logger.info("Step 5/5 – Writing graph to Neo4j…")
+        logger.info("Step 5/5 – Writing graph to Neo4j (ws=%s)…", workspace_id)
         try:
             from src.infra.neo4j_store import Neo4jGraphStore
             neo4j_store = Neo4jGraphStore(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE)
-            neo4j_store.clear_graph()
-            neo4j_store.bulk_create_nodes_no_apoc(nodes)
-            neo4j_store.bulk_create_edges(edges)
-            stats = neo4j_store.stats()
-            logger.info(
-                f"  Neo4j: {stats['total_nodes']} nodes, {stats['total_edges']} edges"
-            )
+            neo4j_store.clear_workspace(workspace_id)
+            neo4j_store.bulk_create_nodes_no_apoc(nodes, workspace_id=workspace_id)
+            neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
+            ws_stats = neo4j_store.stats(workspace_id=workspace_id)
+            logger.info("  Neo4j ws=%s: %d nodes, %d edges",
+                        workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"])
         except Exception as exc:
             logger.error(
-                f"Neo4j write failed ({exc}). "
-                "Continuing with local NetworkX fallback."
+                "Neo4j write failed (%s). Continuing with local NetworkX fallback.", exc
             )
             neo4j_store = None
 
         # Always build a local NetworkX graph as a fast runtime cache
         G = _build_networkx_graph(nodes, edges)
-        logger.info(f"  NetworkX cache: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
-        _save_graph(G, nodes)
+        logger.info("  NetworkX cache: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
+        _save_graph(G, nodes, workspace_id=workspace_id)
     else:
-        logger.info("Step 5/5 – Populating NetworkX DiGraph…")
+        logger.info("Step 5/5 – Populating NetworkX DiGraph (ws=%s)…", workspace_id)
         G = _build_networkx_graph(nodes, edges)
-        logger.info(f"  Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
-        _save_graph(G, nodes)
+        logger.info("  Graph: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
+        _save_graph(G, nodes, workspace_id=workspace_id)
 
     kg = KnowledgeGraph(
         G=G,
         nodes=nodes,
+        workspace_id=workspace_id,
         faiss_index=faiss_index,
         neo4j_store=neo4j_store,
         pinecone_store=pinecone_store,
     )
-    logger.info("=== Build complete ===")
+    logger.info("=== Build complete (ws=%s) ===", workspace_id)
     return kg
 
 
@@ -285,19 +318,20 @@ def _build_networkx_graph(nodes: dict[str, BaseNode], edges: list[Edge]) -> nx.D
     return G
 
 
-def _save_graph(G: nx.DiGraph, nodes: dict[str, BaseNode]) -> None:
-    path = Path(GRAPH_PICKLE_PATH)
+def _save_graph(G: nx.DiGraph, nodes: dict[str, BaseNode], workspace_id: str) -> None:
+    paths = workspace_paths(workspace_id)
+    path = paths["graph_pickle"]
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(path, "wb") as f:
         pickle.dump(G, f, protocol=pickle.HIGHEST_PROTOCOL)
-    logger.info(f"  Graph saved to {path}")
+    logger.info("  Graph saved to %s", path)
 
     registry = {nid: node.to_dict() for nid, node in nodes.items()}
-    reg_path = Path(NODE_REGISTRY_PATH)
+    reg_path = paths["node_registry"]
     with open(reg_path, "w", encoding="utf-8") as f:
         json.dump(registry, f, ensure_ascii=False)
-    logger.info(f"  Node registry saved to {reg_path}")
+    logger.info("  Node registry saved to %s", reg_path)
 
 
 # ---------------------------------------------------------------------------
@@ -323,6 +357,7 @@ class KnowledgeGraph:
         self,
         G: nx.DiGraph | None,
         nodes: dict[str, BaseNode],
+        workspace_id: str,
         faiss_index: Any = None,
         faiss_node_ids: list[str] | None = None,
         neo4j_store: Any = None,
@@ -330,32 +365,42 @@ class KnowledgeGraph:
     ) -> None:
         self.G: nx.DiGraph = G if G is not None else nx.DiGraph()
         self.nodes = nodes
+        self.workspace_id = workspace_id
         self._faiss_index = faiss_index
         self._faiss_node_ids: list[str] = faiss_node_ids or []
-        self._embed_model: Any = None  # loaded lazily by load()
-        self._neo4j = neo4j_store       # Neo4jGraphStore | None
-        self._pinecone = pinecone_store  # PineconeVectorStore | None
+        self._embed_model: Any = None
+        self._neo4j = neo4j_store
+        self._pinecone = pinecone_store
 
     # ------------------------------------------------------------------
     # Persistence
     # ------------------------------------------------------------------
 
     @classmethod
-    def load(cls) -> "KnowledgeGraph":
+    def load(cls, workspace_id: str) -> "KnowledgeGraph":
         """
-        Load a pre-built graph.
+        Load a pre-built graph for *workspace_id*.
 
-        - Always loads the local NetworkX pickle + node registry (fast cache).
-        - If USE_NEO4J, also connects to Neo4j (for live stats / advanced queries).
-        - If USE_PINECONE, also connects to PineconeVectorStore for semantic search.
-        - Otherwise loads the local FAISS index.
+        - Loads local NetworkX pickle + node registry from /data/workspaces/{wid}/.
+        - Connects to Qdrant collection `kb-{wid_short}` if USE_QDRANT.
+        - Connects to Memgraph if USE_MEMGRAPH; all reads filter by workspace_id.
         """
-        logger.info("Loading KnowledgeGraph…")
+        if not workspace_id:
+            raise ValueError("KnowledgeGraph.load requires workspace_id.")
 
-        with open(GRAPH_PICKLE_PATH, "rb") as f:
+        paths = workspace_paths(workspace_id)
+        logger.info("Loading KnowledgeGraph for ws=%s from %s", workspace_id, paths["graph_pickle"].parent)
+
+        if not paths["graph_pickle"].exists() or not paths["node_registry"].exists():
+            raise FileNotFoundError(
+                f"No local cache for workspace {workspace_id}. "
+                f"Run POST /api/v1/build for this workspace first."
+            )
+
+        with open(paths["graph_pickle"], "rb") as f:
             G: nx.DiGraph = pickle.load(f)
 
-        with open(NODE_REGISTRY_PATH, encoding="utf-8") as f:
+        with open(paths["node_registry"], encoding="utf-8") as f:
             registry_raw: dict[str, dict] = json.load(f)
 
         nodes = {nid: node_from_dict(data) for nid, data in registry_raw.items()}
@@ -365,34 +410,35 @@ class KnowledgeGraph:
         faiss_node_ids: list[str] = []
         embed_model = None
         pinecone_store = None
+        qdrant_collection = f"kb-{_short_wid(workspace_id)}"
 
         if USE_QDRANT:
-            logger.info("USE_QDRANT=True – connecting to Qdrant Cloud for semantic search…")
+            logger.info("USE_QDRANT=True — connecting to Qdrant collection %s", qdrant_collection)
             try:
                 from src.infra.qdrant_store import QdrantVectorStore
                 pinecone_store = QdrantVectorStore(
                     url=QDRANT_URL,
                     api_key=QDRANT_API_KEY,
-                    collection_name=QDRANT_COLLECTION_NAME,
+                    collection_name=qdrant_collection,
                     dimension=EMBEDDING_DIM,
                 )
             except Exception as exc:
-                logger.warning(f"Qdrant connect failed ({exc}); falling back to FAISS.")
+                logger.warning("Qdrant connect failed (%s); falling back to FAISS.", exc)
         elif USE_PINECONE:
-            logger.info("USE_PINECONE=True – connecting to Pinecone for semantic search…")
+            logger.info("USE_PINECONE=True — connecting to Pinecone for semantic search…")
             try:
                 from src.infra.pinecone_store import PineconeVectorStore
                 pinecone_store = PineconeVectorStore(
                     api_key=PINECONE_API_KEY,
                     index_name=PINECONE_INDEX_NAME,
-                    namespace=PINECONE_NAMESPACE,
+                    namespace=f"{PINECONE_NAMESPACE}-{_short_wid(workspace_id)}",
                     dimension=EMBEDDING_DIM,
                 )
             except Exception as exc:
-                logger.warning(f"Pinecone connect failed ({exc}); falling back to FAISS.")
+                logger.warning("Pinecone connect failed (%s); falling back to FAISS.", exc)
 
         if pinecone_store is None:
-            faiss_path = Path(FAISS_INDEX_PATH)
+            faiss_path = paths["faiss_index"]
             if faiss_path.exists():
                 faiss_index, faiss_node_ids = EmbeddingPipeline.load_faiss_index(faiss_path)
                 embed_model = _load_embed_model(faiss_path, nodes)
@@ -400,28 +446,30 @@ class KnowledgeGraph:
         # --- Graph backend ---
         neo4j_store = None
         if USE_MEMGRAPH:
-            logger.info("USE_MEMGRAPH=True – connecting to Memgraph…")
+            logger.info("USE_MEMGRAPH=True — connecting to Memgraph (ws=%s)", workspace_id)
             try:
                 from src.infra.memgraph_store import MemgraphGraphStore
                 neo4j_store = MemgraphGraphStore(
                     MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
                 )
             except Exception as exc:
-                logger.warning(f"Memgraph connect failed ({exc}); using NetworkX fallback.")
+                logger.warning("Memgraph connect failed (%s); using NetworkX fallback.", exc)
         elif USE_NEO4J:
-            logger.info("USE_NEO4J=True – connecting to Neo4j…")
+            logger.info("USE_NEO4J=True — connecting to Neo4j (ws=%s)", workspace_id)
             try:
                 from src.infra.neo4j_store import Neo4jGraphStore
                 neo4j_store = Neo4jGraphStore(
                     NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE
                 )
             except Exception as exc:
-                logger.warning(f"Neo4j connect failed ({exc}); using NetworkX fallback.")
+                logger.warning("Neo4j connect failed (%s); using NetworkX fallback.", exc)
 
-        logger.info(f"Loaded graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+        logger.info("Loaded graph ws=%s: %d nodes, %d edges",
+                    workspace_id, G.number_of_nodes(), G.number_of_edges())
         kg = cls(
             G=G,
             nodes=nodes,
+            workspace_id=workspace_id,
             faiss_index=faiss_index,
             faiss_node_ids=faiss_node_ids,
             neo4j_store=neo4j_store,

@@ -66,6 +66,10 @@ class BaseNode(BaseModel):
     content_summary: str = ""
     raw_text: str = ""
     embedding: Optional[list[float]] = Field(default=None, exclude=True)
+    # Populated by extract_all_nodes(workspace_id=...) at build time so every
+    # node carries its tenancy through the pickle, the node_registry JSON, and
+    # the Memgraph / Qdrant payloads.
+    workspace_id: Optional[str] = None
 
     def label(self) -> str:
         return self.heading

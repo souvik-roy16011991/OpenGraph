@@ -2,11 +2,14 @@
 SQLAlchemy 2.0 declarative models for Neon-persisted application data.
 
 Tables:
-  build_jobs        — every graph-build invocation, with config snapshot + log tail
-  chat_sessions     — a user's conversation thread
-  chat_messages     — individual turns (user query + assistant response) in a session
-  config_versions   — snapshot of domain.yaml / graph.yaml on every PUT
-  kb_uploads        — every KB JSON file upload event
+  users             — accounts (stack_user_id from Neon Auth populates in Phase B)
+  workspaces        — a user-owned container: holds N kb files, 1 graph, 1 chat history
+  workspace_files   — individual KB JSON files belonging to a workspace
+  build_jobs        — every graph-build invocation (scoped to a workspace)
+  chat_sessions     — a conversation thread within a workspace
+  chat_messages     — individual turns (user + assistant)
+  config_versions   — YAML snapshot on every PUT
+  kb_uploads        — every KB JSON upload event (dedup by sha256 within a workspace)
 """
 
 from __future__ import annotations
@@ -37,14 +40,113 @@ class Base(DeclarativeBase):
 
 
 # ---------------------------------------------------------------------------
-# build_jobs
+# users
+# ---------------------------------------------------------------------------
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    # Subject ("sub") claim from Neon Auth JWT — unique per human.
+    # Phase A uses a single shared "anonymous" user; Phase B fills this in.
+    stack_user_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, unique=True)
+    email: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    display_name: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    workspaces: Mapped[list["Workspace"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+# ---------------------------------------------------------------------------
+# workspaces
+# ---------------------------------------------------------------------------
+
+class Workspace(Base):
+    __tablename__ = "workspaces"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    domain_config: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    graph_config: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    user: Mapped[User] = relationship(back_populates="workspaces")
+    files: Mapped[list["WorkspaceFile"]] = relationship(
+        back_populates="workspace", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_workspace_user_name"),
+        Index("ix_workspaces_user_id", "user_id"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# workspace_files
+# ---------------------------------------------------------------------------
+
+class WorkspaceFile(Base):
+    __tablename__ = "workspace_files"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kb_source: Mapped[str] = mapped_column(String(16), nullable=False)  # knowledge|tool
+    filename: Mapped[str] = mapped_column(String(256), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    chapters: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    title: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    blob_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    local_path: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    workspace: Mapped[Workspace] = relationship(back_populates="files")
+
+    __table_args__ = (
+        CheckConstraint("kb_source IN ('knowledge','tool')", name="ck_workspace_files_source"),
+        UniqueConstraint("workspace_id", "kb_source", "sha256", name="uq_workspace_files_sha"),
+        Index("ix_workspace_files_workspace_id", "workspace_id"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# build_jobs (now scoped to a workspace)
 # ---------------------------------------------------------------------------
 
 class BuildJobRow(Base):
     __tablename__ = "build_jobs"
 
     job_id: Mapped[str] = mapped_column(String(32), primary_key=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False)  # queued|running|done|error
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
     stage: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     stage_name: Mapped[str] = mapped_column(String(64), nullable=False, default="Queued")
     percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -64,7 +166,7 @@ class BuildJobRow(Base):
 
     __table_args__ = (
         CheckConstraint("status IN ('queued','running','done','error')", name="ck_build_jobs_status"),
-        Index("ix_build_jobs_created_at", "created_at"),
+        Index("ix_build_jobs_workspace_created", "workspace_id", "created_at"),
     )
 
 
@@ -78,6 +180,11 @@ class ChatSession(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     title: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -90,7 +197,7 @@ class ChatSession(Base):
         back_populates="session", cascade="all, delete-orphan", order_by="ChatMessage.id"
     )
 
-    __table_args__ = (Index("ix_chat_sessions_last_activity", "last_activity_at"),)
+    __table_args__ = (Index("ix_chat_sessions_workspace_activity", "workspace_id", "last_activity_at"),)
 
 
 class ChatMessage(Base):
@@ -102,7 +209,7 @@ class ChatMessage(Base):
         ForeignKey("chat_sessions.session_id", ondelete="CASCADE"),
         nullable=False,
     )
-    role: Mapped[str] = mapped_column(String(16), nullable=False)  # user|assistant
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
     query: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     response: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     intent: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
@@ -127,14 +234,19 @@ class ChatMessage(Base):
 
 
 # ---------------------------------------------------------------------------
-# config_versions
+# config_versions (per-workspace)
 # ---------------------------------------------------------------------------
 
 class ConfigVersion(Base):
     __tablename__ = "config_versions"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # domain|graph
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
     yaml_snapshot: Mapped[str] = mapped_column(Text, nullable=False)
     parsed_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
     changed_sections: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
@@ -145,19 +257,24 @@ class ConfigVersion(Base):
 
     __table_args__ = (
         CheckConstraint("kind IN ('domain','graph')", name="ck_config_versions_kind"),
-        Index("ix_config_versions_kind_created_at", "kind", "created_at"),
+        Index("ix_config_versions_ws_kind_created", "workspace_id", "kind", "created_at"),
     )
 
 
 # ---------------------------------------------------------------------------
-# kb_uploads
+# kb_uploads (now per-workspace)
 # ---------------------------------------------------------------------------
 
 class KbUpload(Base):
     __tablename__ = "kb_uploads"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    kb_source: Mapped[str] = mapped_column(String(16), nullable=False)  # knowledge|tool
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kb_source: Mapped[str] = mapped_column(String(16), nullable=False)
     filename: Mapped[str] = mapped_column(String(256), nullable=False)
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
     chapters: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -171,6 +288,13 @@ class KbUpload(Base):
 
     __table_args__ = (
         CheckConstraint("kb_source IN ('knowledge','tool')", name="ck_kb_uploads_source"),
-        UniqueConstraint("kb_source", "sha256", name="uq_kb_uploads_source_sha256"),
-        Index("ix_kb_uploads_created_at", "created_at"),
+        UniqueConstraint("workspace_id", "kb_source", "sha256", name="uq_kb_uploads_ws_src_sha256"),
+        Index("ix_kb_uploads_ws_created", "workspace_id", "created_at"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase A: anonymous user + default workspace bootstrap helpers
+# ---------------------------------------------------------------------------
+
+ANONYMOUS_STACK_ID = "__anonymous__"

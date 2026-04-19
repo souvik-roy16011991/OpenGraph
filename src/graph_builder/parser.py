@@ -251,3 +251,66 @@ def parse_kb_file(path: Path, kb_source: str) -> ParsedKB:
         metadata=raw.get("metadata", {}),
         chapters=chapters,
     )
+
+
+def parse_kb_files(paths: list[Path], kb_source: str) -> ParsedKB:
+    """
+    Parse multiple KB JSON files and merge them into a single ParsedKB.
+
+    - Chapters are concatenated across files.
+    - chapter_num is remapped to be globally unique across the merged set:
+      file 0's chapters stay at their original numbers; file 1's chapters
+      get offset by (max of file 0) + 1, etc. The heading text is prefixed
+      with "[<filename>] " so the origin remains debuggable in the UI.
+    - The output ParsedKB.title is "<first file title> (+N more)".
+    - Empty path list returns a ParsedKB with no chapters (callers should
+      guard against this upstream rather than relying on silent no-op).
+
+    Args:
+        paths: list of local JSON paths. Duplicates are allowed; callers are
+               responsible for dedup.
+        kb_source: "knowledge" or "tool" — applied uniformly to every chapter.
+    """
+    if not paths:
+        return ParsedKB(title="", subtitle="", kb_source=kb_source, metadata={}, chapters=[])
+
+    parsed_each: list[ParsedKB] = [parse_kb_file(p, kb_source) for p in paths]
+
+    merged: list[ParsedChapter] = []
+    offset = 0
+    for file_idx, (path, pkb) in enumerate(zip(paths, parsed_each)):
+        # Largest chapter_num in this file determines the offset for the next one.
+        local_max = 0
+        fname = Path(path).stem
+        for ch in pkb.chapters:
+            new_num = ch.chapter_num + offset
+            # Prefix heading with file origin so the UI can show it without
+            # loading extra metadata.
+            prefixed_heading = ch.heading if file_idx == 0 else f"[{fname}] {ch.heading}"
+            merged.append(ParsedChapter(
+                heading=prefixed_heading,
+                chapter_num=new_num,
+                level=ch.level,
+                content_blocks=ch.content_blocks,
+                sections=ch.sections,
+            ))
+            if ch.chapter_num > local_max:
+                local_max = ch.chapter_num
+        offset += max(local_max, len(pkb.chapters))
+
+    first = parsed_each[0]
+    title = first.title
+    if len(parsed_each) > 1:
+        title = f"{title} (+{len(parsed_each) - 1} more)"
+
+    return ParsedKB(
+        title=title,
+        subtitle=first.subtitle,
+        kb_source=kb_source,
+        metadata={
+            **first.metadata,
+            "merged_files": [Path(p).name for p in paths],
+            "merged_count": len(paths),
+        },
+        chapters=merged,
+    )

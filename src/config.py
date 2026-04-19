@@ -23,10 +23,31 @@ ROOT_DIR = Path(__file__).parent.parent
 
 DATA_DIR = Path(os.environ.get("DATA_DIR") or (ROOT_DIR / "data")).resolve()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Legacy singleton paths — kept so scripts/build_graph.py keeps working without
+# a workspace. New code should prefer workspace_data_dir() below.
 GRAPH_PICKLE_PATH = DATA_DIR / "knowledge_graph.pkl"
 FAISS_INDEX_PATH = DATA_DIR / "faiss_index.bin"
 NODE_REGISTRY_PATH = DATA_DIR / "node_registry.json"
 CROSS_LINKS_PATH = DATA_DIR / "cross_links.json"
+
+
+def workspace_data_dir(workspace_id: str) -> Path:
+    """Return the on-disk cache dir for a given workspace (creates it if absent)."""
+    p = (DATA_DIR / "workspaces" / workspace_id).resolve()
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def workspace_paths(workspace_id: str) -> dict[str, Path]:
+    """Return the conventional artifact paths for a workspace."""
+    d = workspace_data_dir(workspace_id)
+    return {
+        "graph_pickle": d / "knowledge_graph.pkl",
+        "faiss_index": d / "faiss_index.bin",
+        "node_registry": d / "node_registry.json",
+        "cross_links": d / "cross_links.json",
+    }
 
 # ---------------------------------------------------------------------------
 # LLM – Qwen via OpenRouter

@@ -400,10 +400,17 @@ class NodeExtractor:
         return sec_node
 
 
-def extract_all_nodes(knowledge_kb: ParsedKB, tool_kb: ParsedKB) -> dict[str, BaseNode]:
-    """Top-level entry point: extract nodes from both KBs."""
+def extract_all_nodes(
+    knowledge_kb: ParsedKB,
+    tool_kb: ParsedKB,
+    workspace_id: str | None = None,
+) -> dict[str, BaseNode]:
+    """Top-level entry point: extract nodes from both KBs and stamp workspace_id."""
     nodes: dict[str, BaseNode] = {}
     for kb in (knowledge_kb, tool_kb):
         extractor = NodeExtractor(kb)
         nodes.update(extractor.extract())
+    if workspace_id:
+        for n in nodes.values():
+            n.workspace_id = workspace_id
     return nodes

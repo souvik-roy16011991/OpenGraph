@@ -251,9 +251,9 @@ class EmbeddingPipeline:
         return index
 
     # ------------------------------------------------------------------
-    def save_faiss_index(self, index: Any) -> None:
+    def save_faiss_index(self, index: Any, path: Path | None = None) -> None:
         import faiss
-        path = Path(FAISS_INDEX_PATH)
+        path = Path(path or FAISS_INDEX_PATH)
         path.parent.mkdir(parents=True, exist_ok=True)
         faiss.write_index(index, str(path))
 
@@ -325,7 +325,11 @@ class EmbeddingPipeline:
         return store
 
     # ------------------------------------------------------------------
-    def upsert_to_qdrant(self, embeddings: dict[str, list[float]]) -> Any:
+    def upsert_to_qdrant(
+        self,
+        embeddings: dict[str, list[float]],
+        collection_name: str | None = None,
+    ) -> Any:
         """
         Upsert all node embeddings into Qdrant Cloud.
 
@@ -340,7 +344,7 @@ class EmbeddingPipeline:
         store = QdrantVectorStore(
             url=QDRANT_URL,
             api_key=QDRANT_API_KEY,
-            collection_name=QDRANT_COLLECTION_NAME,
+            collection_name=collection_name or QDRANT_COLLECTION_NAME,
             dimension=actual_dim,
         )
         store.delete_namespace()  # clean slate for rebuild
@@ -449,6 +453,8 @@ class EmbeddingPipeline:
 
 def run_embedding_pipeline(
     nodes: dict[str, BaseNode],
+    workspace_id: str | None = None,
+    qdrant_collection: str | None = None,
 ) -> tuple[dict[str, list[float]], list[Edge], Any]:
     """
     Top-level entry: generate embeddings, store vectors, build RELATED_TO edges.
@@ -457,15 +463,22 @@ def run_embedding_pipeline(
     where vector_store is a PineconeVectorStore (when USE_PINECONE) or a FAISS
     index (local fallback).  May be None when skip_embeddings was requested.
     """
+    # Resolve workspace-scoped FAISS path (per-workspace local cache).
+    faiss_path = None
+    if workspace_id:
+        from src.config import workspace_paths
+        faiss_path = workspace_paths(workspace_id)["faiss_index"]
+
     pipeline = EmbeddingPipeline(nodes)
     embeddings = pipeline.generate_embeddings()
 
     if USE_QDRANT:
-        logger.info("USE_QDRANT=True – upserting vectors to Qdrant Cloud…")
+        logger.info("USE_QDRANT=True – upserting vectors to Qdrant Cloud (collection=%s)…",
+                    qdrant_collection or "default")
         remote_ok = False
         vector_store: Any = None
         try:
-            vector_store = pipeline.upsert_to_qdrant(embeddings)
+            vector_store = pipeline.upsert_to_qdrant(embeddings, collection_name=qdrant_collection)
             remote_ok = True
         except Exception as exc:
             logger.error(
@@ -475,7 +488,7 @@ def run_embedding_pipeline(
         # Always save a local FAISS cache so runtime can still query if Qdrant is down.
         try:
             index = pipeline.build_faiss_index(embeddings)
-            pipeline.save_faiss_index(index)
+            pipeline.save_faiss_index(index, path=faiss_path)
             if not remote_ok:
                 vector_store = index
         except Exception as exc:
@@ -502,7 +515,7 @@ def run_embedding_pipeline(
         # Always save a local FAISS cache (fast cold-start + Pinecone fallback)
         try:
             index = pipeline.build_faiss_index(embeddings)
-            pipeline.save_faiss_index(index)
+            pipeline.save_faiss_index(index, path=faiss_path)
             if not pinecone_ok:
                 vector_store = index
         except Exception as exc:
@@ -516,7 +529,7 @@ def run_embedding_pipeline(
     else:
         logger.info("USE_QDRANT=False, USE_PINECONE=False – building local FAISS index…")
         index = pipeline.build_faiss_index(embeddings)
-        pipeline.save_faiss_index(index)
+        pipeline.save_faiss_index(index, path=faiss_path)
         related_edges = pipeline.build_related_edges(embeddings)
         vector_store = index
 
