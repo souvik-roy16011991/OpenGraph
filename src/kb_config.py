@@ -96,6 +96,21 @@ def set_active_kb_config(cfg: KBConfig) -> None:
         pass
 
 
+def reset_active_kb_config() -> None:
+    """Clear the cached active config so the next get_active_kb_config() reloads fresh.
+
+    Call this after writing changes to domain.yaml / extractor/keywords.yaml so
+    that subsequent reads pick up the new values without a server restart.
+    """
+    global _ACTIVE
+    _ACTIVE = None
+    try:
+        from src.agent.prompts.loader import reset_cache as _reset_prompts
+        _reset_prompts()
+    except Exception:
+        pass
+
+
 def get_active_kb_config() -> KBConfig:
     """Return the active config, resolving from ``KB_CONFIG_PATH`` on first call.
 

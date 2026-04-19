@@ -99,6 +99,14 @@ def create_app() -> FastAPI:
                 "search": "GET /api/v1/graph/search?q=...",
                 "stats": "GET /api/v1/graph/stats",
                 "chapters": "GET /api/v1/graph/chapters",
+                "visualization": "GET /api/v1/graph/visualization",
+                "upload_kb": "POST /api/v1/kb/upload",
+                "get_domain": "GET /api/v1/config/domain",
+                "put_domain": "PUT /api/v1/config/domain",
+                "get_graph_cfg": "GET /api/v1/config/graph",
+                "put_graph_cfg": "PUT /api/v1/config/graph",
+                "build": "POST /api/v1/build",
+                "build_status": "GET /api/v1/build/{job_id}",
             },
         }
 

@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Sub-routers (config, upload, build, viz) are included at the bottom of this
+# module after _get_kg is defined so they can import it safely.
+
 # KG instance injected at startup
 _kg: KnowledgeGraph | None = None
 
@@ -263,3 +266,19 @@ async def get_chapters():
     ]
     chapters.sort(key=lambda c: (c["kb_source"], c.get("chapter_num", 0)))
     return {"chapters": chapters}
+
+
+# ---------------------------------------------------------------------------
+# Sub-routers: upload, config, build, visualization
+# Imported lazily at module bottom to avoid circular imports.
+# ---------------------------------------------------------------------------
+
+from src.api.upload_routes import router as upload_router  # noqa: E402
+from src.api.config_routes import router as config_router  # noqa: E402
+from src.api.build_routes import router as build_router    # noqa: E402
+from src.api.viz_routes import router as viz_router        # noqa: E402
+
+router.include_router(upload_router, tags=["kb"])
+router.include_router(config_router, tags=["config"])
+router.include_router(build_router, tags=["build"])
+router.include_router(viz_router, tags=["graph"])
