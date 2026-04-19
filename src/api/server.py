@@ -62,13 +62,21 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS
+    # CORS — driven by CORS_ALLOW_ORIGINS (comma-separated) with a "*" default
+    # suitable for dev. In Render production, set this to the frontend origin
+    # (e.g. https://kb-frontend-xxxx.onrender.com). Credentials can only be
+    # allowed with an exact origin list; with "*" we fall back to no-credentials.
+    import os as _os
+    raw_origins = _os.environ.get("CORS_ALLOW_ORIGINS", "*").strip()
+    origins = [o.strip() for o in raw_origins.split(",") if o.strip()] or ["*"]
+    allow_credentials = origins != ["*"]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=origins,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Process-Time"],
     )
 
     # Request timing middleware

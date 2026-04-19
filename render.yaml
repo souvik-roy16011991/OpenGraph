@@ -1,96 +1,138 @@
+# ---------------------------------------------------------------------------
+# Render Blueprint
+# ---------------------------------------------------------------------------
+# Two services:
+#   1. kb-backend   — FastAPI (uvicorn) on a Docker runtime with a persistent
+#                     Render Disk mounted at /var/data for per-workspace
+#                     NetworkX pickles + FAISS indexes.
+#   2. kb-frontend  — Next.js production server on a Docker runtime. The
+#                     NEXT_PUBLIC_API_BASE build-arg freezes the backend URL
+#                     into the client bundle.
+#
+# Before the first deploy, in the Render dashboard set the following secrets
+# for EACH service where they apply (marked with `sync: false` below):
+#   - OPENROUTER_API_KEY
+#   - QDRANT_URL, QDRANT_API_KEY
+#   - MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD
+#   - DATABASE_URL  (Neon pooled connection string)
+#   - BLOB_READ_WRITE_TOKEN
+#   - UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN  (Phase C only)
+# ---------------------------------------------------------------------------
+
 services:
+  # =========================================================================
+  # Backend — FastAPI + background build threads
+  # =========================================================================
   - type: web
-    name: kb-knowledge-graph
+    name: kb-backend
     runtime: docker
     dockerfilePath: ./Dockerfile
-    # Render assigns $PORT automatically; the Dockerfile CMD reads it.
-    # healthCheckPath is polled after deploy to confirm the service is alive.
+    dockerContext: .
     healthCheckPath: /health
     autoDeploy: true
-    # Render Free tier: 512 MB RAM. The graph pickle + FAISS index together
-    # use ~30 MB. The process peaks during embedding at build time, not runtime.
-    # Use "starter" plan or higher for production workloads.
-    plan: starter
+    plan: starter           # Free tier is 512 MB RAM; starter is 1 GB — needed
+                            # when faiss + sentence-transformers are loaded.
+    disk:
+      name: kb-backend-data
+      mountPath: /var/data
+      sizeGB: 10            # Per-workspace artifacts (pickle + faiss) are small;
+                            # 10 GB is a comfortable ceiling for dozens of workspaces.
 
     envVars:
-      # ------------------------------------------------------------------
-      # Required — LLM calls will fail without this
-      # ------------------------------------------------------------------
-      - key: OPENROUTER_API_KEY
-        sync: false           # Set manually in the Render dashboard
+      # --- Storage roots ------------------------------------------------
+      - key: DATA_DIR
+        value: /var/data     # Matches the mounted Render Disk.
 
-      # ------------------------------------------------------------------
-      # LLM configuration (optional — defaults shown in comments)
-      # ------------------------------------------------------------------
+      # --- OpenRouter (LLM + remote embeddings) -------------------------
+      - key: OPENROUTER_API_KEY
+        sync: false
       - key: OPENROUTER_BASE_URL
         value: https://openrouter.ai/api/v1
-
       - key: LLM_MODEL
         value: qwen/qwen3-235b-a22b
-
       - key: LLM_TEMPERATURE
         value: "0.1"
-
       - key: LLM_MAX_TOKENS
         value: "4096"
-
-      # ------------------------------------------------------------------
-      # Embedding configuration (optional)
-      # Set KB_FORCE_TFIDF=1 to skip remote embeddings at query time.
-      # The Docker image is always built with TFIDF=1 (hash embeddings) so
-      # no API key is needed during the image build step.
-      # ------------------------------------------------------------------
       - key: EMBEDDING_MODEL
         value: qwen/qwen3-embedding-8b
-
+      # Flip to "1" to force offline TF-IDF embeddings (useful when OpenRouter
+      # quota is exhausted — avoids the PermissionDeniedError 403 seen before).
       - key: KB_FORCE_TFIDF
-        value: "1"     # Search uses pre-built FAISS index; no re-embedding at runtime
+        value: "0"
 
-      # ------------------------------------------------------------------
-      # Domain (optional)
-      # ------------------------------------------------------------------
-      - key: DOMAIN
-        value: loan_assessment
-
-      # ------------------------------------------------------------------
-      # Pinecone vector DB (optional — falls back to local FAISS if unset)
-      # ------------------------------------------------------------------
-      - key: PINECONE_API_KEY
+      # --- Memgraph (primary graph store) -------------------------------
+      - key: MEMGRAPH_URI
         sync: false
+      - key: MEMGRAPH_USERNAME
+        sync: false
+      - key: MEMGRAPH_PASSWORD
+        sync: false
+      - key: MEMGRAPH_DATABASE
+        value: memgraph
 
-      - key: PINECONE_INDEX_NAME
-        value: kb-index
-
-      - key: PINECONE_NAMESPACE
+      # --- Qdrant (primary vector store; one collection per workspace) --
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      # Legacy singleton collection name; per-workspace code uses kb-{ws_id}.
+      - key: QDRANT_COLLECTION_NAME
         value: kb-knowledge-graph
 
-      # ------------------------------------------------------------------
-      # Neo4j Aura graph DB (optional — falls back to NetworkX pickle if unset)
-      # ------------------------------------------------------------------
-      - key: NEO4J_URI
+      # --- Neon Postgres (workspaces + users + history) ----------------
+      - key: DATABASE_URL
         sync: false
 
-      - key: NEO4J_USERNAME
-        sync: false
-
-      - key: NEO4J_PASSWORD
-        sync: false
-
-      - key: NEO4J_DATABASE
-        value: neo4j
-
-      # ------------------------------------------------------------------
-      # Vercel Blob storage (optional — falls back to local kb-config/ files)
-      # Only used during graph build, not at runtime.
-      # ------------------------------------------------------------------
+      # --- Vercel Blob (durable KB file storage, per workspace) ---------
       - key: BLOB_READ_WRITE_TOKEN
         sync: false
-
       - key: BLOB_STORE_PATH
         value: v0-it-support-automation-blob/kb-config
 
-      # ------------------------------------------------------------------
-      # OpenMP / MKL duplicate lib fix (recommended for faiss-cpu on Linux)
-      # ------------------------------------------------------------------
+      # --- Upstash Redis (Phase C: JWKS + token cache) ------------------
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+
+      # --- CORS --------------------------------------------------------
+      # Comma-separated list of allowed origins. The frontend URL goes here
+      # once Render issues it. Wildcard is the Phase-A default.
+      - key: CORS_ALLOW_ORIGINS
+        value: "*"
+
+      # --- Misc --------------------------------------------------------
       - key: KMP_DUPLICATE_LIB_OK
         value: "TRUE"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  # =========================================================================
+  # Frontend — Next.js 15 App Router
+  # =========================================================================
+  - type: web
+    name: kb-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /
+    autoDeploy: true
+    plan: starter
+
+    # Build-time args get baked into the client bundle (NEXT_PUBLIC_*).
+    # `fromService.property: host` resolves to "kb-backend.onrender.com" at
+    # build time so the browser hits the backend directly.
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE
+        fromService:
+          type: web
+          name: kb-backend
+          property: host     # becomes https://kb-backend-xxxx.onrender.com
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: kb-backend
+          property: host
+      - key: NODE_ENV
+        value: production

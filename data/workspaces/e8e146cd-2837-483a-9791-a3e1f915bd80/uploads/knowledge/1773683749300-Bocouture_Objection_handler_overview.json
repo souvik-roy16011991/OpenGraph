@@ -1,0 +1,1194 @@
+{
+  "title": "**Objection**\n**handler**",
+  "subtitle": "",
+  "metadata_notes": [],
+  "metadata": {
+    "source_file": "1773683749300-Bocouture_Objection_handler_overview.pdf",
+    "source_type": "pdf",
+    "total_pages": 21,
+    "pages_processed": 21,
+    "blank_pages_skipped": [],
+    "total_chapters": 22,
+    "total_tables": 4,
+    "total_content_items": 164,
+    "parsed_at": "2026-04-15T07:49:20.229848+00:00",
+    "parser_version": "2.0",
+    "vision_model_used": true,
+    "vision_model": "qwen/qwen3-vl-32b-instruct"
+  },
+  "chapters": [
+    {
+      "heading": "**Objection**\n**handler**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "Two product boxes of BOCOUTURE® are displayed side by side on a reflective surface. The left box is blue and labeled: 'BOCOUTURE®', '4 UNITS / 0.1 ML', 'POWDER FOR SOLUTION FOR INJECTION', 'BOTULINUM TOXIN TYPE A (150 KD)', 'FREE FROM COMPLEXING PROTEINS', and '50 UNITS'. The right box is white with a blue horizontal stripe and labeled: 'BOCOUTURE®', '100 UNITS', 'POWDER FOR SOLUTION FOR INJECTION', 'BOTULINUM TOXIN TYPE A (150 KD)', 'FREE FROM COMPLEXING PROTEINS', and '100 UNITS'. Both boxes have additional small text on the side, including storage instructions: 'Keep out of the sight and reach of children.', 'Do not store above 25°C.', 'Shelf life after reconstitution: Please refer to the packaging leaflet.' The background is white with a diagonal blue gradient overlay on the right side."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Overview of**\n**BOCOUTURE® /**\n**XEOMIN®**",
+      "level": 1,
+      "content": [
+        {
+          "type": "reference",
+          "items": [
+            "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY.\nFOR OUR DISTRIBUTION PARTNERS: THE TERMS AND CONDITIONS, INCLUDING BUT NOT LIMITED TO CONFIDENTIALITY, IN THE MARKETING AND DISTRIBUTION AGREEMENT DATED [XX.XX.XXXX] APPLY."
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "Page number indicator: '< 1 >' in the bottom right corner, with navigation arrows."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Contents**",
+      "level": 1,
+      "content": [
+        {
+          "type": "list_bullet",
+          "items": [
+            "**BOCOUTURE®: Product information** Slide 3",
+            "**BOCOUTURE®: Indication** Slide 4",
+            "**What features differentiate BOCOUTURE® from other BoNT/As?** Slide 5-6",
+            "**BOCOUTURE®: Key clinical evidence** Slides 7–8",
+            "**BOCOUTURE®: Summary** Slide 9",
+            "**Overview of EU toxins available and planned launches** Slide 11–12",
+            "**References** Slide 13",
+            "**BOCOUTURE®: Important safety information** Slide 14"
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        },
+        {
+          "type": "image_description",
+          "text": "The slide features a clean, professional layout with a white background and blue accents. The title 'Contents' is displayed in bold blue font at the top left. Below it, a vertical list of eight items is presented, each within a light blue rectangular box with rounded corners and a thin blue border. Each item includes a topic title in bold black text on the left and the corresponding slide number in blue text on the right. The list items are arranged vertically and evenly spaced. In the bottom right corner, there is a blue triangular design element with navigation arrows (left and right) and the number '2' indicating the current slide number. The footer contains a light blue bar with the confidentiality notice in small gray text: 'HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY.'"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**BOCOUTURE®: Product information**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "Image shows two vials of BOCOUTURE®: one upright with blue cap labeled 'BOCOUTURE 100 UNITS', and one lying on its side labeled 'BOCOUTURE 50 UNITS'. Next to them are two product boxes: one blue labeled 'BOCOUTURE 50 UNITS', and one white labeled 'BOCOUTURE 100 UNITS'. The vials and boxes are displayed on a reflective surface with subtle reflections."
+        },
+        {
+          "type": "list_bullet",
+          "items": [
+            "Each vial contains 50 or 100 units of botulinum toxin type A, free from complexing proteins, as a white powder",
+            "Pack sizes of 1, 2, 3 or 6 vials (varies by country)",
+            "Reconstituted BOCOUTURE® is a clear, colourless solution",
+            "First approved for aesthetic use in the EU in 2010³"
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "For more information, please refer to: BOCOUTURE® Summary of Product Characteristics"
+        }
+      ],
+      "sections": [
+        {
+          "heading": "**Characteristics**",
+          "level": 2,
+          "content": [
+            {
+              "type": "table",
+              "caption": "",
+              "headers": [
+                "Brand name¹",
+                "Generic name",
+                "Composition¹",
+                "Ingredients¹",
+                "Foreign protein content²",
+                "Biological activity²",
+                "Manufacturer",
+                "Formulation¹",
+                "Vial size¹",
+                "Reconstitution¹",
+                "Starting dose¹",
+                "Storage requirements¹",
+                "Shelf-life¹"
+              ],
+              "rows": [
+                {
+                  "Brand name¹": "**BOCOUTURE® / XEOMIN®**",
+                  "Generic name": "**IncobotulinumtoxinA**",
+                  "Composition¹": "**C. botulinum toxin type A, free from complexing proteins**",
+                  "Ingredients¹": "**HSA and sucrose**",
+                  "Foreign protein content²": "**0.44 ng/100 U**",
+                  "Biological activity²": "**227 U/ng**",
+                  "Manufacturer": "**BOCOUTURE® XTRACT Technology™, Germany**",
+                  "Formulation¹": "**Powder for reconstitution before injection**",
+                  "Vial size¹": "**50U or 100U**",
+                  "Reconstitution¹": "**Required, 0.9% sodium chloride solution**",
+                  "Starting dose¹": "**• Glabellar frown lines: 20 units across 5 injection sites\n• Lateral periorbital lines: 24 units (12 per side across 3 injection sites)\n• Horizontal forehead lines: 10–20 units across 5 injection sites**",
+                  "Storage requirements¹": "**Room temperature**",
+                  "Shelf-life¹": "**3 years**"
+                }
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021;",
+                "2. Frevert J. Drugs R D 2010;10:67–73;",
+                "3. Data on file. Merz Pharmaceuticals GmbH. July 2021."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**BOCOUTURE®: Indication**",
+      "level": 1,
+      "content": [
+        {
+          "type": "callout",
+          "text": "**The first aesthetics neurotoxin approved for combination treatment of upper facial lines¹**"
+        },
+        {
+          "type": "paragraph",
+          "text": "**BOCOUTURE®** is indicated for the **temporary improvement** in the appearance of **upper facial lines** in adults below **65 years** when the **severity of these lines has an important psychological impact for the patient**:²"
+        },
+        {
+          "type": "image_description",
+          "text": "Three circular diagrams showing facial features with lines:\n\n1. **Left circle**: Illustration of a face with vertical lines between the eyebrows (glabellar frown lines). Below: \"Moderate-to-severe vertical lines between the eyebrows seen at maximum frown (glabellar frown lines).\"\n\n2. **Middle circle**: Illustration of a face with lines at the outer corners of the eyes (crow's feet). Below: \"Moderate-to-severe lateral periorbital lines seen at maximum smile (crow's feet lines/lateral periorbital lines).\"\n\n3. **Right circle**: Illustration of a face with horizontal lines across the forehead. Below: \"Moderate-to-severe horizontal forehead lines seen at maximum contraction.\"\n\nBetween the first and second diagram: **and/or**\nBetween the second and third diagram: **and/or**"
+        },
+        {
+          "type": "footnote",
+          "text": "1. Merz Aesthetics. Merz announces European approval of BOCOUTURE® for the treatment of upper facial lines. Available at: https://www.merz.com/blog/news/merz-announces-european-approval-of-bocouture-for-the-treatment-of-upper-facial-lines/. Last accessed: 09 November 2021; 2. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021."
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Merz Aesthetics. Merz announces European approval of BOCOUTURE® for the treatment of upper facial lines. Available at: https://www.merz.com/blog/news/merz-announces-european-approval-of-bocouture-for-the-treatment-of-upper-facial-lines/. Last accessed: 09 November 2021",
+            "2. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**What features differentiate BOCOUTURE® from other BoNT/As? (I)**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "The main content area contains a horizontal layout with four circular icons, each with an accompanying descriptive text block below it. All icons are blue line drawings on light blue circular backgrounds, enclosed within a thin blue rectangular border.\n\n1. **First icon (gears)**: Depicts two interlocking gears. Below it, the text reads: '**Uniquely purified** – first formulation of botulinum toxin type A, free from unnecessary complexing proteins.¹ Created using **XTRACT Technology™**.'\n\n2. **Second icon (trophy)**: Shows a trophy cup. Below it, the text reads: '**Consistent** and **reliable** performance;² with **Low adverse event rate** or side effects- like ptosis.¹,⁷,⁸'\n\n3. **Third icon (clipboard with checkmarks)**: Displays a clipboard with three checkmarks. Below it, the text reads: 'Yields natural-looking results with a **low risk of secondary treatment failure**.³'\n\n4. **Fourth icon (thermometer)**: Shows a thermometer. Below it, the text reads: '**Stable at room temperature** for 3 years, eliminating the need for a cold chain, cold storage materials and their disposal.¹'\n\nBelow these four features, a blue downward-pointing arrow leads to a statement: 'With **comparable efficacy** to other botulinum toxin type A formulations⁴–⁶', accompanied by a blue icon of a balance scale."
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021; 2. Rzany B, et al. Dermatol Surg 2013;39:95–103; 3. Hefter H, et al. BMJ Open 2012;2:e000646; 4. Kane MAC, et al. Dermatol Surg 2015;41:1310–9; 5. Lee JH, et al. J Dermatolog Treat 2014;25:326–30; 6. Oliveira de Morais O, et al. J Drugs Dermatol 2012;11:216–9. 7. Kane MAC, et al. Dermatol Surg 2015;41:1310–9; 8. Lee JH, et al. J Dermatolog Treat 2014;25:326–30;"
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**What features differentiate BOCOUTURE® from other BoNT/As? (II)**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "The slide contains three vertically aligned rectangular boxes with blue headers and light blue backgrounds, each describing a different differentiating feature of BOCOUTURE®.\n\n**Left Box:**\n- Header: **Evidence and Experience**\n- Icon: A white circle with a blue calendar icon and text \"15 years\"\n- Text: \"**Clinical** and **real-world global experience** established in more than **200 peer-reviewed publications** since **2005**.\"\n\n**Middle Box:**\n- Header: **HCP and Patient Satisfaction**\n- Icon: A white circle with a blue syringe icon and text \">10 million\"\n- Text: \"More than **10 million vials** shipped worldwide.¹\"\n\n**Right Box:**\n- Header: **Performance**\n- Icon: A white circle with three blue stars\n- Text: \"Achieves **high rates of patient satisfaction²** due to purity of the product there is a lower possibility of anti-body formation which leads to long-term performance even when used over long period of time.\"\n\nThe slide has a blue triangular design element in the bottom-right corner. Page number '6' is visible at the bottom right."
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Data on file. Merz Pharmaceuticals GmbH. July 2021;",
+            "2. Kane MAC, et al. Dermatol Surg 2015;41:1310–9;",
+            "3. Data on file. Qualitative market research report. Merz Pharmaceuticals GmbH. 2017–2020;",
+            "4. Mintel. Sub-zero waste 2019 global beauty and personal care trend. © 2018 Mintel Group Ltd."
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**BOCOUTURE®: Key clinical evidence (I)**",
+      "level": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "**Comparable efficacy and safety** to other botulinum toxin type A formulations shown for all indications:"
+        },
+        {
+          "type": "image_description",
+          "text": "Three circular diagrams, each containing a line drawing of a woman's face with different facial lines indicated:\n\n1. **Glabellar frown lines**: Diagram shows vertical lines between the eyebrows.\n2. **Lateral periorbital lines**: Diagram shows lines at the outer corners of the eyes.\n3. **Horizontal forehead lines**: Diagram shows horizontal lines across the forehead.\n\nEach diagram is labeled with its respective condition and accompanied by descriptive text below."
+        }
+      ],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "**Glabellar frown lines¹**",
+          "level": 3,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "BOCOUTURE® (n=122) and Botox® (n=128) demonstrated **dose equivalence** 1 month after treatment for moderate-to-severe glabellar frown lines with responder rates of 95.7% and 99.2%, respectively, according to the masked panel assessment."
+            }
+          ]
+        },
+        {
+          "heading": "**Lateral periorbital lines²**",
+          "level": 3,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "In a split-face study, BOCOUTURE® and Botox® (n=56) demonstrated **no differences in efficacy** 1 and 16 weeks after treatment. The mean improvement from baseline wrinkle severity score assessed by the investigator was not statistically significantly different between the treatments."
+            }
+          ]
+        },
+        {
+          "heading": "**Horizontal forehead lines³**",
+          "level": 3,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "In a pilot study comparing the efficacy of BOCOUTURE®, Botox®, Prosigne® and Azzalure® (n=12), patients were treated with two toxins, one on each side of the forehead. Results showed **no differences in the reduction of forehead lines** compared with baseline at Day 60 (n=22 forehead sides; p=0.340)."
+            },
+            {
+              "type": "callout",
+              "text": "**BOCOUTURE® is well tolerated with no serious treatment-related TEAEs.¹,²**"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Kane MAC, et al. Dermatol Surg 2015;41:1310–9;",
+                "2. Lee JH, et al. J Dermatolog Treat 2014;25:326–30;",
+                "3. Oliveira de Morais O, et al. J Drugs Dermatol 2012;11:216–9."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**BOCOUTURE®: Key clinical evidence (II)**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Rapid onset**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**BOCOUTURE® has a more rapid onset of treatment effect than Botox® and Dysport® for the treatment of glabellar frown lines¹**",
+                "**The median time to onset of action of BOCOUTURE® in females was 3.02 days versus 5.29 and 5.32 days for Botox® and Azzalure®, respectively, with a similar onset pattern observed for males¹**"
+              ]
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**High patient satisfaction**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**97.5% of 116 patients were extremely satisfied, satisfied or slightly satisfied with treatment with BOCOUTURE® for the treatment of moderate-to-severe glabellar frown lines 1 month after treatment; patient satisfaction rates remained >90% over 4 months³**"
+              ]
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Longevity of effect**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**One study showed that a single 21 U dose of BOCOUTURE® had a slightly longer duration of effect than Botox® or Dysport®, with a median duration in the region of 4–5 months²**",
+                "**Another study demonstrated a duration of treatment effect of approximately 6 months following treatment of glabellar frown lines with a single 20 U dose of BOCOUTURE®²**"
+              ]
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Consistent and reliable performance with repeated use**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**Repeat dosing of BOCOUTURE® is effective with a tendency to increasing high responder rates over time⁴**",
+                "**BOCOUTURE® has been shown to have a low risk of developing neutralizing antibodies, which may be related to its low foreign protein load and lack of complexing proteins⁵**"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Rappi T, et al. Clin Cosmet Investig Dermatol 2013;6:211–9;",
+                "2. Kerscher M, et al. J Drugs Dermatol 2020;19:985–91;",
+                "3. Kane MAC, et al. Dermatol Surg 2015;41:1310–9;",
+                "4. Rzany B, et al. Dermatol Surg 2013;39:95–103;",
+                "5. Hefter H, et al. BMJ Open 2012;2:e000646."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**BOCOUTURE®: Summary**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Strengths**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "The first pure toxin formulation without complexing proteins¹",
+                "Low risk of immunogenicity²",
+                "The first botulinum toxin type A indicated for combination treatment of upper facial lines¹",
+                "High patient satisfaction³",
+                "A ‘pure’ product is preferred by patients⁷",
+                "Comparable efficacy to other botulinum toxin type A formulations³–⁶",
+                "Established scientific track record with over 200 publications and over 10 million vials sold over more than 15 years",
+                "Stable at room temperature for 3 years¹",
+                "Can conveniently be transported and stored at room temperature.",
+                "No cold chain means BOCOUTURE® contributes to 90% fewer greenhouse gases compared with other neurotoxins. Plus it has less packaging to dispose of.⁸",
+                "Flexibility to customize through reconstitution¹ and availability of 50U and 100U vials."
+              ]
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Weaknesses**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "Requires careful reconstitution¹",
+                "Lack of HCP understanding of the importance of the removal of complexing proteins",
+                "Premium pricing",
+                "Requires precise injection due to low diffusion. So, training is required for a successful switch."
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021;",
+                "2. Hefer H, et al. BMJ Open 2012;2:e000646;",
+                "3. Kane MAC, et al. Dermatol Surg 2015;41:1310–9;",
+                "4. Lee JH, et al. J Dermatolog Treat 2014;25:326–30;",
+                "5. Oliveira de Morais O, et al. J Drugs Dermatol 2012;11:216–9;",
+                "6. Sattler G, et al. Dermatol Surg 2010;36:2146–54.",
+                "7. Data on File. Qualitative Market Research Report. Merz Pharmaceuticals GmbH. September 2017",
+                "8. Thistle F. Botulinum J. 2013;2:346."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+            },
+            {
+              "type": "image_description",
+              "text": "The slide has a white background with blue accents. On the left side, under the 'Strengths' heading, there is a light blue circular icon with a blue plus sign inside. On the right side, under the 'Weaknesses' heading, there is a similar light blue circular icon with a blue minus sign inside. In the bottom right corner, there is a blue triangular design element with a page number '9' and navigation arrows '<' and '>' indicating slide navigation. The text is primarily black, with headings in bold blue font."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**BOCOUTURE®/**\n**XEOMIN®**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "POTENTIAL OBJECTIONS",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "The slide has a clean, modern design with a diagonal split background. The left side is white transitioning to a light blue gradient at the bottom, while the right side is a solid royal blue. The BOCOUTURE® logo appears in white in the top right corner. The main title is in bold blue text on the left side. Page number '10' is displayed in white in the bottom right corner, flanked by left and right navigation arrows."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**1. BOCOUTURE® doesn't make my patients look as ‘wrinkle free’ as others toxins.**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**BOCOUTURE® has over 15 years of scientific and clinical evidence,¹ as well as over 200 publications and over 10 million vials sold worldwide.²**"
+            },
+            {
+              "type": "paragraph",
+              "text": "The clinical trials and other analyses over the years have explored patient-reported outcomes. For example, in a study by Kane and colleagues in 2015, **97.4% of patients were extremely satisfied, satisfied or slightly satisfied with treatment with BOCOUTURE®** one month after treatment and were over 90% throughout the study.³"
+            },
+            {
+              "type": "paragraph",
+              "text": "And in a retrospective analysis of clinical practice from patient notes by Prager and colleagues, **96.3% of physicians were satisfied with BOCOUTURE® treatment.⁴**"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Patient and physician satisfaction levels with BOCOUTURE® were high and similar to Botox® in both studies.³,⁴**"
+            },
+            {
+              "type": "paragraph",
+              "text": "Looking at the Azzalure SmPC, it outlines a **rate of eye lid ptosis of 1–10%,⁵** while for **BOCOUTURE® it is lower than 1%.⁶** Assuming this was done with an accurate injection technique, this indicates BOCOUTURE is associated with less diffusion."
+            },
+            {
+              "type": "paragraph",
+              "text": "**As such BOCOUTURE® depends on an even more accurate injection technique than you may use with other toxins,** to ensure you reach the motor neuron needed for therapeutic effect."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Using this very precise injection technique can also give you more confidence and further improve patient satisfaction** due to the adverse events associated with technique and misplaced toxin.⁷"
+            }
+          ],
+          "subsections": [
+            {
+              "heading": "**Background information:**",
+              "level": 3,
+              "content": [
+                {
+                  "type": "list_bullet",
+                  "items": [
+                    "The Kane study aimed to demonstrate the equipotency of 20 U Botox® and BOCOUTURE® for the treatment of glabellar frown lines (n=250)³",
+                    "Patient-reported treatment satisfaction was recorded at Months 1, 2, 3 and 4³",
+                    "In the Prager study, the documentation period was from March to June 2011 and data from 1256 patients were included⁴"
+                  ]
+                },
+                {
+                  "type": "reference",
+                  "items": [
+                    "1. Data on File. Merz North America, Inc. 2018;",
+                    "2. Data on File. Merz Pharmaceuticals GmbH. July 2021;",
+                    "3. Kane MAC et al. J Dermatol Surg 2015;41:1310–19;",
+                    "4. Prager W et al. Clin Cosmet Investig Dermatol 2012;4:53–8;",
+                    "5. Alluzience® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 16 July 2021;",
+                    "6. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021",
+                    "7. Witmanowski H & Blochowiak K. Postepy Dermatol Alergol 2020;37:853–861"
+                  ]
+                },
+                {
+                  "type": "footnote",
+                  "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**2. BOCOUTURE® is not as long lasting as other toxins**",
+      "level": 1,
+      "content": [],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "**Response:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Longevity of the treatment effect** is a key feature of aesthetics treatments and is important to patients as **it impacts cost.**"
+            },
+            {
+              "type": "paragraph",
+              "text": "Studies of BOCOUTURE® for the treatment of glabellar frown lines, have reported **high responder rates over time and long median duration of treatment effect.**¹,²"
+            },
+            {
+              "type": "paragraph",
+              "text": "For example, Kane and colleagues reported **responder rates of 89.7% and 62.1% at Months 2 and 4** respectively, after treatment with 20 U BOCOUTURE®¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "In a study by Kerscher and colleagues, **a single 20 U treatment of BOCOUTURE® had a median duration of action of 177 days which is approximately 6 months**²"
+            },
+            {
+              "type": "paragraph",
+              "text": "The BOTOX® SmPC suggests it lasts only 4 months in glabellar frown lines after a single injection and Azzalure® suggests only 5 months.³,⁴"
+            },
+            {
+              "type": "callout",
+              "text": "**Background information:**\n• In the Kane et al. study, clinical response was defined as an improvement of ≥1 point compared with baseline¹\n• Kerscher and colleagues assessed treatment duration as the time between injection and the return to baseline severity (n=151)²"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1; Kane MAC, et al. Dermatol Surg 2015;41:1310–19;",
+                "2. Kerscher M, et al. J Drugs Dermatol 2020;19:985–91.",
+                "3. Vistabel Summary of product characteristics, Allergan Ltd, 2020;",
+                "4. Azzalure Summary of Product Characteristics, Galderma, 2021."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "3. Purity does not matter to me",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "Response:",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Your patients today care deeply about what is in the cosmetic products and treatments they undergo with an increasing desire for 'healthy' and 'clean' products, particularly among millennials¹"
+            },
+            {
+              "type": "callout",
+              "text": "In fact, research also shows that 4 out of 5 patients would be influenced by the purity if given the choice.²"
+            },
+            {
+              "type": "paragraph",
+              "text": "Merz Aesthetics developed BOCOUTURE® with XTRACT™ technology creating the first and only highly purified BTX-A free of complexing proteins, only containing the required therapeutic component.³ Accordingly BOCOUTURE® provides an opportunity to attract and retain patients by virtue of the purity demand from patients."
+            },
+            {
+              "type": "callout",
+              "text": "Above all, from a biological point of view the complexing proteins are removed as they have no therapeutic purpose but constitute an unnecessary foreign protein load.³ They can be recognized by the immune system and stimulate an immune response risking the generation of neutralizing antibodies and secondary treatment failure.⁴"
+            },
+            {
+              "type": "paragraph",
+              "text": "With this in mind BOCOUTURE® should be the only neurotoxin choice considered from an ethical responsibility stand point. The pandemic has put more pressure on our immune systems which we do not want to add to, plus patients are starting younger which means they run more risk of building resistance."
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "Background information:",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "Recent consumer research in beauty and personal care, showed that 72% of respondents said it was important to purchase healthy or clean products¹",
+                "We asked 4,000 patients, \"How important is the purity of botulinum toxin products to you personally?\" 4 out of 5 patients desire a purified toxin²",
+                "The manufacturing process of BOCOUTURE® involves several chromatographic steps to purify the neurotoxin from the complexing proteins while minimizing the risk of denaturing, degrading or losing biological activity of the neurotoxin³",
+                "The neurotoxin itself does not contain any molecular signatures recognized by dendritic cells which may stimulate an immune response while the complexing proteins do, and are therefore identified as adjuvants.³",
+                "Neutralizing antibodies can result in partial or complete treatment failure³,⁴"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Masory A & Yost P. Naturally beautiful: millennials and preferences in beauty and personal care products. 2019. Available at: https://www.alixpartners.com/media/12673/ap_millennial_preferences_beauty_personal_care_may_2019.pdf. Last accessed: 25 October 2021;",
+                "2. Data on File. Qualitative Market Research Report. Merz Pharmaceuticals GmbH. September 2017",
+                "3. Frevert J. Drugs R D 2010;10:67–73;",
+                "4. Frevert J. Drugs R D 2015;15:1–9."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "4. I do not care about room temperature storage as I keep all products in the fridge anyway",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "Response:",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "To **safeguard from any efficacy challenges** in the event of an electrical failure effecting the fridge, or indeed if a product is left outside the fridge for a period of time (e.g. in transition to the fridge or treatment room in a larger clinic), **it is very important to have a product that can be stored at room temperature.**"
+            },
+            {
+              "type": "callout",
+              "text": "Additionally, with the increased awareness of carbon emissions, the fact that **storage of BOCOUTURE® contributes to 90% fewer greenhouse gases and has less packaging to dispose of compared with other neurotoxins¹** is a great benefit clinics can use to attract patients."
+            },
+            {
+              "type": "paragraph",
+              "text": "Also, no cold chain means there are **no limitations in terms of special delivery services needed** to consistently get BOCOUTURE into clinics in a timely manner."
+            }
+          ],
+          "subsections": [
+            {
+              "heading": "Key supporting assets:",
+              "level": 3,
+              "content": [
+                {
+                  "type": "list_bullet",
+                  "items": [
+                    "BOCOUTURE® HCP brochure"
+                  ]
+                },
+                {
+                  "type": "footnote",
+                  "text": "1. Thistle F. Botulinum J. 2013;2:346."
+                },
+                {
+                  "type": "reference",
+                  "items": [
+                    "1. Thistle F. Botulinum J. 2013;2:346."
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "5. I have recently switched and I am not getting good results",
+      "level": 1,
+      "content": [],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "Response:",
+          "level": 3,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**BOCOUTURE® has over 15 years of scientific and clinical evidence**,¹ as well as **over 200 publications** and **over 10 million vials** sold worldwide.²"
+            },
+            {
+              "type": "paragraph",
+              "text": "In a retrospective analysis of clinical practice from patient notes by Prager and colleagues, **96.3% of physicians were satisfied with BOCOUTURE® treatment**.³ However, even for the most experienced practitioners, we find a small amount of learning is needed for successful transition."
+            },
+            {
+              "type": "paragraph",
+              "text": "First **BOCOUTURE® requires very careful reconstitution** due to its dry-freeze powder form.⁴ There is a reconstitution animation I can show you to demonstrate the steps."
+            },
+            {
+              "type": "paragraph",
+              "text": "Second, BOCOUTURE® has shown lower diffusion rate compared to other toxin⁵. As such, an **even more accurate injection technique** is required to ensure the target site is reached for optimal therapeutic effect."
+            },
+            {
+              "type": "callout",
+              "text": "**Background information:**\n• In the Prager study, the documentation period was from March to June 2011 and data from 1256 patients were included⁴\n• In the Kerscher 2012 study comparing the spread of BOCOUTURE®, BOTOX® and Azzalure®, Azzalure® showed a higher rate of spread at 6 weeks and also at 6 months⁵."
+            },
+            {
+              "type": "callout",
+              "text": "**Key supporting assets:**\n• BOCOUTURE HCP Brochure\n• Reconstitution Animation"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Data on File. Merz North America, Inc. 2018;",
+                "2. Data on File. Merz Pharmaceuticals GmbH. July 2021;",
+                "3. Prager W et al. Clin Cosmet Investig Dermatol 2012;4:53–8",
+                "4. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021",
+                "5. Kerschel M et al. Arch Dermatol Res 305:115-161."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**6. Toxins are all similar, so I look for something cheaper than BOCOUTURE®**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Not all botulinum toxin formulations are the same and only head-to-head studies can properly compare the efficacy and safety of different products.**"
+            },
+            {
+              "type": "paragraph",
+              "text": "**BOCOUTURE®** has been studied in head-to-head clinical trials across indications – glabellar frown lines, lateral periorbital lines (crow’s feet), horizontal forehead lines, blepharospasm and cervical dystonia – which **have shown that it has comparable efficacy to other botulinum toxin A formulations including equipotency to Botox® for the treatment of glabellar frown lines.**¹⁻⁵ **BOCOUTURE®** also has proven efficacy for post-stroke upper limb spasticity.⁶"
+            },
+            {
+              "type": "paragraph",
+              "text": "**A key differentiator of BOCOUTURE® is that it is the first and only pure toxin formulation without complexing proteins.**⁷ Complexing proteins can be recognized by the immune system and stimulate an immune response risking the generation of **neutralizing antibodies leading to treatment failure.**⁸,⁹"
+            },
+            {
+              "type": "paragraph",
+              "text": "Another benefit of **BOCOUTURE®** is the long median duration of action, which has been in a study by Kerscher and colleagues: a single 20 U treatment of **BOCOUTURE®** for glabellar lines had a **median duration of action of 177 days, which is approximately 6 months**¹⁰"
+            },
+            {
+              "type": "paragraph",
+              "text": "**For your patient, long duration of action can offset any potential savings from a cheaper priced neurotoxin/treatment.** This, along with the risk of developing neutralizing antibodies and secondary treatment failure, maximises physician’s **potential of providing great patient satisfaction and retaining patients for a lifetime of treatment.**"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Background information:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**In the Kane et al. study, BOCOUTURE® (n=122) and Botox® (n=128) demonstrated dose equivalence 1 month after treatment for moderate to severe glabellar frown lines with responder rates of 95.7% and 99.2%, respectively, according to the masked panel assessment¹**",
+                "**In a split-face study for lateral periorbital lines, BOCOUTURE® and Botox® (n=56) demonstrated no differences in efficacy 1 and 16 weeks after treatment²**",
+                "**For the treatment of forehead lines, in a pilot study (n=12) comparing BOCOUTURE®, Botox®, Prosigne® and Dysport®, there were no differences in the reduction of forehead lines compared with baseline at Day 60³**",
+                "**Following a 20-week placebo-controlled trial, 145 patients received additional treatments with BOCOUTURE® for post-stroke upper limb spasticity which was well tolerated and improved muscle tone and functionality⁶**"
+              ]
+            }
+          ],
+          "subsections": [
+            {
+              "heading": "**Key supporting assets:**",
+              "level": 3,
+              "content": [
+                {
+                  "type": "list_bullet",
+                  "items": [
+                    "**BOCOUTURE® HCP Brochure**"
+                  ]
+                },
+                {
+                  "type": "reference",
+                  "items": [
+                    "1. Kane MAC, et al. Dermatol Surg 2015;41:1310–19; 2. Lee JH, et al. J Dermatolog Treat 2014;25:326–30; 3. Oliveira de Morais O, et al. J Drugs Dermatol 2012;11:216–19; 4. Roggenkämper P, et al. J Neural Transm 2006;113:303–12; 5. Benecke R, et al. Neurology 2005;64:1949–51; 6. Kaňovsky P, et al. J Rehabil Med 2011;43:486–92 .7. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021; 8. Frevert J. Drugs R D 2015;15:1–9; 9. Martin MU. Thieme Drug Report 2014;7:1–12; 10. Kerscher M, et al. J Drugs Dermatol 2020;19:985–91."
+                  ]
+                },
+                {
+                  "type": "footnote",
+                  "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "BOCOUTURE® objection-handling summary",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "Top topics to defend against",
+            "Response"
+          ],
+          "rows": [
+            {
+              "Top topics to defend against": "Results don’t make patients look as ‘wrinkle free’ as other products",
+              "Response": "Patient and physician satisfaction levels with BOCOUTURE® are high and similar to Botox®.1,2 We find BOCOUTURE® depends on an **even more accurate injection technique than you may use with other toxins for optimal results.**"
+            },
+            {
+              "Top topics to defend against": "Longevity of effect",
+              "Response": "**Studies of BOCOUTURE® for the treatment of glabellar frown lines, have reported high responder rates over time and long median duration of treatment effect.1,3**"
+            },
+            {
+              "Top topics to defend against": "Purity doesn’t matter",
+              "Response": "**Purity is in demand by patients** and so this angle acts as an opportunity for clinics to attract and retain more patients.4,5 BOCOUTURE® is the **ONLY neurotoxin free from complexing proteins**, which are associated **with producing an immune response and secondary treatment failure.6** As such, **BOCOUTURE® should be the only neurotoxin choice considered by HCPs from an ethical responsibility stand point.**"
+            },
+            {
+              "Top topics to defend against": "I don’t care about room temperature storage",
+              "Response": "Room temperature is important to **safeguard from any efficacy challenges** in the event of cold chain disruption. Plus, due to storage conditions and packaging BOCOUTURE® contributes to **90% fewer greenhouse gases** compared with other neurotoxins9. Lastly, the storage means there is **no limitations in terms of special delivery services needed.**"
+            },
+            {
+              "Top topics to defend against": "I have recently switched and I am not getting good results",
+              "Response": "A small amount of learning is needed for successful transition. First **BOCOUTURE® requires very careful reconstitution** due to its dry-freeze powder form.7 Second, **even more accurate injection technique is required.7**"
+            },
+            {
+              "Top topics to defend against": "I want a cheap price",
+              "Response": "**BOCOUTURE® is the ONLY pure neurotoxin and has a long median duration of action.7,3** For patients, **long duration of action can offset any potential savings from a cheaper priced neurotoxin/treatment.** For physician’s, this provides the **potential of providing great patient satisfaction and retaining patients for a lifetime of treatment.8**"
+            }
+          ]
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Hable M, Wirtz and Dermatol. 2019;2019;101:101–107. 2. Tager H et al. Clin Cosmet Investig Dermatol. 2012;5:209–217. 3. Henseler JH et al. J Drugs Dermatol. 2020;19:606–614. 4. Thistle F et al. J. Natually beautiful: millennials and preferences in beauty and personal care products. 2019. Available at: https://www.alixpartners.com/media/12673/ap_millennial_preferences_beauty_personal_care_may_2019.pdf. Last accessed: 25 October 2021; 2. Data on File. Qualitative Market Research Report. Merz Pharmaceuticals GmbH. September 2017 6. Frevert J. Drugs R D 2010;10:67–73 7. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021; 8. Frevert J. Drugs R D 2015;15:1–9; 9. Thistle F. Botulinum J. 2013;2:346"
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Overview of EU toxins available- and planned launches (I)**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "Toxin",
+            "BOCOUTURE®/XEOMIN®",
+            "Botox® / Vistabel®",
+            "Azzalure® / Dysport®",
+            "Alluzience®",
+            "Letybo®/ Botulax®",
+            "Nabota®/ Jeuveau™"
+          ],
+          "rows": [
+            {
+              "Toxin": "**Packshot**",
+              "BOCOUTURE®/XEOMIN®": "image_description: Small vial with blue cap and label, placed next to a blue and white box with text and logo.",
+              "Botox® / Vistabel®": "image_description: Small vial with purple cap and label, placed next to a white box with purple and pink accents and 'Botox' branding.",
+              "Azzalure® / Dysport®": "image_description: White box with 'AZZALURE' text and logo, featuring a small vial with blue cap inside the packaging.",
+              "Alluzience®": "image_description: White box with 'ALLUZIENCE' text and a blue water droplet logo, containing a small vial with clear cap.",
+              "Letybo®/ Botulax®": "image_description: Small vial with green cap and label, placed next to a white box with green and yellow accents and 'Letybo' branding.",
+              "Nabota®/ Jeuveau™": "image_description: Small vial with red cap and label, placed next to a white box with red and gray accents and 'Nabota' branding."
+            },
+            {
+              "Toxin": "**Generic name**",
+              "BOCOUTURE®/XEOMIN®": "IncobotulinumtoxinA",
+              "Botox® / Vistabel®": "OnabotulinumtoxinA",
+              "Azzalure® / Dysport®": "AbobotulinumtoxinA",
+              "Alluzience®": "AbobotulinumtoxinA",
+              "Letybo®/ Botulax®": "LetibotulinumtoxinA",
+              "Nabota®/ Jeuveau™": "PrabotulinumtoxinA"
+            },
+            {
+              "Toxin": "**Manufacturer**",
+              "BOCOUTURE®/XEOMIN®": "Merz Aesthetics",
+              "Botox® / Vistabel®": "AbbVie/Allergan",
+              "Azzalure® / Dysport®": "Galderma/Ipsen",
+              "Alluzience®": "Galderma/Ipsen",
+              "Letybo®/ Botulax®": "Hugel/Croma",
+              "Nabota®/ Jeuveau™": "Evolus/Daewoong"
+            },
+            {
+              "Toxin": "**Composition**",
+              "BOCOUTURE®/XEOMIN®": "Free from complexing proteins; pure 150 kDa neurotoxin",
+              "Botox® / Vistabel®": "900 kDa complexes",
+              "Azzalure® / Dysport®": "300–900 kDa complexes",
+              "Alluzience®": "300–900 kDa complexes",
+              "Letybo®/ Botulax®": "900 kDa neurotoxin complex",
+              "Nabota®/ Jeuveau™": "900 kDa purified botulinum toxin type A"
+            },
+            {
+              "Toxin": "**Key claims**",
+              "BOCOUTURE®/XEOMIN®": "• Uniquely purified with XTRACT™ technology\n• Free from complexing proteins\n• Consistent and reliable\n• Equipotent to other BoNT/As\n• Stable at room temperature",
+              "Botox® / Vistabel®": "• You know it, you trust it\n• Precise: No diffusion from injected muscle\n• Most indications worldwide\n• High level of patient satisfaction; 97% patient satisfaction in surveyed patients",
+              "Azzalure® / Dysport®": "• Rapid onset, long duration\n• Reliable results\n• High patient satisfaction\n• Natural-looking results",
+              "Alluzience®": "• Rapid onset\n• Designed for precision\n• Liquid, ready-to-use formulation\n• No animal-based components\n• Long duration treatment effect",
+              "Letybo®/ Botulax®": "• Cheaper version of Botox®\n• Stable product- predictable results\n• Highly purified\n• Rapid onset and long lasting effect\n• Highly potent",
+              "Nabota®/ Jeuveau™": "• Modern-made with proprietary Hi-Pure™ Technology\n• Designed for aesthetics\n• Cheaper than Botox®\n• Aimed at younger customers"
+            },
+            {
+              "Toxin": "**On market/ expected launch dates***",
+              "BOCOUTURE®/XEOMIN®": "On the market",
+              "Botox® / Vistabel®": "On the market",
+              "Azzalure® / Dysport®": "On the market",
+              "Alluzience®": "Launch end of 2021; full launch at AMWC 2022",
+              "Letybo®/ Botulax®": "EMA approval early 2022; launch AMWC",
+              "Nabota®/ Jeuveau™": "FDA approved (2019); EU approved (2019), launch 2022"
+            }
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "*This is based on last estimations - status December 2021."
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        },
+        {
+          "type": "image_description",
+          "text": "Bottom right corner of the slide features a blue triangular design element with the page number '19' in white, flanked by left and right arrow icons."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Overview of EU toxins available- and planned launches (II)**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "**ToxinHFTFG**",
+            "**BOCOUTURE®/ XEOMIN®**",
+            "**Botox® / Vistabel®**",
+            "**Azzalure® / Dysport®**",
+            "**Alluzience®**",
+            "**Letybo®/Botulax®**",
+            "**Juveau®/ Nabota™**"
+          ],
+          "rows": [
+            {
+              "**FDA approved**": "FDA approved 2011",
+              "**BOCOUTURE®/ XEOMIN®**": "FDA approved 2011",
+              "**Botox® / Vistabel®**": "FDA approved 2008",
+              "**Azzalure® / Dysport®**": "FDA approved 2009",
+              "**Alluzience®**": "Not FDA approved",
+              "**Letybo®/Botulax®**": "Not FDA approved; South Korea 2010, Thailand, Japan, India, Turkey, Philippines, etc.",
+              "**Juveau®/ Nabota™**": "FDA approved 2019; EC approved 2019 Canada, Korea, etc."
+            },
+            {
+              "**Approved indication**": "Glabellar lines, forehead lines, crow’s feet",
+              "**BOCOUTURE®/ XEOMIN®**": "Glabellar lines, forehead lines, crow’s feet",
+              "**Botox® / Vistabel®**": "Glabellar lines, forehead lines, crow’s feet",
+              "**Azzalure® / Dysport®**": "Glabellar lines, forehead lines, crow’s feet",
+              "**Alluzience®**": "Glabellar lines",
+              "**Letybo®/Botulax®**": "Glabellar frown lines, crow’s feet",
+              "**Juveau®/ Nabota™**": "Glabellar frown lines"
+            },
+            {
+              "**Ingredient breakdown**": "**Excipients**",
+              "**BOCOUTURE®/ XEOMIN®**": "1.0 mg HAS; 4.7 mg sucrose",
+              "**Botox® / Vistabel®**": "0.5 mg HAS; 0.9 mg NaCl",
+              "**Azzalure® / Dysport®**": "0.13 mg HAS; 2.5 mg lactose",
+              "**Alluzience®**": "L-histidine; sucrose; sodium chloride; hydrochloric acid; polysorbate 80",
+              "**Letybo®/Botulax®**": "0.5 mg HAS; 0.9 mg NaCl",
+              "**Juveau®/ Nabota™**": "0.5 mg HAS; 0.9 mg NaCl"
+            },
+            {
+              "**Ingredient breakdown**": "**Foreign protein content**",
+              "**BOCOUTURE®/ XEOMIN®**": "0.44 ng/100 U",
+              "**Botox® / Vistabel®**": "5.0 ng/100 U",
+              "**Azzalure® / Dysport®**": "0.87 ng/100 U",
+              "**Alluzience®**": "Assume same as Azzalure®",
+              "**Letybo®/Botulax®**": "–",
+              "**Juveau®/ Nabota™**": "–"
+            },
+            {
+              "**Ingredient breakdown**": "**Neurotoxin**",
+              "**BOCOUTURE®/ XEOMIN®**": "0.44 ng/100 U",
+              "**Botox® / Vistabel®**": "0.73 ng/100 U",
+              "**Azzalure® / Dysport®**": "0.65 ng/100 U",
+              "**Alluzience®**": "Assume same as Azzalure®",
+              "**Letybo®/Botulax®**": "0.84 ng/100 U",
+              "**Juveau®/ Nabota™**": "0.75 ng/100 U"
+            },
+            {
+              "**Ingredient breakdown**": "**Complexing proteins**",
+              "**BOCOUTURE®/ XEOMIN®**": "None",
+              "**Botox® / Vistabel®**": "Present",
+              "**Azzalure® / Dysport®**": "Present",
+              "**Alluzience®**": "Present",
+              "**Letybo®/Botulax®**": "Present",
+              "**Juveau®/ Nabota™**": "Present"
+            },
+            {
+              "**Ingredient breakdown**": "**Biological activity**",
+              "**BOCOUTURE®/ XEOMIN®**": "227 U/ng",
+              "**Botox® / Vistabel®**": "137 U/ng",
+              "**Azzalure® / Dysport®**": "154 U/ng",
+              "**Alluzience®**": "Assume same as Azzalure®",
+              "**Letybo®/Botulax®**": "118 U/ng",
+              "**Juveau®/ Nabota™**": "133 U/ng"
+            },
+            {
+              "**Ingredient breakdown**": "**Shelf-life**",
+              "**BOCOUTURE®/ XEOMIN®**": "36 months (50 U); 48 months (100 U)",
+              "**Botox® / Vistabel®**": "36 months (50/100 U); 24 months (200 U)",
+              "**Azzalure® / Dysport®**": "24 months",
+              "**Alluzience®**": "12 months",
+              "**Letybo®/Botulax®**": "2–8°C = 24 months; –70°C = 30 months; max. 36 months",
+              "**Juveau®/ Nabota™**": "24 months"
+            },
+            {
+              "**Ingredient breakdown**": "**Storage**",
+              "**BOCOUTURE®/ XEOMIN®**": "20–25°C (Room temperature)",
+              "**Botox® / Vistabel®**": "2–8°C; <–5°C",
+              "**Azzalure® / Dysport®**": "2–8°C",
+              "**Alluzience®**": "2–8°C",
+              "**Letybo®/Botulax®**": "2–8°C",
+              "**Juveau®/ Nabota™**": "2–8°C"
+            },
+            {
+              "**Ingredient breakdown**": "**Post-recon**",
+              "**BOCOUTURE®/ XEOMIN®**": "24 hours",
+              "**Botox® / Vistabel®**": "24 hours",
+              "**Azzalure® / Dysport®**": "4 hours",
+              "**Alluzience®**": "12 months",
+              "**Letybo®/Botulax®**": "30 days",
+              "**Juveau®/ Nabota™**": "–"
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        },
+        {
+          "type": "page_number",
+          "text": "20"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**References**",
+      "level": 1,
+      "content": [
+        {
+          "type": "reference",
+          "items": [
+            "Alluzience® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 16 July 2021.",
+            "Benecke R, et al. Neurology 2005;64:1949–51.",
+            "BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021.",
+            "Data on file. Qualitative market research report. Merz Pharmaceuticals GmbH. 2017–2020.",
+            "Data on file. Merz Pharmaceuticals GmbH. July 2021.",
+            "Data on File. Merz North America, Inc. 2018.",
+            "Frevert J. Drugs R D 2010;10:67–73.",
+            "Frevert J. Drugs R D 2015;15:1–9.",
+            "Hefter H, et al. BMJ Open 2012;2:e000646.",
+            "Kane MAC, et al. Dermatol Surg 2015;41:1310–9.",
+            "Kaňovský P, et al. J Rehabil Med 2011;43:486–92 .",
+            "Kerscher M, et al. J Drugs Dermatol 2020;19:985–91.",
+            "Kerschel M et al. Arch Dermatol Res 305:115-161.",
+            "Lee JH, et al. J Dermatolog Treat 2014;25:326–30.",
+            "Martin MU. Thieme Drug Report 2014;7:1–12;",
+            "Masory A & Yost P. Naturally beautiful: millennials and preferences in beauty and personal care products. 2019. Available at: https://www.alixpartners.com/media/12673/ap_millennial_preferences_beauty_personal_care_may_2019.pdf. Last accessed: 25 October 2021.",
+            "Merz Aesthetics. Merz announces European approval of BOCOUTURE® for the treatment of upper facial lines. Available at: https://www.merz.com/blog/news/merz-announces-european-approval-of-bocouture-for-the-treatment-of-upper-facial-lines/. Last accessed: 09 November 2021.",
+            "Mintel. Sub-zero waste 2019 global beauty and personal care trend. © 2018 Mintel Group Ltd.",
+            "Oliveira de Morais O, et al. J Drugs Dermatol 2012;11:216–9.",
+            "Prager W et al. Clin Cosmet Investig Dermatol 2012;4:53–8.",
+            "Rappl T, et al. Clin Cosmet Investig Dermatol 2013;6:211–9.",
+            "Roggenkämper P, et al. J Neural Transm 2006;113:303–12",
+            "Rzany B, et al. Dermatol Surg 2013;39:95–103.",
+            "Sattler G, et al. Dermatol Surg 2010;36:2146–54.",
+            "Thistle F. Botulinum J. 2013;2:346.",
+            "Witmanowski H & Blochowiak K. Postepy Dermatol Alergol 2020;37:853–861."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**BOCOUTURE®: Important safety information**",
+      "level": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "**BOCOUTURE®**, 50 or 100 units, powder for solution for injection. **Active substance**: Botulinum toxin type A (150 kD), purified from Clostridium Botulinum cultures (Hall strain), free from complexing proteins. Prescription-only medicine! **Qualitative and quantitative composition**: One vial contains: 50 or 100 units of Botulinum toxin type A (150 kD), free from complexing proteins, human albumin, sucrose. Due to the differences in the potency assay, unit doses are not interchangeable with those for other Botulinum toxin type A preparations."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Therapeutic indications**: For temporary improvement in the appearance of upper facial lines in adults below 65 years when the severity of these lines has an important psychological impact for the patient:"
+        },
+        {
+          "type": "list_bullet",
+          "items": [
+            "moderate to severe vertical lines between the eyebrows seen at maximum frown (glabellar frown lines) and/or",
+            "moderate to severe lateral periorbital lines seen at maximum smile (crow's feet lines) and/or",
+            "moderate to severe horizontal forehead lines seen at maximum contraction."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "**Contraindications**: Hypersensitivity to the active substance or to any of the excipients, generalised disorders of muscle activity (e.g. myasthenia gravis, Lambert-Eaton syndrome), infection or inflammation at the proposed injection site. Should not be used during pregnancy unless clearly necessary and not be used during breast-feeding. **Undesirable effects**: Undesirable effects usually occur within the first week after injection and are temporary in nature. They may be related to the active substance, the injection procedure, or both."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Application-related**: Localised pain, inflammation, paraesthesia, hypoesthesia, tenderness, swelling, oedema, erythema, itching, localised infection, haematoma, bleeding and/or bruising may be associated with the injection. Needle-related pain and/or anxiety may result in vasovagal responses, including transient symptomatic hypotension, nausea, tinnitus, and syncope."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Undesirable effects of the substance class Botulinum toxin type A**: Localised muscle weakness, blepharoptosis (possibly caused by the injection technique) are an expression of the pharmacological effect. **Toxin spread**: When treating other indications with Botulinum toxins, undesirable effects related to spread of toxin distant from the site of administration producing symptoms consistent with Botulinum toxin type A effects have been reported very rarely (excessive muscle weakness, dysphagia, and aspiration pneumonia with a fatal outcome in some cases). These cannot be completely ruled out with the use of BOCOUTURE®. **Hypersensitivity reactions**: Rare reports of serious and/or immediate hypersensitivity reactions including anaphylaxis, serum sickness, urticaria, soft tissue oedema, and dyspnoea, some of these reactions either following the administration of conventional Botulinum toxin type A complex alone or in combination with other agents known to cause similar reactions. The following undesirable effects were reported from clinical experience with BOCOUTURE®: **Very common** (≥1/10); **common** (≥1/100 to <1/10); **uncommon** (≥1/1,000 to <1/100). **Vertical lines between the eyebrows seen at maximum frown (Glabellar Frown Lines)**: **Common**: Headache, Mephisto sign (lateral elevation of eyebrows); **Uncommon**: Bronchitis, nasopharyngitis, influenza-like illness, insomnia, eyelid oedema, eyelid ptosis, blurred vision, pruritus, skin nodule, brow ptosis, muscle twitching, muscle spasm, facial asymmetry (brow asymmetry), injection site haematoma, injection site pain, (local) tenderness, fatigue, discomfort (heavy feeling of eyelid/eyebrow), haematoma. **Lateral periorbital lines seen at maximum smile (Crow's Feet Lines)**: **Common**: Eyelid oedema, dry eye, injection site haematoma. **Upper Facial Lines**: **Very common**: Headache; **Common**: Hypoaesthesia, injection site haematoma, injection site pain, injection site erythema, discomfort (heavy feeling of the frontal area), eyelid ptosis, dry eye, brow ptosis, facial asymmetry, Mephisto sign (lateral elevation of eyebrows), nausea."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Post-marketing experience**: **Frequency not known**: Hypersensitivity reactions like swelling, oedema (also distant from the injection site), erythema, pruritus, rash (localised and generalised), breathlessness, muscle atrophy, flu-like symptoms."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Merz Pharmaceuticals GmbH, 60048 Frankfurt/Main, Germany. <Phone: +49-69/1503-1>.**"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Date of revision of the text: February 2020**"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Further information is provided in the Summary of Product Characteristics and the Package Leaflet.**"
+        },
+        {
+          "type": "callout",
+          "text": "**PLEASE CHECK YOUR LOCAL APPROVAL STATUS**"
+        },
+        {
+          "type": "paragraph",
+          "text": "<Phone: +49-69/1503-1> is optional information"
+        },
+        {
+          "type": "footnote",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        }
+      ],
+      "sections": []
+    }
+  ]
+}

@@ -1,31 +1,40 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS base
 
 WORKDIR /app
 
-# System deps: gcc for compiling C extensions (faiss-cpu, numpy)
+# System deps: gcc/g++ for faiss-cpu + numpy wheels, libpq for psycopg fallback
+# (asyncpg is used at runtime — libpq stays optional but cheap).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies before copying source so this layer is cached
+# Install Python deps first so the layer caches across code changes.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source and KB data
+# Copy the application
 COPY . .
 
-# Build the knowledge graph at image build time.
-# Uses fast TF-IDF hash embeddings (no network / no API key required).
-# Override at build time with --build-arg TFIDF=0 to use remote embeddings,
-# but OPENROUTER_API_KEY must be available as a build secret in that case.
-ARG TFIDF=1
-RUN mkdir -p data && KB_FORCE_TFIDF=${TFIDF} python scripts/build_graph.py --no-llm
+# Multi-tenant runtime: graphs are built per-workspace via POST /api/v1/build.
+# Per-workspace artifacts (FAISS + NetworkX pickle + node_registry) land
+# under $DATA_DIR, which we default to a path intended to be backed by a
+# Render Persistent Disk mounted at /var/data. Subfolders are auto-created
+# by workspace_data_dir().
+ENV DATA_DIR=/var/data
+RUN mkdir -p /var/data
 
-# Render injects $PORT at runtime; default to 10000 to match Render's default
-ENV PORT=10000
-
-# Expose for local docker run
+# Render assigns PORT; fall back to 8000 for local docker run.
+ENV PORT=8000
 EXPOSE ${PORT}
 
+# Lightweight inline healthcheck (Render also polls healthCheckPath).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -fsS "http://127.0.0.1:${PORT}/health" || exit 1
+
+# Single uvicorn worker — the build-job runner keeps per-workspace state in
+# memory (build_jobs._jobs). Multiple workers would each have their own
+# dict and the /build/{job_id} route could land on the wrong worker.
+# Horizontal scaling requires moving _jobs into Neon (future work).
 CMD uvicorn src.api.server:app --host 0.0.0.0 --port ${PORT} --workers 1

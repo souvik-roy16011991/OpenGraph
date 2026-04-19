@@ -1,0 +1,1354 @@
+{
+  "title": "**Objection**\n**handler**",
+  "subtitle": "",
+  "metadata_notes": [],
+  "metadata": {
+    "source_file": "1773683688199-Dysport_-_xeomin_Objection_Handler.pdf",
+    "source_type": "pdf",
+    "total_pages": 24,
+    "pages_processed": 24,
+    "blank_pages_skipped": [],
+    "total_chapters": 25,
+    "total_tables": 5,
+    "total_content_items": 182,
+    "parsed_at": "2026-04-15T07:48:09.116200+00:00",
+    "parser_version": "2.0",
+    "vision_model_used": true,
+    "vision_model": "qwen/qwen3-vl-32b-instruct"
+  },
+  "chapters": [
+    {
+      "heading": "**Objection**\n**handler**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "The image displays two pharmaceutical products side by side against a blue and white background. On the left, two boxes of **BOCOUTURE®** are shown: one blue box labeled '50 UNITS' and one white box labeled '100 UNITS'. Both boxes indicate 'POWDER FOR SOLUTION FOR INJECTION', 'BOTULINUM TOXIN TYPE A (150 KD)', and 'FREE FROM COMPLEXING PROTEINS'. The blue box specifies '4 UNITS / 0.1 ML'. On the right, a white box labeled **Dysport®** with '500 units/vial' is shown, along with a vial of Dysport®. The Dysport® box includes 'Clostridium botulinum type A toxin-haemagglutinin complex', 'For subcutaneous/intramuscular injection', 'Prescription only item', and the manufacturer 'IPSEN'. The text 'Use as directed by doctor' is visible. The Dysport® box also has a storage symbol indicating 'Keep between -2°C and +8°C in the refrigerator'. The brand name **Dysport®** is displayed prominently in white text below the product image on the blue background. The top right corner features the **BOCOUTURE®** logo in white text on blue. The bottom of the page contains a confidentiality notice: 'HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY. FOR OUR DISTRIBUTION PARTNERS: THE TERMS AND CONDITIONS, INCLUDING BUT NOT LIMITED TO CONFIDENTIALITY, IN THE MARKETING AND DISTRIBUTION AGREEMENT DATED [XX.XX.XXXX] APPLY.' Page navigation arrows and the number '1' are visible at the bottom right corner."
+        },
+        {
+          "type": "reference",
+          "items": [
+            "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY. FOR OUR DISTRIBUTION PARTNERS: THE TERMS AND CONDITIONS, INCLUDING BUT NOT LIMITED TO CONFIDENTIALITY, IN THE MARKETING AND DISTRIBUTION AGREEMENT DATED [XX.XX.XXXX] APPLY."
+          ]
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Contents**",
+      "level": 1,
+      "content": [
+        {
+          "type": "list_bullet",
+          "items": [
+            "**DYSPORT® characteristics** Slide 3",
+            "**DYSPORT® positioning** Slide 4",
+            "**DYSPORT® key messages** Slide 5",
+            "**DYSPORT® key data** Slide 7",
+            "**DYSPORT® summary** Slide 10",
+            "**DYSPORT® potential objections** Slides 11–16",
+            "**DYSPORT® objection handling summary** Slide 17",
+            "**References** Slide 18",
+            "**Appendices** Slides 19–22"
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "image_description",
+          "text": "The slide features a clean, professional layout with a white background. The title 'Contents' is displayed in bold blue text at the top left. Below it, there are nine rectangular boxes with light blue fill and blue borders, each containing a topic title and corresponding slide number. The boxes are arranged vertically in a single column on the left side of the slide. Each box contains text in black, with the topic name in bold and the slide number in blue. The topics are: 'DYSPORT® characteristics', 'DYSPORT® positioning', 'DYSPORT® key messages', 'DYSPORT® key data', 'DYSPORT® summary', 'DYSPORT® potential objections', 'DYSPORT® objection handling summary', 'References', and 'Appendices'. In the bottom right corner, there is a blue triangular navigation element with the number '2' and left/right arrow icons, indicating this is slide 2 of the presentation. A light blue footer bar spans the bottom of the slide with the confidentiality notice in small gray text."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Dysport® characteristics**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "An image of a white rectangular box labeled 'Dysport®'. The box has green accents on the top and bottom right corners. Text on the box includes: 'For subcutaneous/intramuscular injection', 'Prescription only item', '500 units/vial', 'Clostridium botulinum type A toxin-haemagglutinin complex', 'Use as directed by doctor', 'IPSEN', and 'Keep between +2°C and +8°C in the refrigerator'. The number '1' is visible on the bottom right corner of the box. The box also features a Rx symbol and a pictogram indicating refrigeration."
+        }
+      ],
+      "sections": [
+        {
+          "heading": "**Characteristic** (See Appendix 1 for a comparison chart to XEOMIN®)",
+          "level": 2,
+          "content": [
+            {
+              "type": "table",
+              "caption": "",
+              "headers": [
+                "Characteristic",
+                "Value"
+              ],
+              "rows": [
+                {
+                  "Characteristic": "**Brand name¹**",
+                  "Value": "**Dysport®**"
+                },
+                {
+                  "Characteristic": "**Generic name²**",
+                  "Value": "**AbobotulinumtoxinA²**"
+                },
+                {
+                  "Characteristic": "**Manufacturer¹**",
+                  "Value": "**Ipsen**"
+                },
+                {
+                  "Characteristic": "**Composition¹**",
+                  "Value": "**C. botulinum toxin type A haemagglutinin complex**"
+                },
+                {
+                  "Characteristic": "**Ingredients¹**",
+                  "Value": "**Human albumin and lactose monohydrate**"
+                },
+                {
+                  "Characteristic": "**Foreign Protein Content³**",
+                  "Value": "**0.65 ng/100 U**"
+                },
+                {
+                  "Characteristic": "**Biological Activity³**",
+                  "Value": "**154 units/ng**"
+                },
+                {
+                  "Characteristic": "**Formulation¹**",
+                  "Value": "**Powder for solution for injection**"
+                },
+                {
+                  "Characteristic": "**Vial size¹**",
+                  "Value": "**500 Speywood units**"
+                },
+                {
+                  "Characteristic": "**Reconstitution¹**",
+                  "Value": "**Required, 0.9% sodium chloride solution**"
+                },
+                {
+                  "Characteristic": "**Indication¹**",
+                  "Value": "**Moderate to severe glabellar frown lines and/or crow’s feet lines**"
+                },
+                {
+                  "Characteristic": "**Starting dose¹**",
+                  "Value": "**50 Speywood units for glabellar frown lines, 30 Speywood units for crow’s feet lines**"
+                },
+                {
+                  "Characteristic": "**Storage requirements¹**",
+                  "Value": "**Refrigeration (2°C–8°C)**"
+                },
+                {
+                  "Characteristic": "**Shelf life¹**",
+                  "Value": "**2 years**"
+                }
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Azzalure® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 01 June 2021;",
+                "2. Frevert J. Drugs R D. 2015;15:1-9;",
+                "3. Frevert J. Drugs R D 2010;10:67–73."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Dysport® positioning**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "A horizontal rectangular box with a thin blue border contains four circular icons, each with a blue outline and light blue background, aligned horizontally. Each icon is paired with a bolded heading and supporting text below.\n\n1. **Leftmost icon**: A gear with a clock face inside, surrounded by a circular arrow. Below it, the text reads: **Long-lasting efficacy**, with a longer duration of action than Botox¹,²\n\n2. **Second icon from left**: A stopwatch. Below it, the text reads: **Quick onset of action (2–3 days)**¹\n\n3. **Third icon from left**: A thumbs-up hand gesture. Below it, the text reads: **High patient satisfaction**²\n\n4. **Rightmost icon**: A shield with a checkmark inside. Below it, the text reads: **Well-tolerated safety profile**¹\n\nAll icons and text are in blue and black, respectively, with consistent font styling."
+        },
+        {
+          "type": "footnote",
+          "text": "1. Moy R et al. Arch Facial Plast S 2009;11(2):77–83; 2. Rzany B et al. Dermatol Surg 2007;33:S18–25."
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Moy R et al. Arch Facial Plast S 2009;11(2):77–83",
+            "2. Rzany B et al. Dermatol Surg 2007;33:S18–25"
+          ]
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Dysport® key messages**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "The image displays four rectangular panels with blue headers and light blue backgrounds, each containing a circular graphic with a key statistic and explanatory text below. The panels are arranged horizontally from left to right.\n\n**Leftmost Panel:**\n- Header: **Established clinical experience¹**\n- Circular graphic: **25 years**\n- Text below: **25 years of clinical experience**, with a strong historic focus on dermatology\n\n**Second Panel from Left:**\n- Header: **Visible results as soon as 24 hours²**\n- Circular graphic: **24 hours**\n- Text below: **24 hour onset of action** in some cases\nMedian time to onset of **3 days**\n\n**Third Panel from Left:**\n- Header: **Long duration of action²,³**\n- Circular graphic: **88 days**\n- Text below: Median duration of affect across three treatment cycles was **88 days** for investigator assessment, and **84 days** for patient assessment\n\n**Rightmost Panel:**\n- Header: **Long duration of action²,³** (shared with previous panel)\n- Circular graphic: **5.9–6.5 months**\n- Text below: **5.9–6.5 months** between cycles for treatments in the upper face\n\nThe bottom of the image contains footnotes and a confidentiality notice."
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Aesthetic Medicine. Azzalure® celebrates its 10-year anniversary. Available from: https://aestheticmed.co.uk/site/industrynewsdetails/azzalure-celebrates-its-10-year-anniversary. Accessed January 2022; 2. Moy R et al. Arch Facial Plast S 2009;11(2):77–83; 3. Rzany B et al. Dermatol Surg 2007;33:S18–25."
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "paragraph",
+          "text": "The page number '5' is displayed in the bottom right corner, with left and right navigation arrows beside it."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "Dysport® key messages (cont.)",
+      "level": 1,
+      "content": [
+        {
+          "type": "callout",
+          "text": "**An effective ‘frozen’ look¹**"
+        },
+        {
+          "type": "image_description",
+          "text": "A blue syringe icon is displayed in the center of a light blue box."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Greater diffusion with Dysport®** than XEOMIN® or Botox®, leading to a more ‘frozen’ look which may be desired by some patients"
+        },
+        {
+          "type": "callout",
+          "text": "**Strong support program**"
+        },
+        {
+          "type": "image_description",
+          "text": "A blue briefcase icon is displayed in the center of a light blue box."
+        },
+        {
+          "type": "paragraph",
+          "text": "Medical training and **strong support programs** on toxin handling and dosing"
+        },
+        {
+          "type": "footnote",
+          "text": "1. Kerscher M, et al. Arch Dermatol Res 2012;304(2):155–161; 2. Rzany B et al. Dermatol Surg 2007;33:S18–25."
+        },
+        {
+          "type": "paragraph",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Dysport® key phase 3 data: efficacy and safety of repeated doses**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**The study:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "A 13-month, open-label, multi-center trial"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Objective:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "To evaluate long-term safety of repeat treatment with botulinum toxin type A in the treatment of moderate to severe glabellar frown lines"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Conclusions:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "No evidence of **cumulative adverse events** with repeat treatments"
+            },
+            {
+              "type": "paragraph",
+              "text": "No **loss of efficacy** with repeat treatments"
+            },
+            {
+              "type": "paragraph",
+              "text": "Treatments were **well-tolerated**"
+            }
+          ],
+          "subsections": [
+            {
+              "heading": "**ORIGINAL ARTICLE**",
+              "level": 3,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "text": "**Long-term Safety and Efficacy of a New Botulinum Toxin Type A in Treating Glabellar Lines**"
+                },
+                {
+                  "type": "paragraph",
+                  "text": "Ronald Moy, MD; Corey Maas, MD; Gary Monheit, MD; M. Barbara Huber; for the Reloxin Investigational Group"
+                },
+                {
+                  "type": "callout",
+                  "text": "**Please note**\n• TEAEs were seen in 36% of patients\n• Most TEAEs were mild or moderate\n• There were 8 severe treatment-related adverse events"
+                },
+                {
+                  "type": "paragraph",
+                  "text": "See Appendix 3 for study design and key findings"
+                },
+                {
+                  "type": "reference",
+                  "items": [
+                    "TEAE, treatment-emergent adverse event.",
+                    "Moy R et al. Arch Facial Plast S 2009;11(2):77–83."
+                  ]
+                },
+                {
+                  "type": "footnote",
+                  "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**Appendix 3: Dysport® key phase 3 data: Study design**",
+      "level": 1,
+      "content": [],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "**Study design:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "A Phase III open-label trial carried out at 21 centers in the United States, 1200 patients who received up to five treatments with Azzalure® over a 13-month period",
+                "Patients had moderate to severe glabellar lines, were aged 18 years or older, and were excluded if they had received botulinum toxin treatment in the 85 days before study entry",
+                "Patients received up to five treatments with 50 U of Azzalure® with at least 85 days between treatments"
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "**Results/findings:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "The incidence of treatment-emergent adverse events decreased over time, with no evidence of cumulative safety issues",
+                "80–91% of patients responded to repeat treatment at Day 30 in each cycle",
+                "93–95% of patients reported onset of response by Day 7 in all cycles",
+                "The median onset of effect was 3 days after injection for all cycles",
+                "The median duration of effect was 88 days as assessed by investigators and 84 days as assessed by patients"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Moy R et al. Arch Facial Plast S 2009;11(2):77–83."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**Dysport® key data: long-term safety and efficacy**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**The study:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "A retrospective trial carried out in 21 centers in Germany and Austria between December 2004 and February 2005"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Objective:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "To evaluate effectiveness and safety of repeated doses of Dysport® in the treatment of upper facial lines"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Conclusions:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**High levels of patient satisfaction** for patients treated with Dysport®"
+            },
+            {
+              "type": "paragraph",
+              "text": "Most patients treated with Dysport® **did not experience any adverse events with treatment**, and **most adverse events were mild** and resolved without intervention"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Repeated Botulinum Toxin A Injections for the Treatment of Lines in the Upper Face: A Retrospective Study of 4,103 Treatments in 945 Patients**"
+            },
+            {
+              "type": "paragraph",
+              "text": "BERTHOLD RZANY, MD, SCM,* DOROTHEE DILL-MÜLLER, MD,† DORIS GRABLOWITZ, MD,‡ MARC HECKMANN, MD,§ AND DAVID CAIRD, PHD,‖ ON BEHALF OF THE GERMAN–AUSTRIAN RETROSPECTIVE STUDY GROUP"
+            },
+            {
+              "type": "paragraph",
+              "text": "See Appendix 4 for study design and key findings"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "Rzany B et al. Dermatol Surg 2007;33:S18–25."
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "footnote",
+              "text": "* DOROTHEE DILL-MÜLLER, MD,† DORIS GRABLOWITZ, MD,‡ MARC HECKMANN, MD,§ AND DAVID CAIRD, PHD,‖ ON BEHALF OF THE GERMAN–AUSTRIAN RETROSPECTIVE STUDY GROUP"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Appendix 4: Dysport® key data: Study design**",
+      "level": 1,
+      "content": [
+        {
+          "type": "callout",
+          "text": "**Study design:**\n• A retrospective trial carried out in 21 centers in Germany and Austria between December 2004 and February 2005, 945 patients who had a minimum of three consecutive treatments with Azzalure® in the upper third of the face\n\n**Results/findings:**\n• High levels of patient satisfaction, ranging from 96.0–98.9% between treatment cycles\n• High levels of physician satisfaction, ranging from 88.0–94.0% between treatment cycles\n• Low incidence of adverse events, with 90.6% of patients not experiencing any adverse events over any treatment cycle\n• Most adverse events were mild and resolved without intervention, there were no serious or unexpected adverse events"
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Rzany B et al. Dermatol Surg 2007;33:S18–25."
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Dysport® summary**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "Left side: A light blue circular icon with a blue plus sign (+) inside, labeled 'Strengths'. Right side: A light blue circular icon with a blue minus sign (−) inside, labeled 'Weaknesses'."
+        }
+      ],
+      "sections": [
+        {
+          "heading": "**Strengths**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**Established clinical experience**¹",
+                "**Visible results/ rapid efficacy as soon as 24 hours**²",
+                "**Long duration of action**²,³",
+                "**A ‘frozen’ look, if desired by the patient**⁴",
+                "**Strong support**",
+                "**Unique dilution- meaning once HCPs are used to it, it can be harder change**"
+              ]
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Weaknesses**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**Unique and confusing dilution**⁵ (0.63 mL of solvent required to reconstitute 10 U of Dysport®, which could be challenging to measure).",
+                "**High diffusion rate could relate to the high rate of ptosis in patients treated with Dysport®**⁴,⁵",
+                "**Little evidence of product comparisons in duration.**",
+                "**Contains complexing proteins**",
+                "**Requires cold chain**"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Aesthetic Medicine. Azzalure® celebrates its 10-year anniversary. Available from: https://aestheticmed.co.uk/site/industrynewsdetails/azzalure-celebrates-its-10-year-anniversary. Accessed January 2022; 2. Moy R et al. Arch Facial Plast S 2009;11(2):77–83; 3. Rzany B et al. Dermatol Surg 2007;33:S18–25; 4. Kerscher M, et al. Arch Dermatol Res 2012;304(2):155–161; 5. Azzalure® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 01 June 2021."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "footnote",
+              "text": "13"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Dysport®**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "POTENTIAL OBJECTIONS",
+          "level": 2,
+          "content": [
+            {
+              "type": "image_description",
+              "text": "The image shows a white and green box of Dysport® with a vial next to it. The box is labeled: 'Dysport®', '500 units/vial', 'Clostridium botulinum type A toxin-haemagglutinin complex', 'For subcutaneous/intramuscular injection', 'Prescription only item', 'Use as directed by doctor', and 'IPSEN'. A symbol indicates 'Keep between +2°C and +8°C in the refrigerator'. The number '1' is visible in a green triangle on the bottom right of the box. The vial is labeled 'Dysport®' with additional text including 'Clostridium botulinum type A toxin-haemagglutinin complex', '500 units/vial', and 'For subcutaneous/intramuscular injection'. The background of the slide is split diagonally: white on the top-left and blue on the bottom-right. In the top-right corner, the logo 'BOCOUTURE®' is displayed. At the bottom-left, the text 'HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY' is visible. The slide number '14' is shown in the bottom-right corner with navigation arrows."
+            },
+            {
+              "type": "callout",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**1. Dysport® is supported by years of clinical experience**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**XEOMIN® has over 15 years of scientific and clinical evidence,**¹ as well as over **200 publications** and over **10 million vials** sold worldwide.²"
+            },
+            {
+              "type": "paragraph",
+              "text": "Clinical trials and other analyses over the years assessing the proven high and long-term efficacy and safety of XEOMIN® have shown high levels of patient satisfaction. For example, in a study by Kane and colleagues in 2015, **97.4% of patients were extremely satisfied, satisfied or slightly satisfied** with treatment with XEOMIN® one month after treatment and this figure remained **over 90%** throughout the study.³"
+            },
+            {
+              "type": "paragraph",
+              "text": "**XEOMIN® has been proven to have equivalent efficacy to Botox®** for the treatment of CFL and GFL in randomised controlled trials.³⁻⁵ **XEOMIN® and Botox® displayed comparable spread** at 6 weeks,⁶ and a retrospective analysis of daily practice found that XEOMIN® and Botox® had **similar efficacy and safety profiles** in the upper face.⁷"
+            },
+            {
+              "type": "paragraph",
+              "text": "**XEOMIN® has a faster onset of action than Dysport®.** In a trial comparing XEOMIN® with Botox® and Dysport®, the median onset of action in males and females was assessed by physicians compared with baseline videos and **occurred two days earlier in those treated with XEOMIN® compared with Dysport®.**⁸"
+            },
+            {
+              "type": "paragraph",
+              "text": "Finally, Merz is a global leader in therapeutic innovations with **over 110 years of experience** in dermatology. We are committed to supporting you and your practice with **dedicated marketing and sales support, training and a medical team.** Whether sales, marketing or clinical training, we have you covered."
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Key supporting assets:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**GP HCP brochure**"
+              ]
+            },
+            {
+              "type": "callout",
+              "text": "**Background information:**\n• Dysport® was first authorised in 2009 for the improvement of glabellar lines and crow’s feet lines⁹\n• The Kane study aimed to demonstrate the equipotency of 20 U Botox® and XEOMIN® for the treatment of glabellar frown lines (n=250)³\n• Patient-reported treatment satisfaction was recorded at Months 1, 2, 3 and 4³\n• The Kerscher study investigated the spread of three BoNT/A product in 29 participants by comparing the the maximal area of anhidrosis within 6 weeks after forehead injection.⁶\n• The Prager 2012 study was a questionnaire-based study of 21 aesthetic clinics in Germany including 1256 patients.⁷"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "CFL, crow’s feet lines; GFL, glabellar frown lines. 1. Data on File. Merz North America, Inc. 2018; 2. Data on File. Merz Pharmaceuticals GmbH. July 2021; 3. Kane M, et al. Dermatol Surg. 2015;41(11):1310–1319; 4. Prager W, et al. Dermatol Surg. 2010;36(S4):2155–2160. 5. BOCOUTURE (incobotulinumtoxinA) Summary of Product Characteristics. Merz Pharmaceuticals GmbH; 6. Kerscher M, et al. Arch Dermatol Res 2012;304(2):155–161; 7. Prager W et al. Clin Cosmet Investig Dermatol 2012;4:53–8; 8. Rappl T et al. Clin Cosmet Investig Dermatol 2013;6:211–219; 9. Azzalure® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 01 June 2021; 2. Bocouture® Summary of Product Characteristics. Merz Pharma UK Ltd. 28 July 2021."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "2. I want to try Dysport® as I hear it is the longest-lasting product available",
+      "level": 1,
+      "content": [],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "Response:",
+          "level": 3,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The duration of effect is an important factor in aesthetic treatments, with an impact on the frequency of repeat treatment and the cost to patients to maintain the treatment effect. An open-label study showed that the **median duration of effect for patients treated with Dysport® was 88 days**, as assessed by investigators.¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "XEOMIN® has been shown to have a **median duration of effect of approximately 6 months**, with a study by Kerscher and colleagues finding a median duration of effect of 177 days.² A study by Prager and colleagues showed that **75% of patients were still responding to treatment at 5 months** (≥1 point improvement compared with baseline).³"
+            },
+            {
+              "type": "paragraph",
+              "text": "Clinical trials and other analyses assessing the proven high and long-term efficacy and safety of XEOMIN® have also shown high levels of patient satisfaction. For example, in a study by Kane and colleagues in 2015, **97.4% of patients were extremely satisfied, satisfied or slightly satisfied** with treatment with XEOMIN® one month after treatment and this figure remained **over 90%** throughout the study.⁴"
+            },
+            {
+              "type": "paragraph",
+              "text": "Using XTRACT™ Technology, we have produced the **first and ONLY toxin free from complexing proteins**.⁵ A formulation purified from complexing proteins like XEOMIN® poses the **lowest risk** of neutralising antibody formation and therefore the lowest risk of **secondary treatment failure**.⁶ This supports the use of XEOMIN® over a lifetime with long-term satisfaction for your patients."
+            }
+          ]
+        },
+        {
+          "heading": "Key supporting assets:",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "GP HCP brochure",
+                "Immunogenicity video",
+                "Purity Matters video"
+              ]
+            },
+            {
+              "type": "callout",
+              "text": "Background information:\n• The Moy study evaluated the long-term safety of repeat treatments with Dysport® for glabellar frown lines¹\n• In the Prager study, the documentation period was from March to June 2011 and data from 1256 patients were included³"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Moy R et al. Arch Facial Plast S 2009;11(2):77–83;",
+                "2. Kerscher M et al. J Drugs Dermatol 2020;19:985–91;",
+                "3. Prager W et al. Clin Interv Aging 2013;8:449–456;",
+                "4. Kane M, et al. Dermatol Surg. 2015;41(11):1310–1319;",
+                "5. Frevert J, Dressler D. Biologics. 2010;4:325–332;",
+                "6. Martin MU. Thieme Drug Report 2014;7:1–12."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**3. Dysport® has an impressive onset of action with visible results within 24 hours**",
+      "level": 1,
+      "content": [],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "**Response:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**A rapid onset of action is an advantage** in an aesthetic procedure contributing to patient satisfaction"
+            },
+            {
+              "type": "paragraph",
+              "text": "In a Phase 3 study of a single treatment of **Dysport®**, the effect of treatment was seen within 24 hours in some cases, with a median time to onset of 3 days¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "However, **a study has also confirmed the rapid onset of XEOMIN®**. In a trial comparing Xeomin® with Botox® and Dysport®, the median onset of action in males and females was assessed by physicians compared with baseline videos and **occurred two days earlier in those treated with XEOMIN® compared with Dysport®**.²"
+            }
+          ]
+        },
+        {
+          "heading": "**Background information:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "The Moy study evaluated the long-term safety of repeat treatments with Dysport® for glabellar frown lines¹",
+                "In the Rappl study (n=180), onset was defined as the day on which a decrease of ≥1-point from baseline on the 5-point Merz Aesthetics Scale when comparing muscle activity assessed by the injecting physician and one other physician²",
+                "Median time to onset for XEOMIN® was 3.02 and 3.36 days for females and males and for Dysport® was 5.32 and 5.93 days, respectively²"
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "**Key supporting assets:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**BOCOUTURE® Efficacy Fact Book**"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Moy R et al. Arch Facial Plast S 2009;11(2):77–83;",
+                "2. Rappl T et al. Clin Cosmet Investig Dermatol 2013;6:211–219."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**4. I like using Dysport® for an effective ‘frozen’ look**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**It is important to strike a balance between minimising facial lines and maintaining facial dynamics to allow as much facial expression as possible. Injection sites in the face are very close to untargeted muscles, so to minimize unwanted effects it is important to prevent diffusion into nearby muscles.**¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "Kerscher and colleagues showed that **Dysport® had a significantly greater spread than XEOMIN® or Botox®,** meaning that it may be more challenging to get a precise effect when using Azzalure®.¹ The precise localization of XEOMIN® can give you the flexibility to allow for dynamic expression or to target multiple points over a wider area for a greater effect.¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Unwanted effects can occur when treatment spreads to untargeted muscles. For example, eyelid ptosis is common in patients treated with Dysport®, seen in 1–10% of patients.**² However, eyelid ptosis is uncommon in patients treated with BOCOUTURE®, seen in only 0.1–1% of patients.³"
+            },
+            {
+              "type": "paragraph",
+              "text": "Using **XTRACT™ Technology**, we have produced the **first and ONLY toxin free from complexing proteins.**⁴ A formulation purified from complexing proteins like XEOMIN® poses the **lowest risk** of neutralising antibody formation and therefore the **lowest risk of secondary treatment failure.**⁵ This supports the use of XEOMIN® over a lifetime with long-term satisfaction for your patients."
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Background information:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "**Kerscher and colleagues investigated the spread of XEOMIN®, Azzalure® and Botox® in 29 participants by comparing the size of the anhidrotic halos produced following injection of equivalent doses in an identical volume in the forehead¹**",
+                "**The primary outcome parameter was the maximal area of anhidrosis within 6 weeks¹**",
+                "**XEOMIN® and Botox® displayed comparable spread at 6 weeks, and Azzalure® displayed a significantly greater maximal area of anhidrosis compared with XEOMIN®¹**",
+                "**All preparations were well-tolerated¹**"
+              ]
+            }
+          ],
+          "subsections": [
+            {
+              "heading": "**Key supporting assets:**",
+              "level": 3,
+              "content": [
+                {
+                  "type": "list_bullet",
+                  "items": [
+                    "**GP HCP brochure**",
+                    "**Immunogenicity video**"
+                  ]
+                },
+                {
+                  "type": "reference",
+                  "items": [
+                    "1. Kerscher M, et al. Arch Dermatol Res 2012;304(2):155–161; 2. Azzalure® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 01 June 2021; 3. Bocouture® Summary of Product Characteristics. Merz Pharma UK Ltd. 28 July 2021; 4. Frevert J, Dressler D. Biologics. 2010;4:325–332. 5. Martin MU. Thieme Drug Report 2014;7:1–12."
+                  ]
+                },
+                {
+                  "type": "footnote",
+                  "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**5. Dysport® treatment results in high patient satisfaction**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "callout",
+              "text": "**XEOMIN® has over 15 years of scientific and clinical evidence**,¹ as well as over **200 publications** and over **10 million vials** sold worldwide²"
+            },
+            {
+              "type": "paragraph",
+              "text": "Clinical trials and other analyses over the years assessing the proven high and long-term efficacy and safety of BOCOUTURE® have also explored patient-reported outcomes. A 2015 study by Kane et al. showed that **97.4% of patients were extremely satisfied, satisfied or slightly satisfied with treatment with XEOMIN®** one month after treatment and were over 90% throughout the study.³ A study of patients treated with Dysport® showed similar levels of satisfaction, with patient satisfaction ranging from 96.0–98.9% between treatment cycles.⁴"
+            },
+            {
+              "type": "callout",
+              "text": "In a further retrospective analysis of clinical practice from patient notes by Prager and colleagues,² **96.4% of patients were satisfied with XEOMIN® treatment**⁵"
+            },
+            {
+              "type": "paragraph",
+              "text": "Finally, **XEOMIN® offers low risk of secondary treatment failure**, as protein load may be associated with patients becoming resistant to neurotoxin treatment⁶–⁹"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Background information:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "The Kane study aimed to demonstrate the equipotency of 20 U Botox® and XEOMIN® for the treatment of glabellar frown lines (n=250)³",
+                "Patient-reported treatment satisfaction was recorded at Months 1, 2, 3 and 4³",
+                "The Rzany study evaluated efficacy and safety of Dysport® for the treatment of upper facial lines⁴",
+                "In the Prager study, the documentation period was from March to June 2011 and data from 1256 patients were included⁵"
+              ]
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Key supporting assets:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "GP HCP brochure",
+                "GP Purity brochure",
+                "Immunogenicity video",
+                "Purity Matters video"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Data on File. Merz North America, Inc. 2018;",
+                "2. Data on File. Merz Pharmaceuticals GmbH. July 2021;",
+                "3. Kane MAC et al. J Dermatol Surg 2015;41:1310–19;",
+                "4. Rzany B et al. Dermatol Surg 2007;33:S18–25.",
+                "5. Prager W et al. Clin Cosmet Investig Dermatol 2012;4:53–8;",
+                "6. Frevert J. Drugs R D. 2015;15:1–9;",
+                "7. Frevert J. Drugs R D. 2010;10(2):67–73;",
+                "8. Bellows S, Jankovic J. Toxins (Basel). 2019;11(9);",
+                "9. Albrecht, P. Neurology. 2018; 92(1):e48–e54."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "footnote",
+              "text": "19"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**6. Dysport® contains more neurotoxin in the vial**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The total foreign protein load in Dysport is 0.65ng/100 U, while in XEOMIN there is 0.44ng/100 U¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "However, **most toxins actually contain inactivate neurotoxin** in the vial."
+            },
+            {
+              "type": "paragraph",
+              "text": "**XEOMIN® has been purified using XTRACT™ Technology**, to produce the first and ONLY toxin free from complexing proteins, including inactive neurotoxin.²"
+            },
+            {
+              "type": "paragraph",
+              "text": "Hence, if you compare the biological activity in both products, **Dysport® has 154 U/ng¹ while Xeomin® has 227 U/ng¹**"
+            },
+            {
+              "type": "callout",
+              "text": "**Key supporting assets:**\n• Purity Matters video"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Frevert J. Drugs R D 2010;10:67–73",
+                "2. Frevert J, Dressler D. Biologics. 2010;4:325–332"
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Dysport® objection handling summary**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "**Top Azzalure® topics to defend against**",
+            "**Response**",
+            "**Key supporting materials**"
+          ],
+          "rows": [
+            {
+              "Top Azzalure® topics to defend against": "Established clinical experience",
+              "Response": "**BOCOUTURE®** has over 15 years of scientific and clinical evidence, and was first authorised for use in 2010.¹,² Clinical trials have shown high levels of patient satisfaction, equivalent efficacy to Botox® and a faster onset of action than Azzalure®.³–⁸ Merz is a global leader with over 110 years of experience and a dedicated support team for physicians.",
+              "Key supporting materials": "GP HCP brochure"
+            },
+            {
+              "Top Azzalure® topics to defend against": "Long duration of treatment effect",
+              "Response": "**BOCOUTURE®** has been shown to have a median duration of effect of approximately 6 months (177 days).⁹ A further study showed that 75% of patients were still responding to treatment at 5 months.¹⁰",
+              "Key supporting materials": "GP HCP brochure, **BOCOUTURE®** Efficacy Fact Book, Immunogenicity video, Purity Matters video"
+            },
+            {
+              "Top Azzalure® topics to defend against": "Rapid onset of action",
+              "Response": "The median onset of action occurred two days earlier in patients treated with **BOCOUTURE®** compared to those treated with Azzalure®¹¹",
+              "Key supporting materials": "**BOCOUTURE®** Efficacy Fact Book"
+            },
+            {
+              "Top Azzalure® topics to defend against": "Effective “frozen” look",
+              "Response": "Although some patients may desire a ‘frozen’ look, it is important to limit the diffusion of treatment to minimize unwanted effects.¹² The precise localization of **BOCOUTURE®** can give you the flexibility to allow for dynamic expression and minimize unwanted effects on untargeted muscles.¹²",
+              "Key supporting materials": "GP HCP brochure, Immunogenicity video"
+            },
+            {
+              "Top Azzalure® topics to defend against": "Patient satisfaction",
+              "Response": "Patient satisfaction rates are high with **BOCOUTURE®**, with 97.4% of patients either extremely satisfied, satisfied or slightly satisfied with treatment with **BOCOUTURE®** one month after treatment. Patient satisfaction rates were over 90% throughout the study.³",
+              "Key supporting materials": "GP HCP brochure, GP Purity brochure, Immunogenicity video, Purity Matters video"
+            },
+            {
+              "Top Azzalure® topics to defend against": "**Azzalure® contains more neurotoxin in the vial.**",
+              "Response": "**BOCOUTURE®** is purified to filter out the inactive neurotoxin, and has a higher biological activity.¹⁰",
+              "Key supporting materials": "Purity Matters video"
+            }
+          ]
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Data on File. Merz North America, Inc. 2018;",
+            "2. Data on File. Merz Pharmaceuticals GmbH. July 2021;",
+            "3. Kane M, et al. Dermatol Surg. 2015;41(11):1310–1319;",
+            "4. Prager W, et al. Dermatol Surg. 2010;36(S4):2155–2160.",
+            "5. BOCOUTURE (incobotulinumtoxinA) Summary of Product Characteristics. Merz Pharmaceuticals GmbH;",
+            "6. Kerscher M, et al. Arch Dermatol Res 2012;304(2):155–161;",
+            "7. Prager W et al. Clin Cosmet Investig Dermatol 2012;4:53–8;",
+            "8. Rappl T et al. Clin Cosmet Investig Dermatol 2013;6:211–219;",
+            "9. Kerscher M et al. J Drugs Dermatol 2020;19:985–91;",
+            "10. Prager W et al. Clin Interv Aging 2013;8:449–456;",
+            "11. Rappel T et al. Clin Cosmet Investig Dermatol 2013;6:211–219;",
+            "12. Kerscher M, et al. Arch Dermatol Res 2012;304(2):155–161",
+            "10. Frevert J. Drugs R D 2010;10:67–73"
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "image_description",
+          "text": "The page is a structured document with a blue header and a table. The header reads 'Dysport® objection handling summary' in bold blue text. Below is a table with three columns: 'Top Azzalure® topics to defend against', 'Response', and 'Key supporting materials'. The table has alternating row colors (white and light gray). The bottom of the page contains footnotes and references. In the bottom right corner, there is a blue triangular design element with page number '21' and navigation arrows '<' and '>'."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**References**",
+      "level": 1,
+      "content": [
+        {
+          "type": "reference",
+          "items": [
+            "Albrecht, P. Neurology. 2018; 92(1):e48-e54.",
+            "Azzalure® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 01 June 2021.",
+            "Bellows S, Jankovic J. Toxins (Basel). 2019;11(9).",
+            "Bocouture® Summary of Product Characteristics. Merz Pharma UK Ltd. 28 July 2021.",
+            "Data on File. Merz North America, Inc. 2018.",
+            "Data on File. Merz Pharmaceuticals GmbH. July 2021.",
+            "Frevvert J, Dressler D. Biologics. 2010;4:325–332.",
+            "Frevvert J. Drugs R D. 2010;10(2):67–73.",
+            "Frevvert J. Drugs R D. 2015;15:1–9.",
+            "Kane MAC et al. J Dermatol Surg 2015;41:1310–19.",
+            "Kerscher M et al. J Drugs Dermatol 2020;19:985–91.",
+            "Kerscher M, et al. Arch Dermatol Res 2012;304(2):155–161.",
+            "Martin MU. Thieme Drug Report 2014;7:1–12.",
+            "Moy R et al. Arch Facial Plast S 2009;11(2):77–83.",
+            "Prager W et al. Clin Cosmet Investig Dermatol 2012;4:53–8.",
+            "Prager W et al. Clin Interv Aging 2013;8:449–456.",
+            "Prager W, et al. Dermatol Surg. 2010;36(S4):2155–2160.",
+            "Rappl T et al. Clin Cosmet Investig Dermatol 2013;6:211–219.",
+            "Rzany B et al. Dermatol Surg 2007;33:S18–25."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Dysport® Vs XEOMIN® Vs Botox characteristics**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "**Brand name**",
+            "**Dysport®¹**",
+            "**Xeomin®⁴**",
+            "**Botox®**"
+          ],
+          "rows": [
+            {
+              "**Generic name**": "AbobotulinumtoxinA²",
+              "**Xeomin®⁴**": "IncobotulinumtoxinA²",
+              "**Botox®**": "OnabotulinumtoxinA"
+            },
+            {
+              "**Manufacturer**": "Ipsen¹",
+              "**Xeomin®⁴**": "Merz Aesthetics⁴",
+              "**Botox®**": "Allergan"
+            },
+            {
+              "**Composition**": "**C. botulinum** toxin type A haemagglutinin complex¹",
+              "**Xeomin®⁴**": "**C. botulinum** toxin type A, free from complexing proteins⁴",
+              "**Botox®**": "**C. botulinum** toxin type A"
+            },
+            {
+              "**Ingredients**": "Human albumin and lactose monohydrate¹",
+              "**Xeomin®⁴**": "Human albumin and sucrose⁴",
+              "**Botox®**": "Human albumin, NaCl, water"
+            },
+            {
+              "**Foreign Protein Content**": "0.65 ng/100 U³",
+              "**Xeomin®⁴**": "0.44 ng/100 U³",
+              "**Botox®**": "0.73 ng BoNT/A per 100 U"
+            },
+            {
+              "**Biological Activity**": "154 units/ng³",
+              "**Xeomin®⁴**": "227 units/ng³",
+              "**Botox®**": "137 units/ng"
+            },
+            {
+              "**Formulation**": "Powder for solution for injection¹",
+              "**Xeomin®⁴**": "Powder for reconstitution before injection⁴",
+              "**Botox®**": "Powder in vial"
+            },
+            {
+              "**Vial size**": "500 Speywood units¹",
+              "**Xeomin®⁴**": "100 units⁴",
+              "**Botox®**": "100 Allergan units"
+            },
+            {
+              "**Reconstitution**": "Required, 0.9% NaCL solution¹",
+              "**Xeomin®⁴**": "Required, 0.9% sodium chloride solution⁴",
+              "**Botox®**": "Required"
+            },
+            {
+              "**Indication**": "Moderate to severe glabellar frown lines and/or crow’s feet lines¹",
+              "**Xeomin®⁴**": "• Moderate to severe glabellar frown lines⁴\n• Moderate to severe crow’s feet lines⁴\n• Moderate to severe horizontal forehead lines⁴\n• Combination treatment of upper facial lines⁴",
+              "**Botox®**": "Moderate to severe glabellar lines\nModerate to severe crow’s feet lines\nModerate to severe forehead lines"
+            },
+            {
+              "**Starting dose**": "50 Speywood units for glabellar frown lines, 30 Speywood units for crow’s feet lines¹",
+              "**Xeomin®⁴**": "• Glabellar frown lines: 20 units across 5 injection sites⁴\n• Lateral periorbital lines: 24 units (12 per side across 3 injection sites)⁴\n• Horizontal forehead lines: 10–20 units across 5 injection sites⁴",
+              "**Botox®**": "20/24/20 Allergan units, per respective indication"
+            },
+            {
+              "**Storage requirements**": "Refrigeration (2°C–8°C)¹",
+              "**Xeomin®⁴**": "Room temperature⁴",
+              "**Botox®**": "Refrigeration (2°C–8°C) or freezer (-5 to -20°C)"
+            },
+            {
+              "**Shelf life**": "2 years¹",
+              "**Xeomin®⁴**": "3 years⁴",
+              "**Botox®**": "3 years"
+            }
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "1. Azzalure® Summary of Product Characteristics. Ipsen Biopharma Ltd, UK. 01 June 2021; 2. Frevert J. Drugs R D. 2015;15:1-9; 3. Frevert J. Drugs R D 2010;10:67–73; 4. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021."
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "image_description",
+          "text": "Page footer contains a light blue horizontal bar with text: 'HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY'. On the right side of the bar, there is a blue triangular shape with white navigation arrows '<' and '>' and the number '23' in white, indicating page number 23."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Competitor Overview**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "Two product boxes are shown side by side on a reflective surface with a light blue gradient background. The left box is blue and labeled: 'BOCOUTURE®', '4 UNITS / 0.1 ML', 'POWDER FOR SOLUTION FOR INJECTION', 'BOTULINUM TOXIN TYPE A (150 KD)', 'FREE FROM COMPLEXING PROTEINS', and '50 UNITS' in large font. The right box is white with a blue horizontal stripe and labeled: 'BOCOUTURE®', '100 UNITS', 'POWDER FOR SOLUTION FOR INJECTION', 'BOTULINUM TOXIN TYPE A (150 KD)', 'FREE FROM COMPLEXING PROTEINS', and '100 UNITS' in large font. Both boxes have small text on the side, including storage instructions: 'Keep out of the sight and reach of children.', 'Do not store above 25°C.', 'Shelf life after reconstitution: Please refer to the packaging leaflet.' The boxes cast a faint reflection below them."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Overview of BOCOUTURE® / XEOMIN®**",
+      "level": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "BOCOUTURE® logo is visible in the top right corner of the slide."
+        },
+        {
+          "type": "reference",
+          "items": [
+            "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY.",
+            "FOR OUR DISTRIBUTION PARTNERS: THE TERMS AND CONDITIONS, INCLUDING BUT NOT LIMITED TO CONFIDENTIALITY, IN THE MARKETING AND DISTRIBUTION AGREEMENT DATED [XX.XX.XXXX] APPLY."
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "Page number '24' is visible in the bottom right corner, along with navigation arrows."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Overview of toxins available**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "**Toxin**",
+            "**BOCOUTURE®/ XEOMIN®**",
+            "**Botox® / Vistabel®**",
+            "**Azzalure® / Dysport®**",
+            "**Nabota®/ Jeuveau™**"
+          ],
+          "rows": [
+            {
+              "**Packshot**": "",
+              "BOCOUTURE®/ XEOMIN®": "image_description: Small vial with blue cap and white label, labeled 'BOCOUTURE', next to a blue and white box with 'XEOMIN' branding.",
+              "Botox® / Vistabel®": "image_description: White vial with purple cap and label 'Botox', next to a white box with purple and orange accents labeled 'Botox' and 'Vistabel'.",
+              "Azzalure® / Dysport®": "image_description: White box with green and black text labeled 'Dysport', next to a small vial with silver cap and label 'Dysport'.",
+              "Nabota®/ Jeuveau™": "image_description: Two vials — one with red cap and white label 'Nabota', another with green cap and white label 'Jeuveau', next to their respective white boxes with red and green branding."
+            },
+            {
+              "**Generic name**": "",
+              "BOCOUTURE®/ XEOMIN®": "IncobotulinumtoxinA",
+              "Botox® / Vistabel®": "OnabotulinumtoxinA",
+              "Azzalure® / Dysport®": "AbobotulinumtoxinA",
+              "Nabota®/ Jeuveau™": "PrabotulinumtoxinA"
+            },
+            {
+              "**Manufacturer**": "",
+              "BOCOUTURE®/ XEOMIN®": "Merz Aesthetics",
+              "Botox® / Vistabel®": "AbbVie/Allergan",
+              "Azzalure® / Dysport®": "Ipsen",
+              "Nabota®/ Jeuveau™": "Evolus/Daewoong"
+            },
+            {
+              "**Composition**": "",
+              "BOCOUTURE®/ XEOMIN®": "Free from complexing proteins; pure 150 kDa neurotoxin",
+              "Botox® / Vistabel®": "900 kDa complexes",
+              "Azzalure® / Dysport®": "300–900 kDa complexes",
+              "Nabota®/ Jeuveau™": "900 kDa purified botulinum toxin type A"
+            },
+            {
+              "**Key claims**": "",
+              "BOCOUTURE®/ XEOMIN®": "• Uniquely purified with XTRACT™ technology\n• Free from complexing proteins\n• Consistent and reliable\n• Equipotent to other BoNT/As\n• Stable at room temperature",
+              "Botox® / Vistabel®": "• You know it, you trust it\n• Precise: No diffusion from injected muscle\n• Most indications worldwide\n• High level of patient satisfaction; 97% patient satisfaction in surveyed patients",
+              "Azzalure® / Dysport®": "• Rapid onset, long duration\n• Reliable results\n• High patient satisfaction\n• Natural-looking results",
+              "Nabota®/ Jeuveau™": "• Modern-made with proprietary Hi-Pure™ Technology\n• Designed for aesthetics\n• Cheaper than Botox®\n• Aimed at younger customers"
+            },
+            {
+              "**On market/ expected launch dates***": "",
+              "BOCOUTURE®/ XEOMIN®": "On the market",
+              "Botox® / Vistabel®": "On the market",
+              "Azzalure® / Dysport®": "On the market",
+              "Nabota®/ Jeuveau™": "FDA approved (2019); EU approved (2019), launched 2022"
+            }
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "*This is based on last estimations - status December 2021."
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        },
+        {
+          "type": "image_description",
+          "text": "Page footer contains a blue diagonal triangle on the right side with white text '< 25 >' indicating slide number 25. The footer background is light blue."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Overview of toxins available**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "**Toxin**",
+            "**BOCOUTURE®/ XEOMIN®**",
+            "**Botox® / Vistabel®**",
+            "**Azzalure® / Dysport®**",
+            "**Nabota®/ Jeuveau™**"
+          ],
+          "rows": [
+            {
+              "**FDA approved**": "FDA approved 2011",
+              "**BOCOUTURE®/ XEOMIN®**": "FDA approved 2011",
+              "**Botox® / Vistabel®**": "FDA approved 2008",
+              "**Azzalure® / Dysport®**": "FDA approved 2009",
+              "**Nabota®/ Jeuveau™**": "FDA approved 2019; EC approved 2019 Canada, Korea, etc."
+            },
+            {
+              "**Approved indication**": "Glabellar lines, forehead lines, crow's feet",
+              "**BOCOUTURE®/ XEOMIN®**": "Glabellar lines, forehead lines, crow's feet",
+              "**Botox® / Vistabel®**": "Glabellar lines, forehead lines, crow's feet",
+              "**Azzalure® / Dysport®**": "Glabellar lines, forehead lines, crow's feet",
+              "**Nabota®/ Jeuveau™**": "Glabellar frown lines"
+            },
+            {
+              "**Ingredient breakdown**": "**Excipients**",
+              "**BOCOUTURE®/ XEOMIN®**": "1.0 mg HAS; 4.7 mg sucrose",
+              "**Botox® / Vistabel®**": "0.5 mg HAS; 0.9 mg NaCl",
+              "**Azzalure® / Dysport®**": "0.13 mg HAS; 2.5 mg lactose",
+              "**Nabota®/ Jeuveau™**": "0.5 mg HAS; 0.9 mg NaCl"
+            },
+            {
+              "**Ingredient breakdown**": "**Foreign protein content**",
+              "**BOCOUTURE®/ XEOMIN®**": "0.44 ng/100 U",
+              "**Botox® / Vistabel®**": "5.0 ng/100 U",
+              "**Azzalure® / Dysport®**": "0.87 ng/100 U",
+              "**Nabota®/ Jeuveau™**": "–"
+            },
+            {
+              "**Ingredient breakdown**": "**Neurotoxin**",
+              "**BOCOUTURE®/ XEOMIN®**": "0.44 ng/100 U",
+              "**Botox® / Vistabel®**": "0.73 ng/100 U",
+              "**Azzalure® / Dysport®**": "0.65 ng/100 U",
+              "**Nabota®/ Jeuveau™**": "0.75 ng/100 U"
+            },
+            {
+              "**Ingredient breakdown**": "**Complexing proteins**",
+              "**BOCOUTURE®/ XEOMIN®**": "None",
+              "**Botox® / Vistabel®**": "Present",
+              "**Azzalure® / Dysport®**": "Present",
+              "**Nabota®/ Jeuveau™**": "Present"
+            },
+            {
+              "**Ingredient breakdown**": "**Biological activity**",
+              "**BOCOUTURE®/ XEOMIN®**": "227 U/ng",
+              "**Botox® / Vistabel®**": "137 U/ng",
+              "**Azzalure® / Dysport®**": "154 U/ng",
+              "**Nabota®/ Jeuveau™**": "133 U/ng"
+            },
+            {
+              "**Ingredient breakdown**": "**Shelf-life**",
+              "**BOCOUTURE®/ XEOMIN®**": "36 months (50 U); 48 months (100 U)",
+              "**Botox® / Vistabel®**": "36 months (50/100 U); 24 months (200 U)",
+              "**Azzalure® / Dysport®**": "24 months",
+              "**Nabota®/ Jeuveau™**": "24 months"
+            },
+            {
+              "**Ingredient breakdown**": "**Storage**",
+              "**BOCOUTURE®/ XEOMIN®**": "20–25°C (Room temperature)",
+              "**Botox® / Vistabel®**": "2–8°C; <–5°C",
+              "**Azzalure® / Dysport®**": "2–8°C",
+              "**Nabota®/ Jeuveau™**": "2–8°C"
+            },
+            {
+              "**Ingredient breakdown**": "**Post-recon**",
+              "**BOCOUTURE®/ XEOMIN®**": "24 hours",
+              "**Botox® / Vistabel®**": "24 hours",
+              "**Azzalure® / Dysport®**": "4 hours",
+              "**Nabota®/ Jeuveau™**": "–"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY."
+        },
+        {
+          "type": "callout",
+          "text": "26"
+        }
+      ],
+      "sections": []
+    }
+  ]
+}

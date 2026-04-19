@@ -1,5 +1,5 @@
-domain_name: loan_assessment
-domain_display_name: Loan App Assessment
-organization_name: Credit Underwriting
-knowledge_focus_examples: FOIR, eligibility
-tool_focus_examples: CIBIL, KYC
+domain_name: Medicine
+domain_display_name: medicine
+organization_name: Healthcare
+knowledge_focus_examples: product knowledgebase
+tool_focus_examples: pharma product understanding

@@ -1,0 +1,1122 @@
+{
+  "title": "**Objection**\n**handler**",
+  "subtitle": "",
+  "metadata_notes": [],
+  "metadata": {
+    "source_file": "1773683519095-Nabota_Objection_Handler.pdf",
+    "source_type": "pdf",
+    "total_pages": 19,
+    "pages_processed": 19,
+    "blank_pages_skipped": [],
+    "total_chapters": 18,
+    "total_tables": 3,
+    "total_content_items": 179,
+    "parsed_at": "2026-04-15T07:47:01.168888+00:00",
+    "parser_version": "2.0",
+    "vision_model_used": true,
+    "vision_model": "qwen/qwen3-vl-32b-instruct"
+  },
+  "chapters": [
+    {
+      "heading": "**Objection**\n**handler**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "Image of a product box and vial for Nabota. The box is white with green accents, labeled 'DAEWOONG', 'BOTULINUM TOXIN TYPE A', 'NABOTA®', 'PURIFIED NEUROTOXIN COMPLEX', '100 UNITS 1 VIAL'. The vial is clear glass with a green cap, labeled '103166', 'BOTULINUM TOXIN TYPE A', '나보타', '100'. Korean text is present on both the box and vial. The product is displayed against a white background with a light blue gradient shadow beneath."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "Nabota\n/Nuceiva™\n/Jeuveau®",
+      "level": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Threat level: **HIGH**"
+        },
+        {
+          "type": "image_description",
+          "text": "A threat level gauge with three colored segments: green for 'LOW', yellow for 'MODERATE', and red for 'HIGH'. The needle points to the red 'HIGH' section. The gauge is positioned below the threat level text."
+        },
+        {
+          "type": "callout",
+          "text": "BOCOUTURE®"
+        },
+        {
+          "type": "callout",
+          "text": "< 1 >"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Contents**",
+      "level": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "**Nabota™ characteristics** Slide 3"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Nabota™ positioning** Slide 4"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Nabota™ key messages** Slide 5"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Nabota™ key Phase 3 data** Slide 6–7"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Nabota™ summary** Slide 8"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Nabota™ potential objections** Slides 9–14"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Nabota™ objection handling summary** Slide 15"
+        },
+        {
+          "type": "paragraph",
+          "text": "**References** Slide 16"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Appendices** Slides 17–19"
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "image_description",
+          "text": "The page contains a vertical list of content items, each enclosed in a light blue rectangular box with a thin blue border. The text inside each box is left-aligned and includes the topic name followed by the slide number(s) on the right. The topics are: Nabota™ characteristics (Slide 3), Nabota™ positioning (Slide 4), Nabota™ key messages (Slide 5), Nabota™ key Phase 3 data (Slide 6–7), Nabota™ summary (Slide 8), Nabota™ potential objections (Slides 9–14), Nabota™ objection handling summary (Slide 15), References (Slide 16), and Appendices (Slides 17–19). The heading 'Contents' is in bold blue text at the top left. At the bottom left, there is a light blue footer with the text 'HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY'. In the bottom right corner, there is a blue triangular navigation element with '< 2 >' indicating slide number 2."
+        },
+        {
+          "type": "image_description",
+          "text": "Top-left corner contains a circular gauge with three segments labeled 'LOW' (green), 'MODERATE' (yellow), and 'HIGH' (red), with a black pointer indicating 'HIGH'. Below it is the title 'Nabota™ characteristics' in large blue font. To the left, there is a product image showing a white and green box labeled 'DAEWOONG BOTULINUM TOXIN TYPE A NABOTA® PURIFIED NEUROTOXIN COMPLEX 100 UNITS 1 VIAL' and a small vial with a green cap labeled '103166' and '100'."
+        }
+      ],
+      "sections": [
+        {
+          "heading": "Timeline to launch",
+          "level": 2,
+          "content": [
+            {
+              "type": "image_description",
+              "text": "A horizontal timeline with three circular elements on a blue gradient bar. Left circle (white with blue border) says 'FDA approval: 2019'. Middle circle (white) says 'EU approval: 2019'. Right circle (solid blue) says 'Expected EU launch: 2022'."
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "Characteristic",
+          "level": 2,
+          "content": [
+            {
+              "type": "table",
+              "caption": "",
+              "headers": [
+                "Characteristic",
+                "Value"
+              ],
+              "rows": [
+                {
+                  "Characteristic": "**Brand name¹**",
+                  "Value": "Nuceiva™ (Jeuveau® – US, Nabota® – Korea)"
+                },
+                {
+                  "Characteristic": "**Generic name**",
+                  "Value": "PrabotulinumtoxinA"
+                },
+                {
+                  "Characteristic": "**Manufacturer¹,²**",
+                  "Value": "Evolus/Daewoong (distributor unknown)"
+                },
+                {
+                  "Characteristic": "**Composition¹**",
+                  "Value": "*C. botulinum* toxin type A"
+                },
+                {
+                  "Characteristic": "**Ingredients¹**",
+                  "Value": "Human serum albumin, NaCl"
+                },
+                {
+                  "Characteristic": "**Foreign protein content³**",
+                  "Value": "754 pg/100 U"
+                },
+                {
+                  "Characteristic": "**Biological activity³**",
+                  "Value": "0.133 U/pg"
+                },
+                {
+                  "Characteristic": "**Manufacturing process²**",
+                  "Value": "Hi-Pure™ technology"
+                },
+                {
+                  "Characteristic": "**Formulation¹**",
+                  "Value": "Vacuum-dried powder"
+                },
+                {
+                  "Characteristic": "**Vial size¹**",
+                  "Value": "100 U"
+                },
+                {
+                  "Characteristic": "**Reconstitution¹**",
+                  "Value": "Required"
+                },
+                {
+                  "Characteristic": "**Indication¹**",
+                  "Value": "Moderate to severe glabellar frown lines"
+                },
+                {
+                  "Characteristic": "**Starting dose¹**",
+                  "Value": "20 U"
+                },
+                {
+                  "Characteristic": "**Storage requirements¹**",
+                  "Value": "Refrigeration (2–8°C)"
+                },
+                {
+                  "Characteristic": "**Shelf life¹**",
+                  "Value": "24 months"
+                }
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "1. Evolus. Jeuveau® PI. 2019; 2. Jeuveau. Available at: https://jrmontes.com/jeuveau/. Last accessed: 15 October 2021; 3. Frevert J et al. Clin Cosmet Investig Dermatol 2018;11:327–31."
+            },
+            {
+              "type": "callout",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "page_number",
+              "text": "3"
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Nabota™ positioning**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "A horizontal layout with six circular icons, each with a blue line-art illustration and descriptive text below. The icons and their associated text are as follows:\n\n1. **Lightbulb icon**: Text below: '**Modern-made with proprietary Hi-Pure™ Technology. Made for aesthetics – neurotoxin by design. Precision**'\n2. **Person standing next to a globe icon**: Text below: '**Studied in >2100 patients in the Transparency global clinical program**'\n3. **Piggy bank with coins icon**: Text below: '**Almost as good as Botox® and cheaper**'\n4. **Two stylized female heads icon**: Text below: '**‘Not your mum’s Botox®’ and ‘Newtox’ – are both used to position it for younger customers**'\n5. **Hand holding a sprouting plant icon**: Text below: '**Natural-looking results**'\n6. **Hand holding a globe icon**: Text below: '**Planet-friendly packaging**'\n\nAll icons are enclosed in a light blue rounded rectangle with a thin blue border. The overall layout is clean and professional, with a white background and blue accents."
+        },
+        {
+          "type": "reference",
+          "items": [
+            "Jeuveau®. 2021. Available at: https://jeuveau.evolus.com/. Last accessed: 15 October 2021."
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "image_description",
+          "text": "Top-left corner contains a semi-circular gauge with three colored segments: green (LOW), yellow (MODERATE), and red (HIGH), with a black needle pointing to the red (HIGH) section. The gauge is labeled with 'LOW', 'MODERATE', and 'HIGH' along the arc."
+        },
+        {
+          "type": "image_description",
+          "text": "Bottom-right corner contains a blue triangular shape with white navigation arrows ('<', '>') and the number '4' in white, indicating slide navigation and page number."
+        },
+        {
+          "type": "image_description",
+          "text": "A small circular gauge in the top-left corner with a needle pointing to 'HIGH'. The gauge has three colored sections: green (LOW), yellow (MODERATE), and red (HIGH)."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Nabota™ key messages**",
+      "level": 1,
+      "content": [
+        {
+          "type": "image_description",
+          "text": "Four vertical light-blue rectangular boxes, each with a blue circular icon at the top and a heading in bold blue text, followed by body text. The icons are: 1) a bioreactor or manufacturing equipment, 2) a clock with an arrow indicating fast action, 3) a thumbs-up with a test tube, 4) a hand holding a sprouting plant."
+        }
+      ],
+      "sections": [
+        {
+          "heading": "**A modern-made toxin – Hi-Pure™ Technology**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "This is a brand new manufacturing process. Hi-Pure™ technology uses additional steps such as acid precipitation & removing other proteins. This is said to make the toxin safer- although we currently have little data to prove this."
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Fast onset of action**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "In the Phase 3 study, 54.2% of patients in the Nabota™ group demonstrated a ≥1 point improvement from baseline on Day 2 compared with 12.2% in the placebo group¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "Onset was also assessed in a single-arm Phase 4 study where 85.4% of subjects demonstrated an improvement in the appearance of glabellar frown lines at maximum contraction on Day 2²"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Almost as good as Botox®**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "In a Phase 3 study comparing single 20 U doses, Nabota™ was shown to be non-inferior to Botox® for the treatment of glabellar frown lines¹"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Natural Looking Results**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "No body text provided in this section."
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1 Rzany B-J, et al. Aesthet Surg J 2020;40:413–29;",
+                "2 Song S, et al. Arch Craniofac Surg 2018;19:168–74."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "Footnote markers: ¹ and ² appear at the end of relevant paragraphs."
+            },
+            {
+              "type": "image_description",
+              "text": "Bottom-right corner has a blue triangular shape with white navigation arrows (left and right) and the number '5' in white, indicating slide number 5."
+            },
+            {
+              "type": "image_description",
+              "text": "A small circular gauge in the top-left corner with a color-coded scale: green (LOW), yellow (MODERATE), and red (HIGH). A black needle points to the red (HIGH) section."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Nabota™ key Phase 3 data vs placebo**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**The studies:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Two identical, 150 day, randomized, double-blind, placebo-controlled, single-dose, multicenter trials (EV-001 and EV-002)**"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Objective:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**To assess efficacy and safety of prabotulinumtoxinA for the treatment of moderate to severe glabellar frown lines**"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Conclusions:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**PrabotulinumtoxinA was superior to placebo for the treatment of moderate to severe glabellar frown lines and was an effective treatment at Day 30**"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Treatment was well tolerated** – the most common adverse event (in ≥5% of patients) was headache in 14.6% and 8.5% for prabotulinumtoxinA and 16.7% and 9.0% for placebo in the two trials, respectively"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Efficacy and Safety of PrabotulinumtoxinA for the Treatment of Glabellar Lines in Adult Subjects: Results From 2 Identical Phase III Studies**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**KENNETH R. BEER, MD, * AVA THERESA SHAMBAN, MD,† RUI L. AVELAR, MD,‡ JOHN E. GROSS, MD,§ AND ANNEKE JONKER, MSc∥ AND THE EV-001/EV-002 STUDY GROUP**"
+            },
+            {
+              "type": "callout",
+              "text": "**Please note!**\n• These studies used the FDA-mandated composite end points (responders were those with ≥2-point improvement from baseline for both investigator and patient assessments)\n• On Day 30, responder rates for prabotulinumtoxinA vs placebo according to this definition were 67.5% vs 1.2% and 70% vs 1.3% in EV-001 and EV-002, respectively"
+            },
+            {
+              "type": "paragraph",
+              "text": "See Appendix 2 for study design and key findings"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "Beer KR, et al. Dermatol Surg 2019;45:1381–93."
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "A circular gauge graphic in the top-left corner with a needle pointing to 'HIGH'. The gauge has three colored segments: green (LOW), yellow (MODERATE), and red (HIGH)."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "Nabota™ key Phase 3 data vs onabotulinumtoxinA",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "The study:",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "A prospective, multicenter, **randomized, double-blind, active- and placebo-controlled**, single-dose study"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "Objective:",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "To assess **efficacy** and **safety** of prabotulinumtoxinA vs onabotulinumtoxinA and placebo"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "Conclusions:",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**The non-inferiority of prabotulinumtoxin to onabotulinumtoxinA was confirmed** at Day 30 using the definition of a responder as a patient with a glabellar frown line severity score of 0 (none) or 1 (mild) as assessed by the investigator"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Fast treatment onset** was demonstrated by 54.2% of prabotulinumtoxinA patients exhibiting a ≥1-point improvement from baseline at Day 2 compared with 8.3% of patients in the placebo group"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Long duration of action** was demonstrated by 37.7% of prabotulinumtoxinA patients exhibiting a ≥1-point improvement from baseline at Day 150 compared with 12.2% of patients in the placebo group"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Changes in psychological wellbeing** were evaluated using the Hospital Anxiety and Depression Scale (HADS)-A and HADS-D scales which measure anxiety and depression. There were statistically significant mean changes from baseline to Day 90 of –1.1 and –0.6 for HADS-A and HADS-D, respectively, indicating an improvement following treatment"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Comparable safety profile to onabotulinumtoxinA** with no statistically significant differences between the active groups for the most common events (headache and nasopharyngitis)"
+            }
+          ],
+          "subsections": [
+            {
+              "heading": "Cosmetic Medicine",
+              "level": 3,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "text": "A Multicenter, Randomized, Double-Blind, Placebo-Controlled, Single-Dose, Phase III, Non-Inferiority Study Comparing PrabotulinumtoxinA and OnabotulinumtoxinA for the Treatment of Moderate to Severe Glabellar Lines in Adult Patients"
+                },
+                {
+                  "type": "paragraph",
+                  "text": "Berthold-Josef Rzany, MD, ScM; Benjamin Ascher, MD; Rui L. Avelar, MD; Jesper Bergdahl, MD; Vince Bertucci, MD; Isaac Bodokh, MD; James Alastair Carruthers, MD; Hugues Cartier, MD; Henry Delmar, MD; Ralf Denfeld, MD; John E. Gross, MD, FACS; Marc Heckmann, MD; Per Hedén, MD; Said Hilton, MD; Christopher Inglefield, MD; Patricia Ogilvie, MD; Gerhard Sattler, MD; Michael Sebastian, MD; Nowell Solish, MD; Arthur Swift, MD; and Patrick Trévidic, MD"
+                },
+                {
+                  "type": "paragraph",
+                  "text": "Aesthetic Surgery Journal 2020, Vol 40(4) 413–429 © 2019 The Aesthetic Society. This is an Open Access article distributed under the terms of the Creative Commons Attribution Non-Commercial License (http://creativecommons.org/licenses/by-nc/4.0/), which permits non-commercial re-use, distribution, and reproduction in any medium, provided the original work is properly cited. For commercial re-use, please contact journals.permissions@oup.com DOI: 10.1093/asj/sjz110 www.aestheticsurgeryjournal.com OXFORD UNIVERSITY PRESS"
+                },
+                {
+                  "type": "callout",
+                  "text": "**Please note!**\n• This study demonstrated an improvement in psychological well-being even though most baseline scores fell within the normal ranges (HADS-A, 74.6% and HADS-D, 93.3%) and mean changes were therefore expected to be small"
+                },
+                {
+                  "type": "paragraph",
+                  "text": "See Appendix 3 for study design and key findings"
+                },
+                {
+                  "type": "reference",
+                  "items": [
+                    "Rzany B-J, et al. Aesthet Surg J 2020;40:413–29."
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+                },
+                {
+                  "type": "image_description",
+                  "text": "Page navigation indicators at the bottom-right: left arrow '<', number '7', right arrow '>'"
+                },
+                {
+                  "type": "image_description",
+                  "text": "Top-left corner contains a semi-circular gauge with three colored segments: green (LOW), yellow (MODERATE), and red (HIGH). A black needle points into the red (HIGH) segment. Below the gauge, the text 'Nabota™ summary' is displayed in bold blue font."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "**Strengths**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "Proprietary manufacturing technology",
+                "Cheaper than Botox®",
+                "Sole focus on one product, made for aesthetics",
+                "Global reach and FDA approval",
+                "Claim to have planet friendly packaging"
+              ]
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Weaknesses**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "Contains complexing proteins",
+                "Weak amount and quality of supporting data",
+                "Cold chain required"
+              ]
+            },
+            {
+              "type": "list_bullet",
+              "items": [
+                "No data to show equivalence to Botox® (non-inferiority only)",
+                "Short study duration – limited evidence base for treatment duration with clinical trials of only 150 day duration"
+              ]
+            },
+            {
+              "type": "image_description",
+              "text": "Two circular icons are present: a light blue circle with a blue plus sign on the left under 'Strengths', and a light blue circle with a blue minus sign on the right under 'Weaknesses'. The minus sign bullet points are indented and marked with blue arrowhead symbols (➢)."
+            },
+            {
+              "type": "callout",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "Bottom-right corner features a blue triangular shape with white navigation arrows (left and right) and the number '8' in white, indicating page number."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Nabota™**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "POTENTIAL OBJECTIONS",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "The slide has a diagonal blue geometric design extending from the top-right corner to the bottom-left corner. The background is white on the top-left and transitions to a light blue gradient at the bottom. The BOCOUTURE® logo is located in the top-right corner. The page number '9' is displayed at the bottom-right corner with navigation arrows. The overall design is clean and professional, typical of a corporate or pharmaceutical presentation."
+            },
+            {
+              "type": "image_description",
+              "text": "A circular gauge in the top-left corner with a color-coded scale: green (LOW), yellow (MODERATE), and red (HIGH). The needle points to the red 'HIGH' section."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "1. I like the fact that Nabota™ is made for aesthetics with Hi-Pure™ Technology",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "Response:",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Purity is important** to patients today as they care deeply about what is in the cosmetic products and treatments they undergo with an increasing desire for ‘**healthy**’ and ‘**clean**’ products, particularly among millennials¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "Merz Aesthetics developed BOCOUTURE® which is the ONLY highly purified toxin only containing the 150kd active neurotoxin, **XTRACT™ technology is used** it its manufacture to remove **other clostridial proteins** which have no therapeutic purpose but constitute an unnecessary foreign protein load²"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Nabota™ contains complexing proteins** which, unlike the neurotoxin, can be recognized by the immune system and stimulate an immune response **risking the generation of neutralizing antibodies**²,³"
+            },
+            {
+              "type": "paragraph",
+              "text": "A formulation purified from complexing proteins like **BOCOUTURE® poses the lowest risk of neutralizing antibody formation** and therefore of secondary treatment failure²,³"
+            },
+            {
+              "type": "callout",
+              "text": "**Background information:**\n• Recent consumer research in beauty and personal care, showed that 72% of respondents said it was important to purchase healthy or clean products¹\n• The manufacturing process of BOCOUTURE® involves several chromatographic steps to purify the neurotoxin from the complexing proteins while minimizing the risk of denaturing, degrading or losing biological activity of the neurotoxin²\n• The neurotoxin itself does not contain any molecular signatures recognised by dendritic cells which may stimulate an immune response while the complexing proteins do, and are therefore identified as adjuvants³\n• Neutralizing antibodies can result in partial or complete treatment failure²"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Masory A & Yost P. Naturally beautiful: millennials and preferences in beauty and personal care products. 2019. Available at: https://www.alxpartners.com/media/12673/ap_millennial_preferences_beauty_personal_care_may_2019.pdf. Last accessed: 12 October 2021;",
+                "2. Frevert J. Drugs R D 2015;15:1–9;",
+                "3. Martin MU. Thieme Drug Report 2014;7:1–12."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "A small circular gauge in the top-left corner with a needle pointing to 'HIGH'. The gauge has three colored segments: green (LOW), yellow (MODERATE), and red (HIGH)."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "2. I’ve heard that Nabota™ has a rapid onset of action",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "Response:",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "In the study by Rzany and colleagues, the percentage of patients treated with prabotulinumtoxinA with a ≥1-point **improvement from baseline on Day 2** assessed by the investigator **was 54.2%**, compared with 12.2% for placebo¹"
+            },
+            {
+              "type": "paragraph",
+              "text": "A rapid onset of action is an advantage in an aesthetic procedure contributing to patient satisfaction"
+            },
+            {
+              "type": "paragraph",
+              "text": "Clinical trials have not compared the onset of action of Nuceiva™ with BOCOUTURE® but studies have confirmed the **rapid onset of BOCOUTURE®**. In a trial comparing BOCOUTURE® with Botox® and Dysport®, the median onset of action in males and females was assessed by physicians compared with baseline videos **and occurred two days earlier** in those treated with BOCOUTURE® **compared with the other two products²**"
+            },
+            {
+              "type": "paragraph",
+              "text": "Another key factor contributing to patient satisfaction is continuing treatment success. Unlike BOCOUTURE®, **Nabota™ contains complexing proteins** which can be recognized by the immune system and stimulate an immune response **risking the generation of neutralizing antibodies which can lead to secondary treatment failure³,⁴**"
+            },
+            {
+              "type": "callout",
+              "text": "Background information:\n• In the non-inferiority study by Rzany and colleagues, onset was investigated by exploring the percentage of patients with an improvement at Day 2 rather than exploring the effect over time¹\n• In the Rappl study (n=180), onset was defined as an improvement of ≥1-point from baseline on the 5-point Merz Aesthetics Scale when comparing muscle activity assessed by the injecting physician and one other physician²\n• Median time to onset for BOCOUTURE® was 3.02 and 3.36 days for females and males and for Dysport® was 5.32 and 5.93 days, respectively²"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Rzany B-J, et al. Aesthet Surg J 2020;40:413–29;",
+                "2. Rappl T, et al. Clin Cosmet Investig Dermatol 2013;6:211–9;",
+                "3. Frevert J. Drugs R D 2015;15:1–9;",
+                "4. Martin MU. Thieme Drug Report 2014;7:1–12."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "A small circular gauge in the top-left corner with a needle pointing to 'HIGH'. The gauge has three colored segments: green (LOW), yellow (MODERATE), and red (HIGH)."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**3. Nabota™ is almost equivalent to Botox®1**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Relative efficacy** of different treatments can only be assessed in **head-to-head trials**"
+            },
+            {
+              "type": "paragraph",
+              "text": "Not only has **BOCOUTURE®** been shown to be **non-inferior to Botox®** for the treatment of glabellar frown lines², it has further been proven to be **equipotent to Botox®** in that indication³"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Nabota™** has only demonstrated **non-inferiority to Botox®** in a Phase 3 study for the treatment of glabellar frown lines⁴ and so far there are **no published data investigating the equivalence of Nabota™ and Botox®**"
+            },
+            {
+              "type": "paragraph",
+              "text": "Patients and clinicians want a treatment with **known and reliable effects**. **BOCOUTURE®** has been used for over 15 years and has over 200 publications"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Background information:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "The Sattler study (n=381) assessed 24 U BOCOUTURE® or Botox® for the treatment of glabellar frown lines with responders defined as those with a ≥1-point improvement from baseline. Non-inferiority of BOCOUTURE® to Botox® was confirmed at Week 4²",
+                "The Kane study aimed to demonstrate the equipotency of 20 U Botox® and BOCOUTURE® for the treatment of glabellar frown lines (n=250)³",
+                "In the Nuceiva™ study vs Botox® and placebo (n=540), patients were treated with 20 U of each toxin and non-inferiority was confirmed for the primary endpoint of responder rates at Day 30 where a responder was a patient with a score of none or mild on a 4-point scale⁴"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. MNA EVOLUS review. 2021;",
+                "2. Sattler G, et al. Dermatol Surg 2010;36:2146–54;",
+                "3. Kane MAC, et al. J Dermatol Surg 2015;41:1310–9;",
+                "4. Rzany B-J, et al. Aesthet Surg J 2020;40:413–29;",
+                "5. Lee JH, et al. J Dermatol Treat 2014;25:326–30;",
+                "6. Oliveira de Morais O, et al. J Drugs Dermatol 2012;11:216–9."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "A circular gauge in the top-left corner with a needle pointing to 'HIGH'. The gauge has three colored sections: green (LOW), yellow (MODERATE), and red (HIGH)."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**4. Nabota™ will appeal to my patients as it is cheaper than Botox®1**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Reports have suggested that, per unit, Nabota™ will cost 20–30% less than Botox®1**"
+            },
+            {
+              "type": "paragraph",
+              "text": "Depending on your market, pricing conversations can consider **duration of action** and its impact on the long-term cost of treatment or the **benefits of a pure toxin** which some patients would be willing to pay for"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Treatments with a long duration of action are preferable in terms of long-term cost** and in a study by Kerscher and colleagues, a single 20 U treatment of **BOCOUTURE®** had a **median duration of action of 177 days which is approximately 6 months2**"
+            },
+            {
+              "type": "paragraph",
+              "text": "Purity matters to patients and influences their choice of brand. Unlike Nabota™, **BOCOUTURE® is free from complexing proteins and has been shown to have a low risk of neutralizing antibody development**, which may be related to its low protein load and lack of complexing proteins3"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Reducing the risk of developing neutralizing antibodies and secondary treatment failure with a pure toxin maximizes the potential to provide patients with a lifetime of treatment**"
+            },
+            {
+              "type": "callout",
+              "text": "**Background information:**\n• With an expected cost per unit of between $8 and $16, Nabota™ would be cheaper than Botox® ($10 to $20 per unit) with a saving of between $40 to $80 for each treatment based on a standard 20 U dose1\n• Kerscher and colleagues assessed treatment duration as the time between injection and the return to baseline severity (n=151)2"
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Gadarowski MB, et al. Annals Pharmacother 2021;55:354–61;",
+                "2. Kerscher M, et al. J Drugs Dermatol 2020;19:985–91;",
+                "3. Hefter H, et al. BMJ Open 2012;2:e000646."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "A circular gauge in the top-left corner with a color-coded scale: green (LOW), yellow (MODERATE), and red (HIGH). The needle points to the red 'HIGH' section."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**5. Nabota™ seems to appeal to my young patients who are asking to be treated with it**",
+      "level": 1,
+      "content": [],
+      "sections": [
+        {
+          "heading": "**Response:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The **indication** for both Nabota™ and BOCOUTURE® specifies **adults <65 years** of age so the target patient population is the same in terms of age for both products¹,²"
+            },
+            {
+              "type": "paragraph",
+              "text": "Young patients who may desire a lifetime of treatment with a botulinum toxin may benefit from a pure product like BOCOUTURE®, which is free from complexing proteins, and therefore **poses the lowest risk of neutralizing antibody formation** and consequently of secondary treatment failure³,⁴"
+            },
+            {
+              "type": "paragraph",
+              "text": "Patients, particularly perhaps the younger ones also care about sustainability. A further benefit of **BOCOUTURE®** is its **stability at room temperature** for 3 years, eliminating the need for a cold chain, cold storage materials and their disposal²"
+            },
+            {
+              "type": "paragraph",
+              "text": "In a study comparing **estimated greenhouse gas emissions** associated with secondary shipping packaging of BOCOUTURE® – which can be shipped without a cold chain – and Botox®, which requires refrigeration, standard shipments of Botox® were estimated to generate **approximately 90 times more greenhouse gas emissions** than BOCOUTURE® shipments⁵"
+            }
+          ],
+          "subsections": []
+        },
+        {
+          "heading": "**Background information:**",
+          "level": 2,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "The stability of BOCOUTURE® at room temperature means it can be transported and stored without refrigeration which is good for the environment",
+                "The study by Thistle, estimated that the total greenhouse gas emissions of secondary packaging were 0.0389 kg-CO₂e for BOCOUTURE® and 3.5705 kg-CO₂e for Botox®. It was estimated that for every 1000 shipments, this difference equated to the use of over 1500 L gasoline⁵"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Nuceiva™. EMC authorisation details. Available at: https://www.ema.europa.eu/en/medicines/human/EPAR/nuceiva#authorisation-details-section. Last accessed: 14 December 2021; 2. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021; 3. Frevert J. Drugs R D 2015;15:1–9; 4. Martin MU. Thieme Drug Report 2014;7:1–12; 5. Thistle F. Botulinum J 2013;2:346."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            },
+            {
+              "type": "image_description",
+              "text": "A small circular gauge in the top-left corner with a needle pointing to 'HIGH'. The gauge has three colored segments: green (LOW), yellow (MODERATE), and red (HIGH)."
+            }
+          ],
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "heading": "**Nabota™ objection handling summary**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "**Top Nabota™ topics to defend against**",
+            "**Response**"
+          ],
+          "rows": [
+            {
+              "Top Nabota™ topics to defend against": "Made for aesthetics with Hi-Pure™ Technology",
+              "Response": "Merz Aesthetics' XTRACT™ technology used to manufacture BOCOUTURE® results in a product containing only the neurotoxin and which is free from complexing proteins¹"
+            },
+            {
+              "Top Nabota™ topics to defend against": "Fast onset of action (24–48 hours)",
+              "Response": "Clinical trials have confirmed that BOCOUTURE® has a more rapid onset of action compared with Botox® and Dysport®²"
+            },
+            {
+              "Top Nabota™ topics to defend against": "Nearly equivalent to Botox®",
+              "Response": "Clinical trial data have demonstrated non-inferiority and equipotency of BOCOUTURE® to Botox® for the treatment of glabellar frown lines⁴,⁵"
+            },
+            {
+              "Top Nabota™ topics to defend against": "Cheaper than Botox®",
+              "Response": "Cost of treatment matters to patients and the frequency of treatments will impact on cost. A treatment with a long duration of action is preferable. BOCOUTURE® has demonstrated a median duration of approximately 6 months³. Purity is also a valuable feature of an injectable which patients may be willing to pay for and BOCOUTURE®, unlike Nabota™, is free from complexing proteins"
+            },
+            {
+              "Top Nabota™ topics to defend against": "Appeals to young patients",
+              "Response": "Both Nabota™ and BOCOUTURE® are indicated for adults <65 years of age.⁶,⁷ Purity may be particularly relevant to young patients who may desire a lifetime of treatment where a product such as BOCOUTURE® which is free from complexing proteins poses the lowest risk of developing neutralizing antibody formation and secondary treatment failure¹,⁸"
+            }
+          ]
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Frevert J. Drugs R D 2015;15:1–9; 2. Rappl T et al. Clin Cosmet Investig Dermatol 2013;6:211–9; 3. Kerscher M et al. J Drugs Dermatol 2020;19:985–91 4. Sattler G et al. Dermatol Surg 2010;36:2146–54; 5. Kane MAC et al. J Dermatol Surg 2015;41:1310–9; 6. Nuceiva™. EMC authorisation details. Available at: https://www.ema.europa.eu/en/medicines/human/EPAR/nuceiva#authorisation-details-section. Last accessed: 14 December 2021; 7. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021; 8. Martin MU. Thieme Drug Report 2014;7:1–12."
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        },
+        {
+          "type": "image_description",
+          "text": "Page number '15' in white text inside a blue triangular shape at the bottom-right corner, with left and right arrow navigation icons."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**References**",
+      "level": 1,
+      "content": [
+        {
+          "type": "reference",
+          "items": [
+            "BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021.",
+            "Beer KR, et al. Dermatol Surg 2019;45:1381–93.",
+            "Evolus. Jeuveau® PI. 2019.",
+            "Frevert J. Drugs R D 2015;15:1–9.",
+            "Frevert J, et al. Clin Cosmet Investig Dermatol 2018;11:327–31.",
+            "Gadarowski MB, et al. Annals Pharmacother 2021;55:354–61.",
+            "Hefter H, et al. BMJ Open 2012;2:e000646.",
+            "Jeuveau®. Available at: https://rmontes.com/jeuveau/. Last accessed: 15 October 2021.",
+            "Kane MAC, et al. J Dermatol Surg 2015;41:1310–19.",
+            "Kerscher M, et al. J Drugs Dermatol 2020;19:985–91.",
+            "Lee JH, et al. J Dermatol Treat 2014;25:326–30.",
+            "Martin MU. Thieme Drug Report 2014;7:1–12.",
+            "Masory A & Yost P. Naturally beautiful: millennials and preferences in beauty and personal care products. 2019. Available at: https://www.alixpartners.com/media/12673/ap_millennial_preferences_beauty_personal_care_may_2019.pdf. Last accessed: 12 October 2021.",
+            "MNA EVOLUS review. 2021.",
+            "Nuceiva™. EMC authorisation details. Available at: https://www.ema.europa.eu/en/medicines/human/EPAR/nuceiva#authorisation-details-section. Last accessed: 14 December 2021.",
+            "Oliveira de Morais O, et al. J Drugs Dermatol 2012;11:216–9.",
+            "Rappl T, et al. Clin Cosmet Investig Dermatol 2013;6:211–9.",
+            "Rzany B-J, et al. Aesthet Surg J 2020;40:413–29.",
+            "Sattler G, et al. Dermatol Surg 2010;36:2146–54.",
+            "Song S, et al. Arch Craniofac Surg 2018;19:168–74.",
+            "Thistle F. Botulinum J 2013;2:346."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Appendix 1: Nabota™ vs BOCOUTURE® characteristics**",
+      "level": 1,
+      "content": [
+        {
+          "type": "table",
+          "caption": "",
+          "headers": [
+            "Brand name",
+            "Nuceiva™¹ (Jeuveau® – US, Nabota® – Korea)",
+            "BOCOUTURE®⁴"
+          ],
+          "rows": [
+            {
+              "Brand name": "Nuceiva™¹ (Jeuveau® – US, Nabota® – Korea)",
+              "Generic name": "PrabotulinumtoxinA",
+              "Manufacturer": "Evolus/Daewoong/Croma¹,²",
+              "Composition": "C. botulinum toxin type A¹",
+              "Ingredients": "Human serum albumin, NaCl¹",
+              "Foreign protein content": "754 pg/100 U³",
+              "Biological activity": "0.133 U/pg³",
+              "Manufacturing process": "Hi-Pure™ technology²",
+              "Formulation": "Vacuum-dried powder¹",
+              "Vial size": "100 U¹",
+              "Reconstitution": "Required¹",
+              "Indication": "Moderate to severe glabellar frown lines¹",
+              "Starting dose": "20 U¹",
+              "Storage requirements": "Refrigeration (2°C–8°C)¹",
+              "Shelf life": "Not reported¹"
+            },
+            {
+              "Brand name": "BOCOUTURE®⁴",
+              "Generic name": "IncobotulinumtoxinA⁵",
+              "Manufacturer": "Merz Aesthetics⁴",
+              "Composition": "C. botulinum toxin type A, free from complexing proteins⁴",
+              "Ingredients": "Human albumin and sucrose⁴",
+              "Foreign protein content": "0.44 ng/100 U⁵",
+              "Biological activity": "227 U/ng⁵",
+              "Manufacturing process": "BOCOUTURE® XTRACT Technology™, Germany",
+              "Formulation": "Powder for reconstitution before injection⁴",
+              "Vial size": "50 or 100 units⁴",
+              "Reconstitution": "Required, 0.9% sodium chloride solution⁴",
+              "Indication": "• Moderate to severe glabellar frown lines⁴\n• Moderate to severe crow's feet lines⁴\n• Moderate to severe horizontal forehead lines⁴\n• Combination treatment of upper facial lines⁴",
+              "Starting dose": "• Glabellar frown lines: 20 units across 5 injection sites⁴\n• Lateral periorbital lines: 24 units (12 per side across 3 injection sites)⁴\n• Horizontal forehead lines: 10–20 units across 5 injection sites⁴",
+              "Storage requirements": "Room temperature⁴",
+              "Shelf life": "3 years⁴"
+            }
+          ]
+        },
+        {
+          "type": "reference",
+          "items": [
+            "1. Evolus. Jeuveau® PI. 2019;",
+            "2. Jeuveau. Available at: https://jmontes.com/jeuveau/. Last accessed: 15 October 2021;",
+            "3. Frevert J et al. Clin Cosmet Investig Dermatol 2018;11:327–31;",
+            "4. BOCOUTURE® Summary of Product Characteristics. Merz Aesthetics GmbH. 28 July 2021;",
+            "5. Frevert J. Drugs R D. 2015;15:1–9."
+          ]
+        },
+        {
+          "type": "footnote",
+          "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+        }
+      ],
+      "sections": []
+    },
+    {
+      "heading": "**Appendix 2: Nabota™ key Phase 3 data vs placebo: Study design**",
+      "level": 1,
+      "content": [],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "**Study design:¹**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "Ten different sites in the US in each trial (20 study centers in total)",
+                "Healthy adults at least 18 years old with moderate to severe glabellar frown lines at maximum frown independently agreed by investigator and subject assessments using a 4-point photonumeric scale for glabellar frown lines",
+                "Day 0 randomization 3:1 to receive treatment with either 20 U prabotulinumtoxinA or placebo as an injection of 0.1 mL into each of 5 sites)"
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "**Results/findings:¹**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "A total of 330 subjects in EV-001 and 324 in EV-002 were randomized to treatment and received treatment",
+                "For the primary efficacy end point, according to the composite end point of investigator and patient assessed improvement of ≥2 points from baseline, responder rates for prabotulinumtoxinA vs placebo were 67.5% vs 1.2% and 70% vs 1.3% in EV-001 and EV-002, respectively.",
+                "Using the composite end point, secondary endpoints at Day 90, Day 120 and Day 150 also demonstrated the superiority of prabotulinumtoxinA over placebo.",
+                "Exploratory end points of ≥1 point improvement from baseline or a score of 0 or 1 at maximum frown also clearly showed differences in response between prabotulinumtoxinA and placebo",
+                "In terms of safety assessments, the overall incidence of adverse events, the incidence of the most common event and the incidence of study drug-related events were similar between prabotulinumtoxinA and placebo groups. No serious adverse events were study-drug related",
+                "Limitations of the studies include the low number of patients from subpopulations of interest such as those ≥65 years, men, non-Caucasian ethnic groups and individual Fitzpatrick skin types"
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "**Phase 4 data: a single-arm study²**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "The aim of this study by Song and colleagues (n=42) was to determine the safety, efficacy, and onset of action of prabotulinumtoxinA (20 U total dose) for the treatment of glabellar frown lines",
+                "Improvement in glabellar frown lines was observed in 85.4% and 51.2% of subjects 2 days after administration at maximum frown and at rest, respectively"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "1. Beer KR, et al. Dermatol Surg 2019;45:1381–93;",
+                "2. Song S et al. Arch Craniofac Surg 2018;19:168–74."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "**Appendix 3: Nabota™ key Phase 3 data vs onabotulinumtoxinA: Study design**",
+      "level": 1,
+      "content": [],
+      "sections": [],
+      "subsections": [
+        {
+          "heading": "**Study design:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "Nineteen different sites in France (5 sites), German (7 sites), Sweden (2 sites), UK (1 site) and Canada (4 sites)",
+                "Healthy adults at least 18 years old with moderate to severe glabellar frown lines at maximum frown assessed by the investigator using a validated 4-point photonumeric scale for glabellar frown lines. In addition, patients must have answered yes to the question: Do you find that your glabellar lines have an important psychological impact, for example, on mood, anxiety or depressive symptoms?",
+                "Day 0 randomization 5:5:1 to receive treatment with 20 U prabotulinumtoxinA, 20 U onabotulinumtoxinA or placebo as an injection of 0.1 mL into each of 5 sites"
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "**Results/findings:**",
+          "level": 3,
+          "content": [
+            {
+              "type": "list_bullet",
+              "items": [
+                "A total of 540 subjects were randomized to treatment and received treatment (245 prabotulinumtoxinA, 246 onabotulinumtoxinA and 49 placebo patients)",
+                "The responder rates at Day 30 (where a responder was defined as a patient with a score of 0 or 1 as assessed by the investigator at maximum frown on the 4-point glabellar frown lines scale) were 87.7%, 82.8% and 4.2% in the prabotulinumtoxinA, onabotulinumtoxinA and placebo groups, respectively",
+                "The absolute difference in responder rates between the prabotulinumtoxinA and onabotulinumtoxinA groups was 4.4% (95% CI were −1.9, 10.8). Given that the lower bound of the 95% CI was greater than −10.0, noninferiority of prabotulinumtoxinA to onabotulinumtoxinA was confirmed",
+                "Patient-assessed responder rates using the same definition at Day 30 were 78.8%, 76.0% and 6.3% in the prabotulinumtoxinA, onabotulinumtoxinA and placebo groups, respectively",
+                "Subject satisfaction was high with responder rates (where responders were those with ≥1-point improvement in the subject satisfaction scale from baseline) of 91.3%, 86.6% and 6.3% in the prabotulinumtoxinA, onabotulinumtoxinA and placebo groups, respectively, at Day 30",
+                "Patients randomly assigned to prabotulinumtoxinA achieved statistically significant improvements in Hospital Anxiety and Depression Scale (HADS)-A and HADS-D",
+                "The overall incidence of adverse events as well as the most common events were not statistically significantly different between the active treatment groups"
+              ]
+            },
+            {
+              "type": "reference",
+              "items": [
+                "Rzany B-J et al. Aesthet Surg J 2020;40:413–29."
+              ]
+            },
+            {
+              "type": "footnote",
+              "text": "HIGHLY CONFIDENTIAL: FOR INTERNAL USE ONLY"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

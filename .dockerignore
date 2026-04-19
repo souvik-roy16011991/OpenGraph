@@ -12,11 +12,8 @@ ENV/
 .git/
 .gitignore
 
-# Generated graph artifacts — rebuilt during Docker build from kb-config/
-data/knowledge_graph.pkl
-data/faiss_index.*
-data/node_registry.json
-data/cross_links.json
+# Generated graph artifacts — produced per-workspace at runtime on a Render Disk.
+data/
 
 # Python caches
 __pycache__/
@@ -51,3 +48,6 @@ htmlcov/
 
 # Postman collection (not needed at runtime)
 postman/
+
+# Frontend: built and deployed as a separate Render service.
+frontend/
