@@ -51,7 +51,9 @@ export function Chat() {
       setHighlighted(resp.traversal_path || []);
       if (resp.session_id && resp.session_id !== sessionId) {
         setSessionId(resp.session_id);
-        try { localStorage.setItem("kb.chatSessionId", resp.session_id); } catch {}
+        if (activeWs) {
+          try { localStorage.setItem(`kb.chatSessionId.${activeWs}`, resp.session_id); } catch {}
+        }
       }
     },
     onError: (err: Error) => {
