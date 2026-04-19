@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Upload, FileJson, CheckCircle2, X, AlertCircle } from "lucide-react";
+import { Upload, FileJson, CheckCircle2, AlertCircle, X, Plus } from "lucide-react";
 import { cn, formatBytes } from "@/lib/utils";
 
 export interface KbFilePreview {
@@ -32,17 +32,21 @@ async function parsePreview(file: File): Promise<KbFilePreview> {
   }
 }
 
+/**
+ * Multi-file dropzone. Accepts N JSON files, validates each in-browser,
+ * shows per-file status, and emits the full list via onChange.
+ */
 export function KbDropzone({
   label,
   helpText,
   value,
   onChange,
-  accentColor = "from-sky-500/20 to-indigo-500/20",
+  accentColor = "bg-gradient-to-br from-sky-500/10 to-indigo-500/10",
 }: {
   label: string;
   helpText: string;
-  value: KbFilePreview | null;
-  onChange: (v: KbFilePreview | null) => void;
+  value: KbFilePreview[];
+  onChange: (v: KbFilePreview[]) => void;
   accentColor?: string;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -50,20 +54,33 @@ export function KbDropzone({
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const preview = await parsePreview(files[0]);
-    onChange(preview);
+    const previews = await Promise.all(Array.from(files).map((f) => parsePreview(f)));
+    // Dedup by name+size against existing list
+    const existingKeys = new Set(value.map((v) => `${v.file.name}:${v.file.size}`));
+    const fresh = previews.filter((p) => !existingKeys.has(`${p.file.name}:${p.file.size}`));
+    onChange([...value, ...fresh]);
   }
+
+  function removeAt(idx: number) {
+    onChange(value.filter((_, i) => i !== idx));
+  }
+
+  const validCount = value.filter((v) => v.ok).length;
+  const invalidCount = value.length - validCount;
+  const totalChapters = value.filter((v) => v.ok).reduce((sum, v) => sum + v.chapters, 0);
 
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
         <span className="text-sm font-medium">{label}</span>
-        {value?.ok && (
-          <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange(null)}>
-            Remove
-          </button>
+        {value.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {validCount} valid{invalidCount ? ` · ${invalidCount} rejected` : ""}
+            {totalChapters ? ` · ${totalChapters} chapters` : ""}
+          </span>
         )}
       </div>
+
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -77,54 +94,73 @@ export function KbDropzone({
         }}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "relative rounded-xl border-2 border-dashed bg-gradient-to-br transition-all cursor-pointer",
-          "flex flex-col items-center justify-center p-8 min-h-[220px]",
+          "relative rounded-xl border-2 border-dashed cursor-pointer transition-all p-5 min-h-[140px]",
+          "flex flex-col items-center justify-center gap-2",
           hover ? "border-primary" : "border-border hover:border-foreground/30",
-          value ? "bg-card" : accentColor
+          accentColor
         )}
       >
         <input
           ref={inputRef}
           type="file"
           accept="application/json,.json"
+          multiple
           className="hidden"
           onChange={(e) => void handleFiles(e.target.files)}
         />
-        {!value && (
+        {value.length === 0 ? (
           <>
-            <Upload className="h-8 w-8 text-muted-foreground mb-3" />
-            <p className="text-sm font-medium">Drop a JSON file or click to browse</p>
-            <p className="text-xs text-muted-foreground mt-1">{helpText}</p>
+            <Upload className="h-6 w-6 text-muted-foreground" />
+            <p className="text-sm font-medium">Drop JSON files or click to browse</p>
+            <p className="text-xs text-muted-foreground">{helpText} · multi-select supported</p>
           </>
-        )}
-        {value && (
-          <div className="w-full flex flex-col gap-3">
-            <div className="flex items-start gap-3">
-              <FileJson className="h-8 w-8 shrink-0 text-primary" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{value.file.name}</p>
-                <p className="text-xs text-muted-foreground">{formatBytes(value.file.size)}</p>
-              </div>
-              {value.ok ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-              )}
-            </div>
-            {value.ok ? (
-              <div className="rounded-md bg-background/60 p-3 space-y-0.5 text-xs">
-                {value.title && <p className="font-medium">{value.title}</p>}
-                {value.subtitle && <p className="text-muted-foreground">{value.subtitle}</p>}
-                <p className="font-mono text-muted-foreground">{value.chapters} chapters detected</p>
-              </div>
-            ) : (
-              <div className="rounded-md bg-destructive/10 p-3 text-xs text-destructive">
-                <span className="font-medium">Invalid: </span>{value.error}
-              </div>
-            )}
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Plus className="h-4 w-4" />
+            <span>Add more JSON files</span>
           </div>
         )}
       </div>
+
+      {value.length > 0 && (
+        <ul className="space-y-1.5">
+          {value.map((v, i) => (
+            <li
+              key={i}
+              className={cn(
+                "flex items-center gap-3 rounded-md border px-3 py-2 bg-card text-sm",
+                !v.ok && "border-destructive/50 bg-destructive/5"
+              )}
+            >
+              <FileJson className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="truncate font-medium">{v.file.name}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {formatBytes(v.file.size)}
+                  {v.ok
+                    ? ` · ${v.chapters} chapters${v.title ? ` · ${v.title}` : ""}`
+                    : ` · ${v.error}`}
+                </p>
+              </div>
+              {v.ok ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeAt(i);
+                }}
+                className="text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

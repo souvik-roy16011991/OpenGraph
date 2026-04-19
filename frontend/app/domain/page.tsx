@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Stepper } from "@/components/wizard/stepper";
 import { api } from "@/lib/api";
 import { DomainPayloadSchema, type DomainPayload } from "@/lib/schema";
+import { useRequireWorkspace } from "@/hooks/use-require-workspace";
 import { useWizardStore } from "@/store/wizard-store";
 
 export default function DomainPage() {

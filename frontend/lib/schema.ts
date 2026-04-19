@@ -112,17 +112,22 @@ export interface PutGraphConfigResponse {
 
 // ---------- Upload ----------
 export interface UploadedFileInfo {
-  path: string;
+  id: number;
+  kb_source: "knowledge" | "tool";
   filename: string;
-  size: number;
+  size_bytes: number;
   chapters: number;
   title?: string | null;
+  sha256: string;
+  local_path: string;
   blob_url?: string | null;
   blob_error?: string | null;
+  duplicate: boolean;
 }
 export interface UploadResponse {
-  knowledge: UploadedFileInfo | null;
-  tool: UploadedFileInfo | null;
+  workspace_id: string;
+  knowledge: UploadedFileInfo[];
+  tool: UploadedFileInfo[];
   warnings: string[];
 }
 
