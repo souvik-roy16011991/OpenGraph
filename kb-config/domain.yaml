@@ -1,5 +1,5 @@
-domain_name: loan_assessment
-domain_display_name: Loan Application Assessment (edited)
-organization_name: the Credit Underwriting Desk
-knowledge_focus_examples: applicant classification, FOIR
-tool_focus_examples: credit bureaus, KYC
+domain_name: wealth management
+domain_display_name: wealth planning
+organization_name: 1 Finance
+knowledge_focus_examples: wealth planning, tax planning
+tool_focus_examples: mutual fund data, tax and wealth planning
