@@ -713,10 +713,10 @@ class KnowledgeGraph:
             },
         }
 
-        # Augment with live Neo4j stats when available
+        # Augment with live Neo4j stats when available — scoped to this workspace.
         if self._neo4j:
             try:
-                result["neo4j"] = self._neo4j.stats()
+                result["neo4j"] = self._neo4j.stats(workspace_id=self.workspace_id)
             except Exception as exc:
                 result["neo4j_error"] = str(exc)
 
