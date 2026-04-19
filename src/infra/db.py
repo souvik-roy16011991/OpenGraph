@@ -130,6 +130,10 @@ def set_main_loop(loop: asyncio.AbstractEventLoop) -> None:
     _main_loop = loop
 
 
+def get_main_loop() -> Optional[asyncio.AbstractEventLoop]:
+    return _main_loop
+
+
 def fire_and_forget(coro) -> None:
     """Schedule *coro* on the main event loop from any thread; ignore the result.
 

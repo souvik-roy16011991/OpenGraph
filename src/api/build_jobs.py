@@ -310,13 +310,16 @@ def _run_build(job: BuildJob) -> None:
 def _collect_workspace_files(workspace_id: str):
     """Fetch active file local paths for a workspace, partitioned by kb_source.
 
-    This function is *sync* because it's called from the build thread.  We open
-    a scratch asyncio loop since SQLAlchemy async requires one.
+    Runs from the build THREAD, so we must schedule the async SQLAlchemy work
+    onto the main event loop (where the async engine lives) via
+    ``run_coroutine_threadsafe`` and block until it completes. Using
+    ``asyncio.run`` here would spin up a new loop whose Futures don't match
+    the engine's loop and you'd see "Future attached to a different loop".
     """
     import asyncio
     from pathlib import Path
     from sqlalchemy import select
-    from src.infra.db import get_session
+    from src.infra.db import get_main_loop, get_session
     from src.infra.db_models import WorkspaceFile
 
     async def _fetch():
@@ -327,10 +330,15 @@ def _collect_workspace_files(workspace_id: str):
                 .where(WorkspaceFile.active.is_(True))
                 .order_by(WorkspaceFile.created_at)
             )
-            rows = r.scalars().all()
-        return rows
+            return r.scalars().all()
 
-    rows = asyncio.run(_fetch())
+    loop = get_main_loop()
+    if loop is None:
+        raise RuntimeError(
+            "Main event loop is not captured; cannot fetch workspace files from build thread."
+        )
+    fut = asyncio.run_coroutine_threadsafe(_fetch(), loop)
+    rows = fut.result(timeout=30)
     knowledge_paths: list[Path] = []
     tool_paths: list[Path] = []
     for r in rows:
