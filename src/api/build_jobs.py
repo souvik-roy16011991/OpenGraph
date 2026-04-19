@@ -151,6 +151,7 @@ async def _upsert_job_async(job: BuildJob, stats: dict | None = None, backends: 
         async with get_session() as s:
             stmt = insert(BuildJobRow).values(
                 job_id=job.job_id,
+                workspace_id=uuid.UUID(job.workspace_id),
                 status=job.status,
                 stage=job.stage,
                 stage_name=job.stage_name,
@@ -303,30 +304,74 @@ def _run_build(job: BuildJob) -> None:
         for t in targets:
             t.removeHandler(handler)
         with _state_lock:
-            global _running_job_id
-            _running_job_id = None
+            _running_by_ws.pop(job.workspace_id, None)
+
+
+def _collect_workspace_files(workspace_id: str):
+    """Fetch active file local paths for a workspace, partitioned by kb_source.
+
+    This function is *sync* because it's called from the build thread.  We open
+    a scratch asyncio loop since SQLAlchemy async requires one.
+    """
+    import asyncio
+    from pathlib import Path
+    from sqlalchemy import select
+    from src.infra.db import get_session
+    from src.infra.db_models import WorkspaceFile
+
+    async def _fetch():
+        async with get_session() as s:
+            r = await s.execute(
+                select(WorkspaceFile)
+                .where(WorkspaceFile.workspace_id == uuid.UUID(workspace_id))
+                .where(WorkspaceFile.active.is_(True))
+                .order_by(WorkspaceFile.created_at)
+            )
+            rows = r.scalars().all()
+        return rows
+
+    rows = asyncio.run(_fetch())
+    knowledge_paths: list[Path] = []
+    tool_paths: list[Path] = []
+    for r in rows:
+        if not r.local_path:
+            continue
+        p = Path(r.local_path)
+        if not p.exists():
+            continue
+        if r.kb_source == "knowledge":
+            knowledge_paths.append(p)
+        elif r.kb_source == "tool":
+            tool_paths.append(p)
+    return knowledge_paths, tool_paths
 
 
 def start_build(
+    workspace_id: str,
     skip_embeddings: bool = False,
     skip_llm_cross_links: bool = False,
 ) -> BuildJob:
-    """Start a background build. Raises RuntimeError if a build is already running."""
-    global _running_job_id
+    """Start a background build for *workspace_id*.
+
+    Raises RuntimeError if this workspace already has a running build.
+    Builds for other workspaces run concurrently.
+    """
     with _state_lock:
-        if _running_job_id is not None:
+        if workspace_id in _running_by_ws:
             raise RuntimeError(
-                f"A build is already running (job_id={_running_job_id}). "
+                f"A build is already running for workspace {workspace_id} "
+                f"(job_id={_running_by_ws[workspace_id]}). "
                 "Wait for it to finish before starting another."
             )
         job_id = uuid.uuid4().hex[:12]
         job = BuildJob(
             job_id=job_id,
+            workspace_id=workspace_id,
             skip_embeddings=skip_embeddings,
             skip_llm_cross_links=skip_llm_cross_links,
         )
         _jobs[job_id] = job
-        _running_job_id = job_id
+        _running_by_ws[workspace_id] = job_id
 
     thread = threading.Thread(target=_run_build, args=(job,), daemon=True, name=f"build-{job_id}")
     thread.start()

@@ -7,10 +7,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.api.deps import require_workspace_id
 from src.graph_builder.builder import KnowledgeGraph
 from src.models.nodes import NodeType
 
@@ -21,19 +22,41 @@ router = APIRouter()
 # Sub-routers (config, upload, build, viz) are included at the bottom of this
 # module after _get_kg is defined so they can import it safely.
 
-# KG instance injected at startup
-_kg: KnowledgeGraph | None = None
+# Per-workspace KG cache. Populated by /build completion and by lazy-load
+# on the first scoped request for an already-built workspace.
+_kg_by_ws: dict[str, KnowledgeGraph] = {}
 
 
-def set_knowledge_graph(kg: KnowledgeGraph) -> None:
-    global _kg
-    _kg = kg
+def set_knowledge_graph(kg: KnowledgeGraph, workspace_id: str | None = None) -> None:
+    """Install *kg* in the per-workspace cache.
+
+    If workspace_id is omitted, it is read off ``kg.workspace_id`` (always
+    populated by build_graph and KnowledgeGraph.load).
+    """
+    wid = workspace_id or getattr(kg, "workspace_id", None)
+    if not wid:
+        raise ValueError("set_knowledge_graph: workspace_id is required.")
+    _kg_by_ws[wid] = kg
 
 
-def _get_kg() -> KnowledgeGraph:
-    if _kg is None:
-        raise HTTPException(status_code=503, detail="Knowledge graph not loaded.")
-    return _kg
+def _get_kg(workspace_id: str) -> KnowledgeGraph:
+    """Return the live KnowledgeGraph for *workspace_id*, loading from disk if needed."""
+    kg = _kg_by_ws.get(workspace_id)
+    if kg is not None:
+        return kg
+    # Lazy load from the on-disk cache if a build artifact exists
+    try:
+        kg = KnowledgeGraph.load(workspace_id)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"No graph built for workspace {workspace_id}. "
+                "Upload KB files and POST /api/v1/build first."
+            ),
+        )
+    _kg_by_ws[workspace_id] = kg
+    return kg
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +103,10 @@ class TraverseResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/query", response_model=QueryResponse, summary="Query the knowledge graph")
-async def query_graph(req: QueryRequest):
+async def query_graph(
+    req: QueryRequest,
+    workspace_id: str = Depends(require_workspace_id),
+):
     """
     Main query endpoint. Runs the full LangGraph agent pipeline and
     returns a step-by-step response with tool details and follow-ups.
@@ -95,7 +121,7 @@ async def query_graph(req: QueryRequest):
     from src.agent.graph import KBGraphAgent
     from src.config import USE_NEON
 
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
     agent = KBGraphAgent.from_graph(kg)
 
     session_id = req.session_id or str(uuid.uuid4())
@@ -139,6 +165,7 @@ async def query_graph(req: QueryRequest):
     if USE_NEON:
         try:
             await _persist_chat_turn(
+                workspace_id=workspace_id,
                 session_id=session_id,
                 query=req.query,
                 resp=resp,
@@ -151,6 +178,7 @@ async def query_graph(req: QueryRequest):
 
 
 async def _persist_chat_turn(
+    workspace_id: str,
     session_id: str,
     query: str,
     resp: QueryResponse | None,
@@ -175,7 +203,9 @@ async def _persist_chat_turn(
     async with get_session() as s:
         now = datetime.now(timezone.utc)
         sess_stmt = insert(ChatSession).values(
-            session_id=sid, title=title, created_at=now, last_activity_at=now,
+            session_id=sid,
+            workspace_id=_uuid.UUID(workspace_id),
+            title=title, created_at=now, last_activity_at=now,
         ).on_conflict_do_update(
             index_elements=["session_id"],
             set_={"last_activity_at": now},
@@ -211,9 +241,9 @@ async def _persist_chat_turn(
 
 
 @router.get("/graph/node/{node_id}", summary="Get node details and edges")
-async def get_node(node_id: str):
+async def get_node(node_id: str, workspace_id: str = Depends(require_workspace_id)):
     """Return a node's data along with its incoming and outgoing edges."""
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
     node = kg.get_node(node_id)
     if not node:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found.")
@@ -230,12 +260,12 @@ async def get_node(node_id: str):
 
 
 @router.get("/graph/tree", summary="Get full graph tree for navigation")
-async def get_tree(max_depth: int = Query(default=2, ge=1, le=4)):
-    """
-    Return the two root domain nodes with their subtrees.
-    Used by a front-end tree navigator.
-    """
-    kg = _get_kg()
+async def get_tree(
+    max_depth: int = Query(default=2, ge=1, le=4),
+    workspace_id: str = Depends(require_workspace_id),
+):
+    """Return the root domain nodes with their subtrees for UI navigation."""
+    kg = _get_kg(workspace_id)
     tree = kg.full_tree()
     return {"tree": tree}
 
@@ -246,13 +276,14 @@ async def get_tools(
     provider: Optional[str] = None,
     search: Optional[str] = None,
     limit: int = Query(default=50, ge=1, le=200),
+    workspace_id: str = Depends(require_workspace_id),
 ):
     """
     Return all ToolNode objects, optionally filtered by category, provider, or search term.
     """
     from src.models.nodes import ToolNode
 
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
     tools = [
         node.to_dict()
         for node in kg.nodes.values()
@@ -279,12 +310,15 @@ async def get_tools(
 
 
 @router.post("/graph/traverse", response_model=TraverseResponse, summary="Traverse from a node")
-async def traverse_from_node(req: TraverseRequest):
+async def traverse_from_node(
+    req: TraverseRequest,
+    workspace_id: str = Depends(require_workspace_id),
+):
     """
     BFS traverse from a given node with optional edge-type filter.
     Returns ordered list of visited nodes with their data.
     """
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
     if req.node_id not in kg.G:
         raise HTTPException(status_code=404, detail=f"Node '{req.node_id}' not found.")
 
@@ -321,9 +355,10 @@ async def search_nodes(
     q: str = Query(..., min_length=2),
     top_k: int = Query(default=10, ge=1, le=50),
     node_type: Optional[str] = None,
+    workspace_id: str = Depends(require_workspace_id),
 ):
     """Search for nodes using hybrid semantic + keyword search."""
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
 
     node_types = None
     if node_type:
@@ -349,18 +384,18 @@ async def search_nodes(
 
 
 @router.get("/graph/stats", summary="Graph statistics")
-async def get_stats():
+async def get_stats(workspace_id: str = Depends(require_workspace_id)):
     """Return node/edge counts by type."""
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
     return kg.stats()
 
 
 @router.get("/graph/chapters", summary="List all chapters from both KBs")
-async def get_chapters():
+async def get_chapters(workspace_id: str = Depends(require_workspace_id)):
     """Return all ChapterNode objects from both KBs."""
     from src.models.nodes import ChapterNode
 
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
     chapters = [
         node.to_dict()
         for node in kg.nodes.values()
