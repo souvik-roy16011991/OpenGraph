@@ -1,10 +1,18 @@
 """
-KB JSON upload endpoints.
+KB JSON upload endpoints — per-workspace, multi-file.
 
-Accepts multipart uploads of knowledge.json and/or tool.json, validates the
-structure (must have `chapters: [...]`), writes to kb-config/{knowledge,tool}/,
-and mirrors to Vercel Blob when BLOB_READ_WRITE_TOKEN is set. Blob upload
-failures are non-fatal.
+POST /api/v1/kb/upload (X-Workspace-Id required)
+  - Accepts any number of ``knowledge_files`` and any number of ``tool_files``
+    in a single multipart request.
+  - Each file is validated, sha256-hashed, persisted locally under
+    /data/workspaces/{ws_id}/uploads/{kb_source}/{filename}, mirrored to
+    Vercel Blob at {BLOB_STORE_PATH}/{ws_id}/{kb_source}/{filename}, and
+    recorded as a WorkspaceFile + kb_uploads row.
+  - Duplicates (same sha256 for same kb_source in this workspace) are
+    silently skipped.
+
+The graph build pipeline reads the list of active WorkspaceFile rows and
+merges all files of each kb_source into one ParsedKB.
 """
 
 from __future__ import annotations
@@ -12,14 +20,19 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from src.config import BLOB_READ_WRITE_TOKEN, USE_NEON
-from src.kb_config import get_active_kb_config, reset_active_kb_config
+from src.api.deps import require_workspace_id
+from src.config import BLOB_READ_WRITE_TOKEN, USE_NEON, workspace_data_dir
+from src.infra.db import get_session
+from src.infra.db_models import KbUpload, WorkspaceFile
 
 logger = logging.getLogger(__name__)
 
@@ -27,18 +40,23 @@ router = APIRouter()
 
 
 class UploadedFileInfo(BaseModel):
-    path: str
+    id: int
+    kb_source: str
     filename: str
-    size: int
+    size_bytes: int
     chapters: int
     title: Optional[str] = None
+    sha256: str
+    local_path: str
     blob_url: Optional[str] = None
     blob_error: Optional[str] = None
+    duplicate: bool = False
 
 
 class UploadResponse(BaseModel):
-    knowledge: Optional[UploadedFileInfo] = None
-    tool: Optional[UploadedFileInfo] = None
+    workspace_id: str
+    knowledge: list[UploadedFileInfo] = []
+    tool: list[UploadedFileInfo] = []
     warnings: list[str] = []
 
 
@@ -61,118 +79,133 @@ async def _read_and_validate(file: UploadFile, label: str) -> tuple[bytes, dict[
     return raw, payload
 
 
-def _write_kb_file(kb_source: str, filename: str, raw: bytes) -> Path:
-    cfg = get_active_kb_config()
-    target_dir = cfg.root / kb_source
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    # Clear any existing .json siblings so _pick_kb_file() picks the new one
-    for old in target_dir.glob("*.json"):
-        try:
-            old.unlink()
-        except OSError:
-            pass
-
-    safe_name = Path(filename).name or f"{kb_source}.json"
-    if not safe_name.lower().endswith(".json"):
-        safe_name += ".json"
-    target_path = target_dir / safe_name
-    target_path.write_bytes(raw)
-    return target_path
+def _upload_dir(workspace_id: str, kb_source: str) -> Path:
+    d = workspace_data_dir(workspace_id) / "uploads" / kb_source
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 
-def _maybe_upload_to_blob(kb_source: str) -> tuple[Optional[str], Optional[str]]:
-    """Return (blob_url, error). Non-fatal; logs warning on failure."""
-    if not BLOB_READ_WRITE_TOKEN:
-        return None, None
-    try:
-        from src.infra.blob_loader import upload_kb_file
-        url = upload_kb_file(kb_source)
-        return url, None
-    except Exception as exc:
-        logger.warning("Vercel Blob upload for %s failed: %s", kb_source, exc)
-        return None, str(exc)
+def _safe_filename(filename: Optional[str], kb_source: str, sha: str) -> str:
+    base = Path(filename or f"{kb_source}.json").name
+    if not base.lower().endswith(".json"):
+        base += ".json"
+    return base
 
 
-async def _record_upload(
+async def _persist_one(
+    workspace_id: str,
     kb_source: str,
-    info: "UploadedFileInfo",
-    raw: bytes,
-) -> None:
-    """Insert a kb_uploads row.  Deduplicates by (kb_source, sha256)."""
-    if not USE_NEON:
-        return
-    try:
-        from sqlalchemy.dialects.postgresql import insert
-        from src.infra.db import get_session
-        from src.infra.db_models import KbUpload
+    upload: UploadFile,
+) -> UploadedFileInfo:
+    raw, payload = await _read_and_validate(upload, kb_source)
+    sha = hashlib.sha256(raw).hexdigest()
+    filename = _safe_filename(upload.filename, kb_source, sha)
 
-        sha256 = hashlib.sha256(raw).hexdigest()
-        async with get_session() as s:
-            stmt = insert(KbUpload).values(
-                kb_source=kb_source,
-                filename=info.filename,
-                size_bytes=info.size,
-                chapters=info.chapters,
-                title=info.title,
-                sha256=sha256,
-                blob_url=info.blob_url,
-                blob_error=info.blob_error,
+    # Dedup by sha inside this workspace
+    async with get_session() as s:
+        r = await s.execute(
+            select(WorkspaceFile).where(
+                WorkspaceFile.workspace_id == uuid.UUID(workspace_id),
+                WorkspaceFile.kb_source == kb_source,
+                WorkspaceFile.sha256 == sha,
             )
-            # Skip if we've already recorded this exact file for this kb_source
-            stmt = stmt.on_conflict_do_nothing(index_elements=["kb_source", "sha256"])
-            await s.execute(stmt)
-            await s.commit()
-    except Exception as exc:
-        logger.warning("Neon kb_uploads insert failed: %s", exc)
+        )
+        existing = r.scalar_one_or_none()
+        if existing is not None:
+            return UploadedFileInfo(
+                id=existing.id,
+                kb_source=existing.kb_source,
+                filename=existing.filename,
+                size_bytes=existing.size_bytes,
+                chapters=existing.chapters,
+                title=existing.title,
+                sha256=existing.sha256,
+                local_path=existing.local_path or "",
+                blob_url=existing.blob_url,
+                duplicate=True,
+            )
+
+    # Persist locally
+    local_path = _upload_dir(workspace_id, kb_source) / filename
+    local_path.write_bytes(raw)
+
+    # Mirror to Vercel Blob (best effort)
+    blob_url: Optional[str] = None
+    blob_error: Optional[str] = None
+    if BLOB_READ_WRITE_TOKEN:
+        try:
+            from src.infra.blob_loader import upload_file_bytes
+            blob_url = upload_file_bytes(workspace_id, kb_source, filename, raw)
+        except Exception as exc:
+            blob_error = str(exc)
+            logger.warning("Blob mirror for ws=%s %s/%s failed: %s", workspace_id, kb_source, filename, exc)
+
+    # Record in Neon
+    async with get_session() as s:
+        wf = WorkspaceFile(
+            workspace_id=uuid.UUID(workspace_id),
+            kb_source=kb_source,
+            filename=filename,
+            size_bytes=len(raw),
+            chapters=len(payload.get("chapters", [])),
+            title=payload.get("title"),
+            sha256=sha,
+            blob_url=blob_url,
+            local_path=str(local_path),
+            active=True,
+        )
+        s.add(wf)
+        # Also audit into kb_uploads
+        s.add(KbUpload(
+            workspace_id=uuid.UUID(workspace_id),
+            kb_source=kb_source,
+            filename=filename,
+            size_bytes=len(raw),
+            chapters=len(payload.get("chapters", [])),
+            title=payload.get("title"),
+            sha256=sha,
+            blob_url=blob_url,
+            blob_error=blob_error,
+        ))
+        await s.commit()
+        await s.refresh(wf)
+
+    return UploadedFileInfo(
+        id=wf.id,
+        kb_source=kb_source,
+        filename=filename,
+        size_bytes=len(raw),
+        chapters=len(payload.get("chapters", [])),
+        title=payload.get("title"),
+        sha256=sha,
+        local_path=str(local_path),
+        blob_url=blob_url,
+        blob_error=blob_error,
+        duplicate=False,
+    )
 
 
-@router.post("/kb/upload", response_model=UploadResponse, summary="Upload KB JSON files")
+@router.post("/kb/upload", response_model=UploadResponse, summary="Upload one or more KB JSON files")
 async def upload_kb_files(
-    knowledge_file: Optional[UploadFile] = File(default=None),
-    tool_file: Optional[UploadFile] = File(default=None),
+    workspace_id: str = Depends(require_workspace_id),
+    knowledge_files: list[UploadFile] = File(default=[]),
+    tool_files: list[UploadFile] = File(default=[]),
 ):
-    """Accept knowledge and/or tool KB JSONs; persist locally and mirror to Vercel Blob."""
-    if knowledge_file is None and tool_file is None:
-        raise HTTPException(status_code=400, detail="Provide at least one of knowledge_file / tool_file")
+    if not knowledge_files and not tool_files:
+        raise HTTPException(status_code=400, detail="Provide at least one knowledge_files or tool_files entry")
 
-    response = UploadResponse()
+    response = UploadResponse(workspace_id=workspace_id)
 
-    if knowledge_file is not None:
-        raw, payload = await _read_and_validate(knowledge_file, "knowledge")
-        path = _write_kb_file("knowledge", knowledge_file.filename or "knowledge.json", raw)
-        # Clear cached active config so the new file is picked up.
-        reset_active_kb_config()
-        blob_url, blob_err = _maybe_upload_to_blob("knowledge")
-        response.knowledge = UploadedFileInfo(
-            path=str(path),
-            filename=path.name,
-            size=len(raw),
-            chapters=len(payload.get("chapters", [])),
-            title=payload.get("title"),
-            blob_url=blob_url,
-            blob_error=blob_err,
-        )
-        if blob_err:
-            response.warnings.append(f"knowledge: blob mirror failed ({blob_err})")
-        await _record_upload("knowledge", response.knowledge, raw)
+    for f in knowledge_files or []:
+        info = await _persist_one(workspace_id, "knowledge", f)
+        response.knowledge.append(info)
+        if info.blob_error:
+            response.warnings.append(f"knowledge/{info.filename}: blob mirror failed ({info.blob_error})")
 
-    if tool_file is not None:
-        raw, payload = await _read_and_validate(tool_file, "tool")
-        path = _write_kb_file("tool", tool_file.filename or "tool.json", raw)
-        reset_active_kb_config()
-        blob_url, blob_err = _maybe_upload_to_blob("tool")
-        response.tool = UploadedFileInfo(
-            path=str(path),
-            filename=path.name,
-            size=len(raw),
-            chapters=len(payload.get("chapters", [])),
-            title=payload.get("title"),
-            blob_url=blob_url,
-            blob_error=blob_err,
-        )
-        if blob_err:
-            response.warnings.append(f"tool: blob mirror failed ({blob_err})")
-        await _record_upload("tool", response.tool, raw)
+    for f in tool_files or []:
+        info = await _persist_one(workspace_id, "tool", f)
+        response.tool.append(info)
+        if info.blob_error:
+            response.warnings.append(f"tool/{info.filename}: blob mirror failed ({info.blob_error})")
 
     return response

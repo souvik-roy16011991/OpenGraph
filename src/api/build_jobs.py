@@ -43,6 +43,7 @@ _STAGE_NAMES = {
 @dataclass
 class BuildJob:
     job_id: str
+    workspace_id: str
     status: BuildStatus = "queued"
     stage: int = 0
     stage_name: str = _STAGE_NAMES[0]
@@ -62,15 +63,19 @@ class BuildJob:
 
 _jobs: dict[str, BuildJob] = {}
 _state_lock = threading.Lock()
-_running_job_id: Optional[str] = None
+# Per-workspace single-flight: workspace_id → job_id currently running.
+_running_by_ws: dict[str, str] = {}
 
 
 def get_job(job_id: str) -> Optional[BuildJob]:
     return _jobs.get(job_id)
 
 
-def current_running_job_id() -> Optional[str]:
-    return _running_job_id
+def current_running_job_id(workspace_id: str | None = None) -> Optional[str]:
+    """If workspace_id given, return that workspace's running job; else any."""
+    if workspace_id is None:
+        return next(iter(_running_by_ws.values()), None)
+    return _running_by_ws.get(workspace_id)
 
 
 def _set_stage(job: BuildJob, stage: int) -> None:
@@ -216,8 +221,6 @@ class _JobLogHandler(logging.Handler):
 
 
 def _run_build(job: BuildJob) -> None:
-    global _running_job_id
-
     # Attach a log handler so we capture all graph_builder + related output
     handler = _JobLogHandler(job)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(name)s] %(message)s", "%H:%M:%S"))
@@ -247,18 +250,33 @@ def _run_build(job: BuildJob) -> None:
         get_graph_config.cache_clear()
         reset_active_kb_config()
 
-        from src.graph_builder.builder import KnowledgeGraph, build_graph
+        # Install workspace context for the pipeline to pick up.
+        from src.workspace_context import set_current_workspace
+        set_current_workspace(job.workspace_id)
+
+        # Collect the list of active knowledge + tool files from Neon.
+        knowledge_paths, tool_paths = _collect_workspace_files(job.workspace_id)
+        if not knowledge_paths and not tool_paths:
+            raise RuntimeError(
+                f"Workspace {job.workspace_id} has no uploaded files. "
+                "Upload at least one knowledge or tool JSON before building."
+            )
+
+        from src.graph_builder.builder import build_graph
         kg = build_graph(
             use_llm_cross_links=not job.skip_llm_cross_links,
             skip_embeddings=job.skip_embeddings,
+            workspace_id=job.workspace_id,
+            knowledge_paths=knowledge_paths,
+            tool_paths=tool_paths,
         )
 
-        # Hot-swap the running API's graph
+        # Cache the live kg for this workspace so the API can serve queries.
         try:
             from src.api.routes import set_knowledge_graph
-            set_knowledge_graph(kg)
+            set_knowledge_graph(kg, workspace_id=job.workspace_id)
         except Exception as exc:
-            job.log_tail.append(f"[warn] failed to hot-swap kg into API: {exc}")
+            job.log_tail.append(f"[warn] failed to cache kg into API: {exc}")
 
         _set_stage(job, 5)
         job.percent = 100
