@@ -18,6 +18,8 @@ import {
   Sun,
   Activity,
   History as HistoryIcon,
+  Briefcase,
+  ChevronDown,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -25,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useGraphStatus } from "@/hooks/use-graph-status";
 import { useWizardStore, type WizardStep } from "@/store/wizard-store";
+import { useWorkspaceStore } from "@/store/workspace-store";
 
 interface NavItem {
   step: WizardStep;
@@ -47,6 +50,71 @@ const NAV: NavItem[] = [
 const SECONDARY_NAV = [
   { href: "/history", label: "History", desc: "Audit trail",   icon: HistoryIcon },
 ];
+
+function WorkspaceSwitcher() {
+  const activeId = useWorkspaceStore((s) => s.activeId);
+  const setActiveId = useWorkspaceStore((s) => s.setActiveId);
+  const { data } = useQuery({
+    queryKey: ["workspaces"],
+    queryFn: api.listWorkspaces,
+    refetchInterval: 15_000,
+  });
+  const list = data?.workspaces ?? [];
+  const active = list.find((w) => w.id === activeId) ?? null;
+
+  return (
+    <div className="relative group">
+      <Link
+        href="/workspaces"
+        className="w-full flex items-center gap-2 rounded-md border bg-background/60 px-3 py-2 text-left hover:border-foreground/40 transition-colors"
+      >
+        <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="flex-1 min-w-0">
+          {active ? (
+            <>
+              <span className="block text-sm font-medium truncate">{active.name}</span>
+              <span className="block text-[10px] text-muted-foreground font-mono truncate">
+                k{active.file_counts.knowledge}/t{active.file_counts.tool}
+                {active.stats?.total_nodes !== undefined ? ` · ${active.stats.total_nodes}n` : ""}
+              </span>
+            </>
+          ) : (
+            <span className="block text-sm text-muted-foreground">Select workspace…</span>
+          )}
+        </span>
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+      </Link>
+      {list.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 rounded-md border bg-popover shadow-lg z-20 hidden group-hover:block max-h-[300px] overflow-auto">
+          {list.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => setActiveId(w.id)}
+              className={cn(
+                "w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors border-b last:border-b-0",
+                w.id === activeId && "bg-accent"
+              )}
+            >
+              <span className="flex items-center gap-2">
+                {w.id === activeId && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+                <span className="truncate flex-1">{w.name}</span>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  k{w.file_counts.knowledge}/t{w.file_counts.tool}
+                </span>
+              </span>
+            </button>
+          ))}
+          <Link
+            href="/workspaces"
+            className="block w-full text-left px-3 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground border-t"
+          >
+            Manage workspaces →
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatusPill() {
   const status = useGraphStatus();
