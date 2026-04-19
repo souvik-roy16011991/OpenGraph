@@ -1,189 +1,49 @@
-# -----------------------------------------------------------------------------
-# Graph construction & query configuration
-#
-# These knobs control HOW the knowledge graph is built from the KB JSON files
-# and HOW queries traverse/rank it at runtime. Change these to tune:
-#   - how dense vs. sparse the semantic edges are
-#   - how aggressive the cross-KB IMPLEMENTS mapping is
-#   - how far traversals reach and how many nodes they return
-#   - how hybrid search blends semantic and keyword signals
-#   - how much text gets embedded and stored per node
-#
-# Precedence (highest wins):
-#   1. Environment variable (e.g. SIMILARITY_THRESHOLD=0.9)
-#   2. This file
-#   3. Built-in code defaults
-#
-# Rebuild the graph after changing anything under `embeddings:`, `edges:`,
-# `cross_kb:`, or `extraction:` — those affect what gets written to disk.
-# `traversal:` and `search:` take effect at query time, no rebuild needed.
-# -----------------------------------------------------------------------------
-
 embeddings:
-  # Embedding model. Contains "/" -> routed through OpenRouter embeddings API;
-  # plain name -> sentence-transformers (offline). Override with EMBEDDING_MODEL.
   model: qwen/qwen3-embedding-8b
-
-  # Matryoshka dimension override. Lower = cheaper, faster, slightly less accurate.
-  # null = use model-native dimension (4096 for Qwen3-8B). Override: EMBEDDING_DIMENSIONS.
   dimensions: null
-
-  # TF-IDF fallback dimension (used only when sentence-transformers fails AND
-  # KB_FORCE_TFIDF=1). Override: EMBEDDING_DIM.
   tfidf_fallback_dim: 4096
-
-  # Minimum cosine similarity to create a RELATED_TO edge between two nodes.
-  # Higher (e.g. 0.85) -> sparser graph, only very close neighbours linked.
-  # Lower  (e.g. 0.70) -> denser graph, more serendipitous connections.
-  # Override: SIMILARITY_THRESHOLD.
-  similarity_threshold: 0.80
-
-  # Cap on RELATED_TO edges emitted per source node. Prevents hub explosion.
-  # Override: MAX_RELATED_EDGES_PER_NODE.
+  similarity_threshold: 0.82
   max_related_edges_per_node: 8
-
-  # Node types that should NOT generate RELATED_TO edges (too noisy / too short
-  # to embed meaningfully). Valid values: domain, chapter, section, table,
-  # tool, process, glossary, concept.
   skip_related_to_types:
-    - glossary
-
-  # Max characters of (heading + content_summary) passed to the embedder per node.
-  # Longer = richer semantics, slower + more tokens. Shorter = faster, blurrier.
+  - glossary
   input_max_chars: 512
-
-  # Batch size for local sentence-transformers.encode().
-  # Larger = faster if GPU/RAM permits; smaller = lighter memory footprint.
   local_batch_size: 64
-
-  # Batch size for OpenRouter embeddings API. Larger = fewer HTTP round-trips
-  # but larger payloads; OpenRouter caps individual requests.
   openrouter_batch_size: 32
-
-
 edges:
-  # Edge weights — used to rank paths during traversal and scoring. Higher =
-  # stronger signal. Changing these changes which paths the agent prefers
-  # when multiple routes exist between two nodes.
   weights:
-    contains: 1.0           # hierarchical parent -> child (chapter > section > table > row)
-    next_step: 1.0          # sequential process step ordering
-    integrates_with: 0.9    # tool -> tool from "Connected Systems" column
-    implements: 0.8         # tool chapter -> knowledge chapter (cross-KB)
-    uses_tool: 0.7          # knowledge section -> tool (text mention)
-
-  # Minimum length (chars, after normalisation) of a ToolNode.tool_name for it
-  # to count as a "mention" in knowledge section text. Raise to 6+ to kill
-  # false positives like "Mail" matching "MailChimp", "MailerLite"; lower to 3
-  # to catch short brand acronyms (at the cost of noise).
+    contains: 1.0
+    next_step: 1.0
+    integrates_with: 0.9
+    implements: 0.8
+    uses_tool: 0.7
   min_tool_mention_length: 5
-
-  # When a tool name is multi-word (e.g. "Experian Bureau"), also index the
-  # first word as an alias so "Experian" in prose resolves to the same node.
-  # false = only exact normalised matches.
   enable_tool_name_aliases: true
-
-
 cross_kb:
-  # Minimum combined score (embed + co-occurrence) to accept a Tool chapter ->
-  # Knowledge chapter IMPLEMENTS link. Raise for precision, lower for recall.
-  # Override: CROSS_KB_AUTO_THRESHOLD.
   auto_threshold: 0.35
-
-  # Weights for the two cross-KB signals. Should sum to 1.0 (not enforced).
-  #   embed_weight    -> cosine similarity of chapter embeddings
-  #   cooccur_weight  -> % of tool names in the tool chapter that appear in
-  #                       the knowledge chapter's text (strong for IMPLEMENTS)
-  # Override: CROSS_KB_EMBED_WEIGHT, CROSS_KB_COOCCUR_WEIGHT.
   embed_weight: 0.6
   cooccur_weight: 0.4
-
-  # Cap on Knowledge chapters linked to each Tool chapter. Keeps the top-N
-  # scoring only. Override: CROSS_KB_MAX_LINKS_PER_CHAPTER.
   max_links_per_chapter: 5
-
-  # Max characters of chapter.raw_text included in the embedding input for
-  # cross-KB scoring. Longer = more context; shorter = faster and less noise
-  # from boilerplate.
   chapter_embedding_max_chars: 500
-
-  # Minimum length of a tool name (lowercased, trimmed) for it to be indexed
-  # as a co-occurrence keyword under its chapter. Prevents 1-2 letter
-  # false-positives.
   min_tool_name_length: 4
-
-  # Chapter headings to exclude from cross-KB mapping entirely (no semantic
-  # content -> noise).
   skip_chapter_headings:
-    - Table of Contents
-
-  # Max tokens for the LLM cross-link refinement call. Larger budgets let the
-  # model suggest more links; smaller constrains it to strong relationships.
+  - Table of Contents
   llm_max_tokens: 2048
-
-
 traversal:
-  # Default BFS depth for bfs_traverse() when callers don't specify. Also the
-  # upper bound the agent respects. Deeper = more context, slower + noisier.
-  # Override: MAX_TRAVERSAL_DEPTH.
   max_depth: 5
-
-  # Cap on nodes returned by bfs_traverse() per call. Prevents context blowup
-  # on large graphs.
   max_nodes: 40
-
-  # Depth used by get_subtree() for the UI / API tree export (deep tree view).
   subtree_max_depth: 3
-
-  # Depth used by full_tree() — the top-level domain overview shown to the
-  # user. Usually shallow (2-3) so the UI stays readable.
   full_tree_depth: 2
-
-  # How many entry-point candidate nodes retrieval returns for the agent to
-  # anchor its traversal on. More = broader coverage, slower synthesis.
-  # Override: TOP_K_ENTRY_NODES.
   top_k_entry_nodes: 6
-
-
 search:
-  # Default top_k for keyword_search() and semantic_search() when callers
-  # don't specify.
   default_top_k: 10
-
-  # Minimum length of a query token for it to participate in keyword match.
-  # Raise to filter out short common words; lower for precision queries.
   keyword_min_token_length: 3
-
-  # Blend weights for hybrid_search(). Sum to 1.0.
-  #   semantic_weight -> ranking from FAISS / Qdrant / Pinecone
-  #   keyword_weight  -> literal token-overlap score
-  # Higher semantic = more fuzzy/paraphrase matching; higher keyword = more
-  # exact-term matching.
   hybrid_semantic_weight: 0.6
   hybrid_keyword_weight: 0.4
-
-
 extraction:
-  # Max characters kept in content_summary for SectionNodes.
   section_summary_max_chars: 500
-
-  # Max paragraphs preserved per SectionNode (rest is dropped from storage
-  # but still embedded via raw_text).
   max_paragraphs_per_section: 10
-
-  # Max characters in ToolNode.content_summary (trims the "purpose" column).
   toolnode_summary_max_chars: 300
-
-  # Max characters in ProcessNode.content_summary.
   processnode_summary_max_chars: 300
-
-  # Max characters in GlossaryNode.content_summary (trims long definitions).
   glossarynode_summary_max_chars: 300
-
-  # Max table headers included in TableNode.content_summary preview.
   tablenode_summary_max_headers: 6
-
-  # Max length of slug tokens used in node IDs (chapter/section/glossary).
-  # Longer = IDs preserve more detail and are more debuggable; shorter =
-  # cleaner. Changing this invalidates existing persisted IDs — rebuild.
   max_slug_length: 30

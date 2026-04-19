@@ -41,3 +41,8 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
+
+# Node modules
+frontend/node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo

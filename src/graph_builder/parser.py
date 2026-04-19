@@ -208,10 +208,16 @@ def parse_kb_file(path: Path, kb_source: str) -> ParsedKB:
         path: Path to the .json file (used as fallback when USE_BLOB_STORAGE is False).
         kb_source: "knowledge" or "tool" – used for node ID namespacing.
 
-    When USE_BLOB_STORAGE is True, the file is downloaded from Vercel Blob
-    instead of being read from the local filesystem.
+    Local-first: reads the on-disk file under kb-config/{kb_source}/ if present.
+    Falls back to Vercel Blob download only when the local file is missing AND
+    USE_BLOB_STORAGE is True. Uploaded files always land locally first (the
+    /api/v1/kb/upload endpoint writes to disk and mirrors to Blob), so the
+    local path is normally used.
     """
-    if USE_BLOB_STORAGE:
+    if path and Path(path).is_file():
+        with open(path, encoding="utf-8") as fh:
+            raw = json.load(fh)
+    elif USE_BLOB_STORAGE:
         from src.infra.blob_loader import download_kb_file
         raw = download_kb_file(kb_source)
     else:
