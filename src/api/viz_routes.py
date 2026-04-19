@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.deps import require_workspace_id
 from src.api.routes import _get_kg
 
 router = APIRouter()
@@ -28,8 +29,9 @@ async def get_visualization(
     edge_types: Optional[str] = Query(default=None, description="CSV of edge types to include"),
     kb_source: Optional[str] = Query(default=None, description="'knowledge' or 'tool'"),
     max_nodes: int = Query(default=2000, ge=1, le=20000),
+    workspace_id: str = Depends(require_workspace_id),
 ):
-    kg = _get_kg()
+    kg = _get_kg(workspace_id)
 
     node_type_filter = _csv_list(node_types)
     edge_type_filter = _csv_list(edge_types)

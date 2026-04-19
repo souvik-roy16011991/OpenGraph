@@ -37,17 +37,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logger.warning("Neon init failed (continuing without persistence): %s", exc)
 
-    graph_path = Path(GRAPH_PICKLE_PATH)
-    if not graph_path.exists():
-        logger.warning(
-            f"Graph file not found at {graph_path}. "
-            "Run `python scripts/build_graph.py` or POST /api/v1/build to build it."
-        )
-    else:
-        from src.graph_builder.builder import KnowledgeGraph
-        kg = KnowledgeGraph.load()
-        set_knowledge_graph(kg)
-        logger.info("KnowledgeGraph loaded and ready.")
+    # Multi-workspace mode: graphs are loaded lazily per workspace on first
+    # scoped request, not eagerly at startup. The legacy singleton path is
+    # still reachable via scripts/build_graph.py for local CLI use.
+    logger.info("KB Knowledge Graph Engine ready. Workspaces load on demand.")
     yield
     logger.info("Shutting down KB Knowledge Graph Engine.")
 

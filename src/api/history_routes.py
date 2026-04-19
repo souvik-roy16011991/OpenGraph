@@ -7,10 +7,12 @@ All endpoints return 503 when Neon is not configured.
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.deps import require_workspace_id
 from src.config import USE_NEON
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,10 @@ def _require_neon() -> None:
 # ---------------------------------------------------------------------------
 
 @router.get("/history/builds", summary="List recent build jobs")
-async def list_builds(limit: int = Query(default=50, ge=1, le=500)):
+async def list_builds(
+    limit: int = Query(default=50, ge=1, le=500),
+    workspace_id: str = Depends(require_workspace_id),
+):
     _require_neon()
     from sqlalchemy import select
     from src.infra.db import get_session
@@ -39,7 +44,9 @@ async def list_builds(limit: int = Query(default=50, ge=1, le=500)):
 
     async with get_session() as s:
         result = await s.execute(
-            select(BuildJobRow).order_by(BuildJobRow.created_at.desc()).limit(limit)
+            select(BuildJobRow)
+            .where(BuildJobRow.workspace_id == uuid.UUID(workspace_id))
+            .order_by(BuildJobRow.created_at.desc()).limit(limit)
         )
         rows = result.scalars().all()
 
@@ -107,7 +114,10 @@ async def get_build(job_id: str):
 # ---------------------------------------------------------------------------
 
 @router.get("/history/chats", summary="List recent chat sessions")
-async def list_chats(limit: int = Query(default=50, ge=1, le=500)):
+async def list_chats(
+    limit: int = Query(default=50, ge=1, le=500),
+    workspace_id: str = Depends(require_workspace_id),
+):
     _require_neon()
     from sqlalchemy import select
     from src.infra.db import get_session
@@ -115,7 +125,9 @@ async def list_chats(limit: int = Query(default=50, ge=1, le=500)):
 
     async with get_session() as s:
         result = await s.execute(
-            select(ChatSession).order_by(ChatSession.last_activity_at.desc()).limit(limit)
+            select(ChatSession)
+            .where(ChatSession.workspace_id == uuid.UUID(workspace_id))
+            .order_by(ChatSession.last_activity_at.desc()).limit(limit)
         )
         sessions = result.scalars().all()
 
@@ -203,6 +215,7 @@ async def get_chat(session_id: str):
 async def list_configs(
     kind: Optional[str] = Query(default=None, description="'domain' or 'graph'"),
     limit: int = Query(default=50, ge=1, le=500),
+    workspace_id: str = Depends(require_workspace_id),
 ):
     _require_neon()
     from sqlalchemy import select
@@ -210,7 +223,11 @@ async def list_configs(
     from src.infra.db_models import ConfigVersion
 
     async with get_session() as s:
-        stmt = select(ConfigVersion).order_by(ConfigVersion.created_at.desc()).limit(limit)
+        stmt = (
+            select(ConfigVersion)
+            .where(ConfigVersion.workspace_id == uuid.UUID(workspace_id))
+            .order_by(ConfigVersion.created_at.desc()).limit(limit)
+        )
         if kind:
             stmt = stmt.where(ConfigVersion.kind == kind)
         rows = (await s.execute(stmt)).scalars().all()
@@ -261,6 +278,7 @@ async def get_config(config_id: int):
 async def list_uploads(
     kb_source: Optional[str] = Query(default=None, description="'knowledge' or 'tool'"),
     limit: int = Query(default=50, ge=1, le=500),
+    workspace_id: str = Depends(require_workspace_id),
 ):
     _require_neon()
     from sqlalchemy import select
@@ -268,7 +286,11 @@ async def list_uploads(
     from src.infra.db_models import KbUpload
 
     async with get_session() as s:
-        stmt = select(KbUpload).order_by(KbUpload.created_at.desc()).limit(limit)
+        stmt = (
+            select(KbUpload)
+            .where(KbUpload.workspace_id == uuid.UUID(workspace_id))
+            .order_by(KbUpload.created_at.desc()).limit(limit)
+        )
         if kb_source:
             stmt = stmt.where(KbUpload.kb_source == kb_source)
         rows = (await s.execute(stmt)).scalars().all()
