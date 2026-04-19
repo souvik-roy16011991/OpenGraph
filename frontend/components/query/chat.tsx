@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/api";
 import type { QueryResponse } from "@/lib/schema";
 import { useWizardStore } from "@/store/wizard-store";
+import { useWorkspaceStore } from "@/store/workspace-store";
 
 type Turn =
   | { role: "user"; text: string; id: number }
@@ -23,20 +24,25 @@ export function Chat() {
   const [input, setInput] = React.useState("");
   const [sessionId, setSessionId] = React.useState<string | null>(null);
   const setHighlighted = useWizardStore((s) => s.setHighlightedNodeIds);
+  const activeWs = useWorkspaceStore((s) => s.activeId);
   const scrollerRef = React.useRef<HTMLDivElement>(null);
 
-  // Restore or create a session id (persisted in localStorage)
+  // Restore or create a session id per workspace (so switching workspaces
+  // gives a fresh conversation thread rather than leaking history across).
   React.useEffect(() => {
+    if (!activeWs) return;
+    setTurns([]);
+    const key = `kb.chatSessionId.${activeWs}`;
     try {
-      const stored = localStorage.getItem("kb.chatSessionId");
+      const stored = localStorage.getItem(key);
       if (stored) { setSessionId(stored); return; }
       const fresh = crypto.randomUUID();
-      localStorage.setItem("kb.chatSessionId", fresh);
+      localStorage.setItem(key, fresh);
       setSessionId(fresh);
     } catch {
       setSessionId(crypto.randomUUID());
     }
-  }, []);
+  }, [activeWs]);
 
   const mutation = useMutation({
     mutationFn: (q: string) => api.query({ query: q, session_id: sessionId ?? undefined }),

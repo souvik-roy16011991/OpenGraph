@@ -3,8 +3,11 @@
 import { MessageSquareText } from "lucide-react";
 import { Stepper } from "@/components/wizard/stepper";
 import { Chat } from "@/components/query/chat";
+import { useRequireWorkspace } from "@/hooks/use-require-workspace";
 
 export default function QueryPage() {
+  const activeWs = useRequireWorkspace();
+  if (!activeWs) return null;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">

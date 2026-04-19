@@ -9,10 +9,16 @@ import { NodeInspector } from "@/components/graph/node-inspector";
 import { Legend } from "@/components/graph/legend";
 import { FilterBar } from "@/components/graph/filter-bar";
 import { api } from "@/lib/api";
+import { useRequireWorkspace } from "@/hooks/use-require-workspace";
 import { useWizardStore } from "@/store/wizard-store";
 
 export default function ExplorePage() {
-  const vizQuery = useQuery({ queryKey: ["viz"], queryFn: () => api.visualization({ max_nodes: 2500 }) });
+  const activeWs = useRequireWorkspace();
+  const vizQuery = useQuery({
+    queryKey: ["viz", activeWs],
+    queryFn: () => api.visualization({ max_nodes: 2500 }),
+    enabled: Boolean(activeWs),
+  });
   const highlighted = useWizardStore((s) => s.highlightedNodeIds);
   const setHighlighted = useWizardStore((s) => s.setHighlightedNodeIds);
   const markCompleted = useWizardStore((s) => s.markCompleted);
