@@ -410,12 +410,14 @@ async def get_chapters(workspace_id: str = Depends(require_workspace_id)):
 # Imported lazily at module bottom to avoid circular imports.
 # ---------------------------------------------------------------------------
 
-from src.api.upload_routes import router as upload_router    # noqa: E402
-from src.api.config_routes import router as config_router    # noqa: E402
-from src.api.build_routes import router as build_router      # noqa: E402
-from src.api.viz_routes import router as viz_router          # noqa: E402
-from src.api.history_routes import router as history_router  # noqa: E402
+from src.api.upload_routes import router as upload_router        # noqa: E402
+from src.api.config_routes import router as config_router        # noqa: E402
+from src.api.build_routes import router as build_router          # noqa: E402
+from src.api.viz_routes import router as viz_router              # noqa: E402
+from src.api.history_routes import router as history_router      # noqa: E402
+from src.api.workspace_routes import router as workspace_router  # noqa: E402
 
+router.include_router(workspace_router, tags=["workspace"])
 router.include_router(upload_router, tags=["kb"])
 router.include_router(config_router, tags=["config"])
 router.include_router(build_router, tags=["build"])

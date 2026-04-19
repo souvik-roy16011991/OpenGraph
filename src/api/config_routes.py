@@ -12,27 +12,30 @@ Writes go to the active kb-config root (cfg.root from get_active_kb_config()).
 from __future__ import annotations
 
 import logging
+import uuid
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Optional
 
 import yaml
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from src.api.deps import require_workspace_id
 from src.config import USE_NEON
 from src.graph_config import GraphConfig, get_graph_config
 from src.kb_config import get_active_kb_config, reset_active_kb_config
 
 
 async def _record_config_version(
+    workspace_id: str,
     kind: str,
     yaml_text: str,
     parsed: dict,
     changed_sections: list[str] | None = None,
     requires_rebuild: bool | None = None,
 ) -> None:
-    """Insert a config_versions row; no-op when USE_NEON=False."""
+    """Insert a config_versions row scoped to workspace_id; no-op if Neon off."""
     if not USE_NEON:
         return
     try:
@@ -40,6 +43,7 @@ async def _record_config_version(
         from src.infra.db_models import ConfigVersion
         async with get_session() as s:
             s.add(ConfigVersion(
+                workspace_id=uuid.UUID(workspace_id),
                 kind=kind,
                 yaml_snapshot=yaml_text,
                 parsed_snapshot=parsed,
@@ -68,7 +72,7 @@ class DomainPayload(BaseModel):
 
 
 @router.get("/config/domain", response_model=DomainPayload, summary="Read domain.yaml")
-async def get_domain():
+async def get_domain(workspace_id: str = Depends(require_workspace_id)):
     cfg = get_active_kb_config()
     p = cfg.profile
     return DomainPayload(
@@ -81,7 +85,10 @@ async def get_domain():
 
 
 @router.put("/config/domain", summary="Write domain.yaml")
-async def put_domain(payload: DomainPayload):
+async def put_domain(
+    payload: DomainPayload,
+    workspace_id: str = Depends(require_workspace_id),
+):
     cfg = get_active_kb_config()
     path = cfg.root / "domain.yaml"
 
@@ -106,7 +113,7 @@ async def put_domain(payload: DomainPayload):
 
     # Audit: persist the YAML snapshot + parsed view.
     yaml_text = path.read_text(encoding="utf-8")
-    await _record_config_version("domain", yaml_text, existing)
+    await _record_config_version(workspace_id, "domain", yaml_text, existing)
 
     return {"ok": True, "path": str(path)}
 
@@ -260,7 +267,7 @@ def _payload_to_yaml_dict(p: GraphConfigPayload) -> dict:
 
 
 @router.get("/config/graph", response_model=GraphConfigPayload, summary="Read graph.yaml")
-async def get_graph_cfg():
+async def get_graph_cfg(workspace_id: str = Depends(require_workspace_id)):
     # Clear cache so any file edits on disk are reflected.
     get_graph_config.cache_clear()
     gc = get_graph_config()
@@ -275,7 +282,10 @@ class PutGraphConfigResponse(BaseModel):
 
 
 @router.put("/config/graph", response_model=PutGraphConfigResponse, summary="Write graph.yaml")
-async def put_graph_cfg(payload: GraphConfigPayload):
+async def put_graph_cfg(
+    payload: GraphConfigPayload,
+    workspace_id: str = Depends(require_workspace_id),
+):
     cfg = get_active_kb_config()
     # Write to the active kb-config root to respect KB_CONFIG_PATH overrides.
     # The loader at src/graph_config.py reads a fixed path, so we also mirror
@@ -313,7 +323,7 @@ async def put_graph_cfg(payload: GraphConfigPayload):
     # Audit: persist the YAML + parsed snapshot + which sections changed.
     yaml_text = target.read_text(encoding="utf-8")
     await _record_config_version(
-        "graph", yaml_text, data,
+        workspace_id, "graph", yaml_text, data,
         changed_sections=changed,
         requires_rebuild=requires_rebuild,
     )
