@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   description: "Enterprise knowledge graph builder for domain + tool KBs",
 };
 
+// Every page is heavily client-state driven (zustand, react-query, localStorage,
+// Cytoscape). Opt out of static prerender so `next build` doesn't try to
+// evaluate browser-only code at build time, and `next start` never serves a
+// stale snapshot that disagrees with the client.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
