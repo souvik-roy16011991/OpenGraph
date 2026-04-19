@@ -118,6 +118,8 @@ function WorkspaceSwitcher() {
 
 function StatusPill() {
   const status = useGraphStatus();
+  if (status.state === "no_workspace")
+    return <Badge variant="outline">Select a workspace</Badge>;
   if (status.state === "loading")
     return <Badge variant="outline" className="gap-1.5"><Activity className="h-3 w-3 animate-pulse" /> Checking…</Badge>;
   if (status.state === "ready")
@@ -131,7 +133,13 @@ function StatusPill() {
 }
 
 function BackendBadges() {
-  const { data } = useQuery({ queryKey: ["stats-backends"], queryFn: api.stats, refetchInterval: 15_000 });
+  const activeWs = useWorkspaceStore((s) => s.activeId);
+  const { data } = useQuery({
+    queryKey: ["stats-backends", activeWs],
+    queryFn: api.stats,
+    enabled: Boolean(activeWs),
+    refetchInterval: 15_000,
+  });
   const b = data?.backends;
   if (!b) return null;
   const style = (val?: string) => {
