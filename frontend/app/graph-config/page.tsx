@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Stepper } from "@/components/wizard/stepper";
 import { api } from "@/lib/api";
 import type { GraphConfigPayload } from "@/lib/schema";
+import { useRequireWorkspace } from "@/hooks/use-require-workspace";
 import { useWizardStore } from "@/store/wizard-store";
 import { FormField, NumberSlider, ChipsEditor, Toggle } from "@/components/forms/graph-config-form";
 
@@ -20,9 +21,14 @@ const NODE_TYPE_OPTIONS = ["domain", "chapter", "section", "table", "tool", "pro
 
 export default function GraphConfigPage() {
   const router = useRouter();
+  const activeWs = useRequireWorkspace();
   const markCompleted = useWizardStore((s) => s.markCompleted);
 
-  const query = useQuery({ queryKey: ["graph-config"], queryFn: api.getGraphCfg });
+  const query = useQuery({
+    queryKey: ["graph-config", activeWs],
+    queryFn: api.getGraphCfg,
+    enabled: Boolean(activeWs),
+  });
   const [cfg, setCfg] = React.useState<GraphConfigPayload | null>(null);
 
   React.useEffect(() => {

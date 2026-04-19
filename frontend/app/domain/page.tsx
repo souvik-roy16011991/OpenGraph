@@ -20,9 +20,14 @@ import { useWizardStore } from "@/store/wizard-store";
 
 export default function DomainPage() {
   const router = useRouter();
+  const activeWs = useRequireWorkspace();
   const markCompleted = useWizardStore((s) => s.markCompleted);
 
-  const query = useQuery({ queryKey: ["domain"], queryFn: api.getDomain });
+  const query = useQuery({
+    queryKey: ["domain", activeWs],
+    queryFn: api.getDomain,
+    enabled: Boolean(activeWs),
+  });
 
   const form = useForm<DomainPayload>({
     resolver: zodResolver(DomainPayloadSchema),
