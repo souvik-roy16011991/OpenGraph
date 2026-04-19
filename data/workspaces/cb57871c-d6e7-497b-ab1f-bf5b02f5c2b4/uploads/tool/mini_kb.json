@@ -1,0 +1,18 @@
+{
+  "title": "Mini Test KB",
+  "subtitle": "Synthetic tiny KB for multi-file testing",
+  "chapters": [
+    {
+      "heading": "Chapter 1: Introduction",
+      "level": 1,
+      "content": [{"type": "paragraph", "text": "This is chapter 1 of a mini KB."}],
+      "sections": []
+    },
+    {
+      "heading": "Chapter 2: Synthetic Rules",
+      "level": 1,
+      "content": [{"type": "paragraph", "text": "Rule content for synthetic test."}],
+      "sections": []
+    }
+  ]
+}

@@ -74,19 +74,58 @@ class Neo4jGraphStore:
     # ------------------------------------------------------------------
 
     def _ensure_constraints(self) -> None:
+        """Multi-tenancy requires node_id to NOT be globally unique — every
+        workspace has its own ``knowledge:root`` etc. We drop any legacy
+        single-property (node_id) unique constraint carried over from the
+        pre-workspace schema, try to install a composite (workspace_id,
+        node_id) constraint, and fall back to plain indexes if Memgraph
+        rejects composite constraints.
+        """
         with self._driver.session(database=self._database) as s:
-            # Composite uniqueness: same node_id can exist under different workspaces.
-            # Memgraph supports composite unique constraints (MEMGRAPH 2.x+).
+            # 1. Drop legacy constraints that conflict with tenancy.
             try:
-                s.run(
-                    "CREATE CONSTRAINT kb_ws_node_unique IF NOT EXISTS "
-                    "FOR (n:KBNode) REQUIRE (n.workspace_id, n.node_id) IS UNIQUE"
-                )
+                info = list(s.run("SHOW CONSTRAINT INFO"))
+                for row in info:
+                    d = dict(row)
+                    label = d.get("label")
+                    props = d.get("properties") or []
+                    ctype = d.get("constraint type") or d.get("type") or ""
+                    if label == "KBNode" and props == ["node_id"] and "unique" in str(ctype).lower():
+                        try:
+                            # Memgraph syntax
+                            s.run("DROP CONSTRAINT ON (n:KBNode) ASSERT n.node_id IS UNIQUE")
+                            logger.info("Dropped legacy (KBNode.node_id) unique constraint.")
+                        except Exception:
+                            try:
+                                s.run("DROP CONSTRAINT kb_node_id_unique IF EXISTS")
+                            except Exception as exc:
+                                logger.warning("Could not drop legacy constraint: %s", exc)
             except Exception as exc:
-                # Older Memgraph doesn't support composite unique; fall back to index.
-                logger.debug("composite constraint failed (%s); creating indexes instead", exc)
-                s.run("CREATE INDEX ON :KBNode(workspace_id)")
-                s.run("CREATE INDEX ON :KBNode(node_id)")
+                logger.debug("SHOW CONSTRAINT INFO not supported / errored: %s", exc)
+
+            # 2. Best-effort composite uniqueness.
+            composite_ok = False
+            for stmt in (
+                "CREATE CONSTRAINT ON (n:KBNode) ASSERT (n.workspace_id, n.node_id) IS UNIQUE",
+                "CREATE CONSTRAINT kb_ws_node_unique IF NOT EXISTS "
+                "FOR (n:KBNode) REQUIRE (n.workspace_id, n.node_id) IS UNIQUE",
+            ):
+                try:
+                    s.run(stmt)
+                    composite_ok = True
+                    break
+                except Exception:
+                    continue
+            if not composite_ok:
+                logger.debug("composite constraint not supported; adding plain indexes.")
+                for idx_stmt in (
+                    "CREATE INDEX ON :KBNode(workspace_id)",
+                    "CREATE INDEX ON :KBNode(node_id)",
+                ):
+                    try:
+                        s.run(idx_stmt)
+                    except Exception:
+                        pass
 
     # ------------------------------------------------------------------
     # Write path — all take workspace_id
