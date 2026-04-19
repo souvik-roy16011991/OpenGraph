@@ -23,6 +23,7 @@ import traceback
 import uuid
 from collections import deque
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,110 @@ def _set_stage(job: BuildJob, stage: int) -> None:
     job.stage_name = _STAGE_NAMES.get(stage, f"Stage {stage}")
     # Roughly even-weighted: 5 stages → 20% each. Stage 1..5 => 20,40,60,80,100.
     job.percent = min(100, stage * 20)
+    _persist_job(job)
+
+
+# ---------------------------------------------------------------------------
+# Neon persistence (write-through)
+# ---------------------------------------------------------------------------
+
+def _persist_job(job: BuildJob, stats: dict | None = None, backends: dict | None = None) -> None:
+    """Schedule an async UPSERT of *job* onto the main event loop. Non-blocking."""
+    from src.config import USE_NEON
+    if not USE_NEON:
+        return
+    try:
+        from src.infra.db import fire_and_forget
+        fire_and_forget(_upsert_job_async(job, stats=stats, backends=backends))
+    except Exception as exc:
+        logger.debug("build-job persistence skipped: %s", exc)
+
+
+def _snapshot_configs() -> tuple[dict | None, dict | None]:
+    """Best-effort snapshot of current domain + graph config at build time."""
+    try:
+        from src.kb_config import get_active_kb_config
+        from src.graph_config import get_graph_config
+        cfg = get_active_kb_config()
+        p = cfg.profile
+        domain = {
+            "domain_name": p.domain_name,
+            "domain_display_name": p.domain_display_name,
+            "organization_name": p.organization_name,
+            "knowledge_focus_examples": p.knowledge_focus_examples,
+            "tool_focus_examples": p.tool_focus_examples,
+        }
+        gc = get_graph_config()
+        graph = {
+            "embeddings": {
+                "model": gc.embeddings.model,
+                "similarity_threshold": gc.embeddings.similarity_threshold,
+                "max_related_edges_per_node": gc.embeddings.max_related_edges_per_node,
+                "input_max_chars": gc.embeddings.input_max_chars,
+                "dimensions": gc.embeddings.dimensions,
+                "skip_related_to_types": list(gc.embeddings.skip_related_to_types),
+            },
+            "cross_kb": {
+                "auto_threshold": gc.cross_kb.auto_threshold,
+                "embed_weight": gc.cross_kb.embed_weight,
+                "cooccur_weight": gc.cross_kb.cooccur_weight,
+                "max_links_per_chapter": gc.cross_kb.max_links_per_chapter,
+            },
+        }
+        return domain, graph
+    except Exception as exc:
+        logger.debug("snapshot_configs failed: %s", exc)
+        return None, None
+
+
+async def _upsert_job_async(job: BuildJob, stats: dict | None = None, backends: dict | None = None) -> None:
+    """INSERT...ON CONFLICT UPDATE for build_jobs row."""
+    try:
+        from sqlalchemy.dialects.postgresql import insert
+        from src.infra.db import get_session
+        from src.infra.db_models import BuildJobRow
+
+        domain_snap, graph_snap = _snapshot_configs()
+
+        async with get_session() as s:
+            stmt = insert(BuildJobRow).values(
+                job_id=job.job_id,
+                status=job.status,
+                stage=job.stage,
+                stage_name=job.stage_name,
+                percent=job.percent,
+                started_at=datetime.fromtimestamp(job.started_at, tz=timezone.utc),
+                finished_at=(
+                    datetime.fromtimestamp(job.finished_at, tz=timezone.utc)
+                    if job.finished_at else None
+                ),
+                error=job.error,
+                log_tail=list(job.log_tail),
+                skip_embeddings=job.skip_embeddings,
+                skip_llm_cross_links=job.skip_llm_cross_links,
+                domain_snapshot=domain_snap,
+                graph_snapshot=graph_snap,
+                stats=stats,
+                backends=backends,
+            )
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["job_id"],
+                set_={
+                    "status": stmt.excluded.status,
+                    "stage": stmt.excluded.stage,
+                    "stage_name": stmt.excluded.stage_name,
+                    "percent": stmt.excluded.percent,
+                    "finished_at": stmt.excluded.finished_at,
+                    "error": stmt.excluded.error,
+                    "log_tail": stmt.excluded.log_tail,
+                    "stats": stmt.excluded.stats,
+                    "backends": stmt.excluded.backends,
+                },
+            )
+            await s.execute(stmt)
+            await s.commit()
+    except Exception as exc:
+        logger.warning("Neon upsert for build job %s failed: %s", job.job_id, exc)
 
 
 class _JobLogHandler(logging.Handler):
@@ -130,6 +235,7 @@ def _run_build(job: BuildJob) -> None:
     job.status = "running"
     job.started_at = time.time()
     job.log_tail.append(f"[job {job.job_id}] build started")
+    _persist_job(job)
 
     try:
         # Ensure config caches are fresh so edits to yaml take effect.
@@ -157,12 +263,21 @@ def _run_build(job: BuildJob) -> None:
         job.finished_at = time.time()
         elapsed = job.finished_at - job.started_at
         job.log_tail.append(f"[job {job.job_id}] build complete in {elapsed:.1f}s")
+
+        # Capture final stats + backends for the audit row
+        try:
+            stats = kg.stats() if kg is not None else None
+            backends = (stats or {}).get("backends")
+        except Exception:
+            stats, backends = None, None
+        _persist_job(job, stats=stats, backends=backends)
     except Exception as exc:
         job.error = f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
         job.status = "error"
         job.finished_at = time.time()
         job.log_tail.append(f"[error] {exc}")
         logger.exception("Build job %s failed", job.job_id)
+        _persist_job(job)
     finally:
         for t in targets:
             t.removeHandler(handler)

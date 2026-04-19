@@ -3,6 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import {
   Upload,
   Tag,
@@ -15,6 +17,7 @@ import {
   Moon,
   Sun,
   Activity,
+  History as HistoryIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -41,6 +44,10 @@ const NAV: NavItem[] = [
   { step: "query",        href: "/query",        label: "Query",         icon: MessageSquareText, desc: "Chat with the agent",     requires: ["build"] },
 ];
 
+const SECONDARY_NAV = [
+  { href: "/history", label: "History", desc: "Audit trail",   icon: HistoryIcon },
+];
+
 function StatusPill() {
   const status = useGraphStatus();
   if (status.state === "loading")
@@ -53,6 +60,23 @@ function StatusPill() {
     );
   if (status.state === "empty") return <Badge variant="warning">No graph built yet</Badge>;
   return <Badge variant="destructive">Error: {status.message}</Badge>;
+}
+
+function BackendBadges() {
+  const { data } = useQuery({ queryKey: ["stats-backends"], queryFn: api.stats, refetchInterval: 15_000 });
+  const b = data?.backends;
+  if (!b) return null;
+  const style = (val?: string) => {
+    if (!val) return "outline" as const;
+    if (val === "memgraph" || val === "qdrant" || val === "neo4j" || val === "pinecone") return "secondary" as const;
+    return "outline" as const;
+  };
+  return (
+    <div className="hidden md:flex items-center gap-1">
+      <Badge variant={style(b.graph)} className="text-[10px] font-mono">graph: {b.graph}</Badge>
+      <Badge variant={style(b.vectors)} className="text-[10px] font-mono">vec: {b.vectors}</Badge>
+    </div>
+  );
 }
 
 function ThemeToggle() {
@@ -121,6 +145,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          <div className="h-px bg-border my-3 mx-2" />
+          {SECONDARY_NAV.map((item) => {
+            const active = pathname?.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "group flex items-start gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
+                  active && "bg-accent text-accent-foreground",
+                  !active && "hover:bg-accent/60"
+                )}
+              >
+                <item.icon className="h-4 w-4 mt-0.5" />
+                <span className="flex flex-col flex-1 min-w-0">
+                  <span className="font-medium">{item.label}</span>
+                  <span className="text-[11px] text-muted-foreground truncate">{item.desc}</span>
+                </span>
+              </Link>
+            );
+          })}
         </nav>
         <div className="mt-auto p-4 border-t">
           <p className="text-[10px] text-muted-foreground">
@@ -138,6 +184,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <BackendBadges />
             <StatusPill />
             <ThemeToggle />
           </div>

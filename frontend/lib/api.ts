@@ -1,7 +1,12 @@
 "use client";
 
 import type {
+  BuildHistoryDetail,
+  BuildHistoryRow,
   BuildJobStatus,
+  ChatHistoryDetail,
+  ChatHistoryRow,
+  ConfigHistoryRow,
   DomainPayload,
   GraphConfigPayload,
   GraphStats,
@@ -12,6 +17,7 @@ import type {
   QueryResponse,
   SearchResponse,
   StartBuildRequest,
+  UploadHistoryRow,
   UploadResponse,
 } from "./schema";
 
@@ -81,4 +87,18 @@ export const api = {
 
   // agent
   query: (r: QueryRequest) => json<QueryResponse>("/api/v1/query", "POST", r),
+
+  // history (Neon-backed)
+  historyBuilds: (limit = 50) =>
+    get<{ builds: BuildHistoryRow[] }>("/api/v1/history/builds", { limit }),
+  historyBuildDetail: (job_id: string) =>
+    get<BuildHistoryDetail>(`/api/v1/history/builds/${encodeURIComponent(job_id)}`),
+  historyChats: (limit = 50) =>
+    get<{ chats: ChatHistoryRow[] }>("/api/v1/history/chats", { limit }),
+  historyChatDetail: (session_id: string) =>
+    get<ChatHistoryDetail>(`/api/v1/history/chats/${encodeURIComponent(session_id)}`),
+  historyConfigs: (kind?: "domain" | "graph", limit = 50) =>
+    get<{ configs: ConfigHistoryRow[] }>("/api/v1/history/configs", { kind, limit }),
+  historyUploads: (kb_source?: "knowledge" | "tool", limit = 50) =>
+    get<{ uploads: UploadHistoryRow[] }>("/api/v1/history/uploads", { kb_source, limit }),
 };

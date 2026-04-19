@@ -23,12 +23,25 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Load the KnowledgeGraph on startup."""
+    """Load the KnowledgeGraph + initialise Neon on startup."""
+    # Capture the running event loop so background build threads can schedule
+    # async DB writes onto it via run_coroutine_threadsafe.
+    import asyncio
+    from src.infra import db as _db
+    _db.set_main_loop(asyncio.get_running_loop())
+
+    # Initialise Neon tables (no-op when DATABASE_URL is blank).
+    try:
+        await _db.init_db()
+        await _db.mark_orphaned_running_jobs()
+    except Exception as exc:
+        logger.warning("Neon init failed (continuing without persistence): %s", exc)
+
     graph_path = Path(GRAPH_PICKLE_PATH)
     if not graph_path.exists():
         logger.warning(
             f"Graph file not found at {graph_path}. "
-            "Run `python scripts/build_graph.py` to build it first."
+            "Run `python scripts/build_graph.py` or POST /api/v1/build to build it."
         )
     else:
         from src.graph_builder.builder import KnowledgeGraph

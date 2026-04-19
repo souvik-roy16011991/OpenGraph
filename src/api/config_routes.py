@@ -20,8 +20,35 @@ import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from src.config import USE_NEON
 from src.graph_config import GraphConfig, get_graph_config
 from src.kb_config import get_active_kb_config, reset_active_kb_config
+
+
+async def _record_config_version(
+    kind: str,
+    yaml_text: str,
+    parsed: dict,
+    changed_sections: list[str] | None = None,
+    requires_rebuild: bool | None = None,
+) -> None:
+    """Insert a config_versions row; no-op when USE_NEON=False."""
+    if not USE_NEON:
+        return
+    try:
+        from src.infra.db import get_session
+        from src.infra.db_models import ConfigVersion
+        async with get_session() as s:
+            s.add(ConfigVersion(
+                kind=kind,
+                yaml_snapshot=yaml_text,
+                parsed_snapshot=parsed,
+                changed_sections=changed_sections,
+                requires_rebuild=requires_rebuild,
+            ))
+            await s.commit()
+    except Exception as exc:
+        logger.warning("Neon config_versions insert failed: %s", exc)
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +103,11 @@ async def put_domain(payload: DomainPayload):
         yaml.safe_dump(existing, f, sort_keys=False, allow_unicode=True)
 
     reset_active_kb_config()
+
+    # Audit: persist the YAML snapshot + parsed view.
+    yaml_text = path.read_text(encoding="utf-8")
+    await _record_config_version("domain", yaml_text, existing)
+
     return {"ok": True, "path": str(path)}
 
 
@@ -277,6 +309,15 @@ async def put_graph_cfg(payload: GraphConfigPayload):
 
     requires_rebuild = any(s in _REBUILD_SECTIONS for s in changed)
     status = "requires_rebuild" if requires_rebuild else "applied"
+
+    # Audit: persist the YAML + parsed snapshot + which sections changed.
+    yaml_text = target.read_text(encoding="utf-8")
+    await _record_config_version(
+        "graph", yaml_text, data,
+        changed_sections=changed,
+        requires_rebuild=requires_rebuild,
+    )
+
     return PutGraphConfigResponse(
         status=status,
         path=str(target),

@@ -9,6 +9,7 @@ failures are non-fatal.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -17,7 +18,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from src.config import BLOB_READ_WRITE_TOKEN
+from src.config import BLOB_READ_WRITE_TOKEN, USE_NEON
 from src.kb_config import get_active_kb_config, reset_active_kb_config
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,39 @@ def _maybe_upload_to_blob(kb_source: str) -> tuple[Optional[str], Optional[str]]
         return None, str(exc)
 
 
+async def _record_upload(
+    kb_source: str,
+    info: "UploadedFileInfo",
+    raw: bytes,
+) -> None:
+    """Insert a kb_uploads row.  Deduplicates by (kb_source, sha256)."""
+    if not USE_NEON:
+        return
+    try:
+        from sqlalchemy.dialects.postgresql import insert
+        from src.infra.db import get_session
+        from src.infra.db_models import KbUpload
+
+        sha256 = hashlib.sha256(raw).hexdigest()
+        async with get_session() as s:
+            stmt = insert(KbUpload).values(
+                kb_source=kb_source,
+                filename=info.filename,
+                size_bytes=info.size,
+                chapters=info.chapters,
+                title=info.title,
+                sha256=sha256,
+                blob_url=info.blob_url,
+                blob_error=info.blob_error,
+            )
+            # Skip if we've already recorded this exact file for this kb_source
+            stmt = stmt.on_conflict_do_nothing(index_elements=["kb_source", "sha256"])
+            await s.execute(stmt)
+            await s.commit()
+    except Exception as exc:
+        logger.warning("Neon kb_uploads insert failed: %s", exc)
+
+
 @router.post("/kb/upload", response_model=UploadResponse, summary="Upload KB JSON files")
 async def upload_kb_files(
     knowledge_file: Optional[UploadFile] = File(default=None),
@@ -121,6 +155,7 @@ async def upload_kb_files(
         )
         if blob_err:
             response.warnings.append(f"knowledge: blob mirror failed ({blob_err})")
+        await _record_upload("knowledge", response.knowledge, raw)
 
     if tool_file is not None:
         raw, payload = await _read_and_validate(tool_file, "tool")
@@ -138,5 +173,6 @@ async def upload_kb_files(
         )
         if blob_err:
             response.warnings.append(f"tool: blob mirror failed ({blob_err})")
+        await _record_upload("tool", response.tool, raw)
 
     return response

@@ -150,6 +150,77 @@ export interface GraphStats {
   backends?: { graph: string; vectors: string };
 }
 
+// ---------- History ----------
+export interface BuildHistoryRow {
+  job_id: string;
+  status: "queued" | "running" | "done" | "error";
+  stage: number;
+  stage_name: string;
+  percent: number;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_s: number | null;
+  skip_embeddings: boolean;
+  skip_llm_cross_links: boolean;
+  error: string | null;
+  stats: Record<string, unknown> | null;
+  backends: { graph?: string; vectors?: string } | null;
+  created_at: string;
+}
+export interface BuildHistoryDetail extends BuildHistoryRow {
+  log_tail: string[];
+  domain_snapshot: Record<string, unknown> | null;
+  graph_snapshot: Record<string, unknown> | null;
+}
+export interface ChatHistoryRow {
+  session_id: string;
+  title: string | null;
+  message_count: number;
+  created_at: string;
+  last_activity_at: string;
+}
+export interface ChatHistoryDetail {
+  session_id: string;
+  title: string | null;
+  created_at: string;
+  last_activity_at: string;
+  messages: Array<{
+    id: number;
+    role: "user" | "assistant";
+    query: string | null;
+    response: Record<string, unknown> | null;
+    intent: string | null;
+    kb_focus: string | null;
+    tools_referenced: unknown[] | null;
+    knowledge_concepts: unknown[] | null;
+    traversal_path: string[] | null;
+    follow_up_suggestions: string[] | null;
+    error: string | null;
+    duration_ms: number;
+    created_at: string;
+  }>;
+}
+export interface ConfigHistoryRow {
+  id: number;
+  kind: "domain" | "graph";
+  changed_sections: string[] | null;
+  requires_rebuild: boolean | null;
+  yaml_preview: string;
+  created_at: string;
+}
+export interface UploadHistoryRow {
+  id: number;
+  kb_source: "knowledge" | "tool";
+  filename: string;
+  size_bytes: number;
+  chapters: number;
+  title: string | null;
+  sha256: string;
+  blob_url: string | null;
+  blob_error: string | null;
+  created_at: string;
+}
+
 export interface NodeDetail {
   node: Record<string, unknown> & {
     node_id: string;

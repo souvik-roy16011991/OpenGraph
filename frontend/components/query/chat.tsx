@@ -21,14 +21,32 @@ type Turn =
 export function Chat() {
   const [turns, setTurns] = React.useState<Turn[]>([]);
   const [input, setInput] = React.useState("");
+  const [sessionId, setSessionId] = React.useState<string | null>(null);
   const setHighlighted = useWizardStore((s) => s.setHighlightedNodeIds);
   const scrollerRef = React.useRef<HTMLDivElement>(null);
 
+  // Restore or create a session id (persisted in localStorage)
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("kb.chatSessionId");
+      if (stored) { setSessionId(stored); return; }
+      const fresh = crypto.randomUUID();
+      localStorage.setItem("kb.chatSessionId", fresh);
+      setSessionId(fresh);
+    } catch {
+      setSessionId(crypto.randomUUID());
+    }
+  }, []);
+
   const mutation = useMutation({
-    mutationFn: (q: string) => api.query({ query: q }),
+    mutationFn: (q: string) => api.query({ query: q, session_id: sessionId ?? undefined }),
     onSuccess: (resp) => {
       setTurns((t) => [...t, { role: "assistant", resp, id: Date.now() }]);
       setHighlighted(resp.traversal_path || []);
+      if (resp.session_id && resp.session_id !== sessionId) {
+        setSessionId(resp.session_id);
+        try { localStorage.setItem("kb.chatSessionId", resp.session_id); } catch {}
+      }
     },
     onError: (err: Error) => {
       setTurns((t) => [...t, { role: "assistant", resp: {

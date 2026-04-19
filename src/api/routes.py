@@ -43,6 +43,7 @@ def _get_kg() -> KnowledgeGraph:
 class QueryRequest(BaseModel):
     query: str
     stream: bool = False
+    session_id: Optional[str] = None
 
 
 class QueryResponse(BaseModel):
@@ -56,6 +57,8 @@ class QueryResponse(BaseModel):
     knowledge_concepts: list[dict[str, Any]]
     follow_up_suggestions: list[str]
     traversal_path: list[str]
+    session_id: Optional[str] = None
+    duration_ms: Optional[int] = None
     error: Optional[str] = None
 
 
@@ -81,19 +84,43 @@ async def query_graph(req: QueryRequest):
     """
     Main query endpoint. Runs the full LangGraph agent pipeline and
     returns a step-by-step response with tool details and follow-ups.
+
+    If `session_id` is provided, the user query and agent response are
+    persisted to the chat history (when Neon is configured). If omitted,
+    a new session_id is generated, returned to the caller, and used for
+    persistence.
     """
+    import time
+    import uuid
     from src.agent.graph import KBGraphAgent
+    from src.config import USE_NEON
 
     kg = _get_kg()
     agent = KBGraphAgent.from_graph(kg)
 
+    session_id = req.session_id or str(uuid.uuid4())
+
+    start = time.perf_counter()
     try:
         state = agent.query(req.query)
     except Exception as exc:
         logger.error(f"Agent query failed: {exc}", exc_info=True)
+        # best-effort record the failure turn
+        if USE_NEON:
+            try:
+                await _persist_chat_turn(
+                    session_id=session_id,
+                    query=req.query,
+                    resp=None,
+                    duration_ms=int((time.perf_counter() - start) * 1000),
+                    error=str(exc),
+                )
+            except Exception:
+                pass
         raise HTTPException(status_code=500, detail=str(exc))
+    duration_ms = int((time.perf_counter() - start) * 1000)
 
-    return QueryResponse(
+    resp = QueryResponse(
         query=state["query"],
         intent=state.get("intent", ""),
         kb_focus=state.get("kb_focus", "both"),
@@ -104,8 +131,83 @@ async def query_graph(req: QueryRequest):
         knowledge_concepts=state.get("knowledge_concepts", []),
         follow_up_suggestions=state.get("follow_up_suggestions", []),
         traversal_path=state.get("traversal_path", []),
+        session_id=session_id,
+        duration_ms=duration_ms,
         error=state.get("error"),
     )
+
+    if USE_NEON:
+        try:
+            await _persist_chat_turn(
+                session_id=session_id,
+                query=req.query,
+                resp=resp,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            logger.warning("Neon chat persistence failed: %s", exc)
+
+    return resp
+
+
+async def _persist_chat_turn(
+    session_id: str,
+    query: str,
+    resp: QueryResponse | None,
+    duration_ms: int,
+    error: Optional[str] = None,
+) -> None:
+    """Upsert chat_sessions row and append two chat_messages (user + assistant)."""
+    import uuid as _uuid
+    from datetime import datetime, timezone
+    from sqlalchemy.dialects.postgresql import insert
+    from src.infra.db import get_session
+    from src.infra.db_models import ChatMessage, ChatSession
+
+    try:
+        sid = _uuid.UUID(session_id)
+    except ValueError:
+        sid = _uuid.uuid4()
+
+    # Title: first 60 chars of the user's first query for this session.
+    title = (query or "").strip()[:60] or None
+
+    async with get_session() as s:
+        now = datetime.now(timezone.utc)
+        sess_stmt = insert(ChatSession).values(
+            session_id=sid, title=title, created_at=now, last_activity_at=now,
+        ).on_conflict_do_update(
+            index_elements=["session_id"],
+            set_={"last_activity_at": now},
+        )
+        await s.execute(sess_stmt)
+
+        # User turn
+        s.add(ChatMessage(
+            session_id=sid, role="user", query=query, duration_ms=0,
+        ))
+        # Assistant turn
+        if resp is not None:
+            s.add(ChatMessage(
+                session_id=sid,
+                role="assistant",
+                response=resp.model_dump(),
+                intent=resp.intent,
+                kb_focus=resp.kb_focus,
+                extracted_topics=resp.extracted_topics,
+                tools_referenced=resp.tools_referenced,
+                knowledge_concepts=resp.knowledge_concepts,
+                traversal_path=resp.traversal_path,
+                follow_up_suggestions=resp.follow_up_suggestions,
+                error=resp.error,
+                duration_ms=duration_ms,
+            ))
+        else:
+            s.add(ChatMessage(
+                session_id=sid, role="assistant",
+                error=error, duration_ms=duration_ms,
+            ))
+        await s.commit()
 
 
 @router.get("/graph/node/{node_id}", summary="Get node details and edges")
@@ -273,12 +375,14 @@ async def get_chapters():
 # Imported lazily at module bottom to avoid circular imports.
 # ---------------------------------------------------------------------------
 
-from src.api.upload_routes import router as upload_router  # noqa: E402
-from src.api.config_routes import router as config_router  # noqa: E402
-from src.api.build_routes import router as build_router    # noqa: E402
-from src.api.viz_routes import router as viz_router        # noqa: E402
+from src.api.upload_routes import router as upload_router    # noqa: E402
+from src.api.config_routes import router as config_router    # noqa: E402
+from src.api.build_routes import router as build_router      # noqa: E402
+from src.api.viz_routes import router as viz_router          # noqa: E402
+from src.api.history_routes import router as history_router  # noqa: E402
 
 router.include_router(upload_router, tags=["kb"])
 router.include_router(config_router, tags=["config"])
 router.include_router(build_router, tags=["build"])
 router.include_router(viz_router, tags=["graph"])
+router.include_router(history_router, tags=["history"])

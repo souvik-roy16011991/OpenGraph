@@ -124,9 +124,13 @@ MEMGRAPH_DATABASE: str = os.environ.get("MEMGRAPH_DATABASE", "memgraph")
 BLOB_READ_WRITE_TOKEN: str = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
 BLOB_STORE_PATH: str = os.environ.get("BLOB_STORE_PATH", "v0-it-support-automation-blob/kb-config")
 
+# Neon Postgres (application data: build jobs, chat history, config versions, uploads)
+DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
+
 # Feature flags — auto-detected from credential presence
 USE_PINECONE: bool = bool(PINECONE_API_KEY)
 USE_QDRANT: bool = bool(QDRANT_URL and QDRANT_API_KEY)
 USE_NEO4J: bool = bool(NEO4J_URI)
 USE_MEMGRAPH: bool = bool(MEMGRAPH_URI)
 USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
+USE_NEON: bool = bool(DATABASE_URL)
