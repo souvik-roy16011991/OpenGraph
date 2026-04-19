@@ -1,0 +1,7 @@
+domain_name: pharmaceutical_products
+domain_display_name: Pharmaceutical Products
+organization_name: the Regulatory Affairs team
+knowledge_focus_examples: "stability testing, GMP compliance, ICH guidelines, clinical trial phases, adverse event reporting, CMC, labeling control, regulatory filings"
+tool_focus_examples: "LIMS, eCTD publishing platforms, pharmacovigilance systems (Argus, LifeSphere), CTMS, QMS platforms, lab instruments"
+
+# Any missing field is auto-derived from KB content on first run.

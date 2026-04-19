@@ -1,0 +1,27 @@
+tool_column_keywords:
+  - Tool
+  - Service
+  - System
+  - Product
+  - Application
+  - Platform
+  - Software
+  - Vendor
+  - Provider
+  - CRM             # Salesforce FSC / Wealthbox
+  - OMS             # Order Management Systems
+  - PMS             # Portfolio Management / accounting
+  - Custodian       # Schwab / Fidelity / Pershing
+  - Data Feed       # Bloomberg / Refinitiv
+
+process_column_keywords:
+  - Step
+  - Phase
+  - Stage
+  - Workflow
+  - Onboarding Step
+  - Process Step
+  - Action
+  - Task
+  - Activity
+  - Review Cycle

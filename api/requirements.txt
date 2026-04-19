@@ -1,0 +1,25 @@
+# Runtime requirements for Vercel deployment.
+# sentence-transformers (and its PyTorch dependency, ~700 MB) is intentionally
+# excluded. KB_FORCE_TFIDF=1 is set at build and runtime so the TF-IDF path in
+# src/graph_builder/embeddings.py is used instead, which only requires scikit-learn.
+# For local development with remote/local embedding models, install
+# sentence-transformers separately: pip install "sentence-transformers>=3.3.1"
+langgraph>=0.2.55
+langchain>=0.3.0
+langchain-openai>=0.2.14
+langchain-core>=0.3.28
+networkx>=3.2.1
+faiss-cpu>=1.7.4
+fastapi>=0.115.6
+uvicorn[standard]>=0.30.0
+pydantic>=2.7.0
+scikit-learn>=1.0.0
+numpy>=1.26.0
+python-dotenv>=1.0.1
+httpx>=0.27.0
+tqdm>=4.67.0
+rich>=13.7.0
+typer>=0.12.0
+orjson>=3.10.0
+pinecone>=5.0
+neo4j>=5.0

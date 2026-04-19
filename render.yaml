@@ -1,0 +1,96 @@
+services:
+  - type: web
+    name: kb-knowledge-graph
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Render assigns $PORT automatically; the Dockerfile CMD reads it.
+    # healthCheckPath is polled after deploy to confirm the service is alive.
+    healthCheckPath: /health
+    autoDeploy: true
+    # Render Free tier: 512 MB RAM. The graph pickle + FAISS index together
+    # use ~30 MB. The process peaks during embedding at build time, not runtime.
+    # Use "starter" plan or higher for production workloads.
+    plan: starter
+
+    envVars:
+      # ------------------------------------------------------------------
+      # Required — LLM calls will fail without this
+      # ------------------------------------------------------------------
+      - key: OPENROUTER_API_KEY
+        sync: false           # Set manually in the Render dashboard
+
+      # ------------------------------------------------------------------
+      # LLM configuration (optional — defaults shown in comments)
+      # ------------------------------------------------------------------
+      - key: OPENROUTER_BASE_URL
+        value: https://openrouter.ai/api/v1
+
+      - key: LLM_MODEL
+        value: qwen/qwen3-235b-a22b
+
+      - key: LLM_TEMPERATURE
+        value: "0.1"
+
+      - key: LLM_MAX_TOKENS
+        value: "4096"
+
+      # ------------------------------------------------------------------
+      # Embedding configuration (optional)
+      # Set KB_FORCE_TFIDF=1 to skip remote embeddings at query time.
+      # The Docker image is always built with TFIDF=1 (hash embeddings) so
+      # no API key is needed during the image build step.
+      # ------------------------------------------------------------------
+      - key: EMBEDDING_MODEL
+        value: qwen/qwen3-embedding-8b
+
+      - key: KB_FORCE_TFIDF
+        value: "1"     # Search uses pre-built FAISS index; no re-embedding at runtime
+
+      # ------------------------------------------------------------------
+      # Domain (optional)
+      # ------------------------------------------------------------------
+      - key: DOMAIN
+        value: loan_assessment
+
+      # ------------------------------------------------------------------
+      # Pinecone vector DB (optional — falls back to local FAISS if unset)
+      # ------------------------------------------------------------------
+      - key: PINECONE_API_KEY
+        sync: false
+
+      - key: PINECONE_INDEX_NAME
+        value: kb-index
+
+      - key: PINECONE_NAMESPACE
+        value: kb-knowledge-graph
+
+      # ------------------------------------------------------------------
+      # Neo4j Aura graph DB (optional — falls back to NetworkX pickle if unset)
+      # ------------------------------------------------------------------
+      - key: NEO4J_URI
+        sync: false
+
+      - key: NEO4J_USERNAME
+        sync: false
+
+      - key: NEO4J_PASSWORD
+        sync: false
+
+      - key: NEO4J_DATABASE
+        value: neo4j
+
+      # ------------------------------------------------------------------
+      # Vercel Blob storage (optional — falls back to local kb-config/ files)
+      # Only used during graph build, not at runtime.
+      # ------------------------------------------------------------------
+      - key: BLOB_READ_WRITE_TOKEN
+        sync: false
+
+      - key: BLOB_STORE_PATH
+        value: v0-it-support-automation-blob/kb-config
+
+      # ------------------------------------------------------------------
+      # OpenMP / MKL duplicate lib fix (recommended for faiss-cpu on Linux)
+      # ------------------------------------------------------------------
+      - key: KMP_DUPLICATE_LIB_OK
+        value: "TRUE"

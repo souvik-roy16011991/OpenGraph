@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "installCommand": "pip install -r api/requirements.txt",
+  "buildCommand": "KB_FORCE_TFIDF=1 python scripts/build_graph.py --no-llm",
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "api/index.py" }
+  ],
+  "env": {
+    "KB_FORCE_TFIDF": "1"
+  }
+}

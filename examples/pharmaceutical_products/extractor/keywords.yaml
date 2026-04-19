@@ -1,0 +1,26 @@
+tool_column_keywords:
+  - Tool
+  - Service
+  - System
+  - Product
+  - Application
+  - Platform
+  - Software
+  - Vendor
+  - Provider
+  - Instrument      # HPLC, GC, dissolution apparatus, etc.
+  - Equipment
+  - Assay
+  - Method          # analytical methods (often labelled "Method")
+
+process_column_keywords:
+  - Step
+  - Phase           # clinical trial phases
+  - Stage
+  - Workflow
+  - Process Step
+  - Action
+  - Task
+  - Protocol        # test protocols, clinical protocols
+  - SOP             # Standard Operating Procedures
+  - Specification

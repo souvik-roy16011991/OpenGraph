@@ -1,0 +1,5 @@
+domain_name: loan_assessment
+domain_display_name: Loan Application Assessment
+organization_name: the Credit Underwriting Desk
+knowledge_focus_examples: "applicant classification, income eligibility, FOIR, bureau score cut-offs, documentation rules, risk tiering, policy exceptions"
+tool_focus_examples: "credit bureaus (CIBIL, Experian), KYC platforms, bank statement analyzers, loan origination systems, decisioning engines, collections tools"

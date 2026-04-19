@@ -1,0 +1,53 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Secrets — never bake into the image
+.env
+.env.*
+
+# Git history
+.git/
+.gitignore
+
+# Generated graph artifacts — rebuilt during Docker build from kb-config/
+data/knowledge_graph.pkl
+data/faiss_index.*
+data/node_registry.json
+data/cross_links.json
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Editor / OS
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Test / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Render plan file (not needed in image)
+.cursor/
+
+# Postman collection (not needed at runtime)
+postman/

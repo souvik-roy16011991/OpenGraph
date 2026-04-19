@@ -1,0 +1,23 @@
+tool_column_keywords:
+  - Tool
+  - Service
+  - System
+  - Product
+  - Application
+  - Platform
+  - Software
+  - Vendor
+  - Provider
+  - EHR             # Epic / Cerner / Meditech / Allscripts rows
+  - HIE             # Health Information Exchange networks
+  - Module          # EHR modules (Epic Beaker, Cerner PowerChart, etc.)
+
+process_column_keywords:
+  - Step
+  - Phase
+  - Stage
+  - Workflow
+  - Action
+  - Task
+  - Encounter       # patient-encounter stages (pre-admission, admission, discharge)
+  - Release         # release-of-information steps

@@ -1,0 +1,329 @@
+{
+  "info": {
+    "name": "KB Knowledge Graph Engine",
+    "_postman_id": "kb-knowledge-graph-engine-v1",
+    "description": "Complete Postman collection for the KB Knowledge Graph Engine API.\n\nBase URL: http://127.0.0.1:8001\n\nAll knowledge graph endpoints including query, node traversal, search, stats, tools, chapters, and health.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8001",
+      "type": "string",
+      "description": "Base URL of the running API server"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Returns service status. Useful to verify the server is up before sending queries."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"ok\",\n  \"service\": \"kb-knowledge-graph\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Query",
+      "item": [
+        {
+          "name": "POST /api/v1/query — Tax Planning",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"find tax planning steps and tools and end to end process\",\n  \"stream\": false\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Main query endpoint. Runs the full LangGraph agent pipeline (classify_intent → locate_entry_nodes → traverse_graph → build_steps → resolve_tools → synthesize_response) and returns a structured answer.\n\n**Request fields:**\n- `query` (string, required) — Natural-language question to ask the knowledge graph.\n- `stream` (boolean, optional, default `false`) — Reserved for future streaming support.\n\n**Response fields:**\n- `query` — Echo of the original query.\n- `intent` — Classified intent: `process`, `tool_lookup`, `concept`, or `general`.\n- `kb_focus` — Which KB was used: `knowledge`, `tool`, or `both`.\n- `extracted_topics` — Key topics extracted from the query.\n- `response` — Full synthesized narrative answer (markdown-formatted).\n- `steps` — Ordered list of process steps with `title`, `description`, and `system` fields.\n- `tools_referenced` — Tools found during traversal with `tool_name`, `provider`, `purpose`, `category`.\n- `knowledge_concepts` — Related knowledge concepts with `node_id`, `title`, `kb_source`.\n- `follow_up_suggestions` — 3 suggested follow-up questions.\n- `traversal_path` — Ordered list of node IDs visited by the agent.\n- `error` — null on success; error message string if something failed."
+          },
+          "response": [
+            {
+              "name": "200 — Successful Response",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"query\": \"find tax planning steps and tools and end to end process\",\n  \"intent\": \"process\",\n  \"kb_focus\": \"both\",\n  \"extracted_topics\": [\"tax planning\", \"steps\", \"tools\", \"end to end process\"],\n  \"response\": \"## Overview\\n\\nTax planning at Meridian Wealth Advisors leverages the three-basket framework...\",\n  \"steps\": [\n    {\n      \"step_num\": 1,\n      \"title\": \"Tax Goal Identification\",\n      \"description\": \"Collaborate with the client to define specific tax-related objectives.\",\n      \"system\": \"Salesforce CRM, Orion\"\n    },\n    {\n      \"step_num\": 2,\n      \"title\": \"Comprehensive Data Aggregation\",\n      \"description\": \"Aggregate all client financial data using eMoney.\",\n      \"system\": \"eMoney, Fidelity/Schwab/Pershing APIs\"\n    }\n  ],\n  \"tools_referenced\": [\n    {\n      \"tool_name\": \"eMoney\",\n      \"provider\": \"eMoney Advisor\",\n      \"purpose\": \"Aggregated view of all client assets\",\n      \"category\": \"Financial Planning\"\n    },\n    {\n      \"tool_name\": \"Power BI Integration\",\n      \"provider\": \"Microsoft\",\n      \"purpose\": \"Tax scenario visualization\",\n      \"category\": \"Analytics\"\n    }\n  ],\n  \"knowledge_concepts\": [\n    {\n      \"node_id\": \"knowledge::ch4::s4.2.1\",\n      \"title\": \"Three-basket tax framework\",\n      \"kb_source\": \"knowledge\"\n    }\n  ],\n  \"follow_up_suggestions\": [\n    \"What compliance checks are required in this process?\",\n    \"How do the systems integrate in this workflow?\",\n    \"What are the exception handling procedures for this process?\"\n  ],\n  \"traversal_path\": [\n    \"knowledge::ch4\",\n    \"knowledge::ch4::s4.2\",\n    \"knowledge::ch4::s4.2.1\"\n  ],\n  \"error\": null\n}"
+            },
+            {
+              "name": "503 — Graph Not Loaded",
+              "status": "Service Unavailable",
+              "code": 503,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Knowledge graph not loaded.\"\n}"
+            },
+            {
+              "name": "500 — Agent Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"<error message from agent pipeline>\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /api/v1/query — Tool Lookup",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"What tools support compliance and regulatory reporting?\",\n  \"stream\": false\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Example tool-lookup query. The agent will set `intent=tool_lookup` and `kb_focus=tool`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/query — Process Walkthrough",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"How do I onboard a new client end to end?\",\n  \"stream\": false\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Example process walkthrough. Agent will classify intent=process and trace the client onboarding workflow."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/query — Concept Explanation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Explain the three-basket investment framework\",\n  \"stream\": false\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Example concept-explanation query. Agent will classify intent=concept and pull relevant knowledge KB sections."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Graph",
+      "item": [
+        {
+          "name": "GET /api/v1/graph/stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/graph/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "graph", "stats"]
+            },
+            "description": "Returns total node/edge counts broken down by type.\n\nExample response:\n```json\n{\n  \"total_nodes\": 953,\n  \"total_edges\": 1746,\n  \"nodes_by_type\": { \"domain\": 2, \"chapter\": 42, ... },\n  \"edges_by_type\": { \"CONTAINS\": 809, \"USES_TOOL\": 687, ... }\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/graph/node/{node_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/graph/node/knowledge::ch4",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "graph", "node", "knowledge::ch4"]
+            },
+            "description": "Fetch a single node by ID. Returns the node's data, its incoming/outgoing edges, children, and parent.\n\nChange the path param to any valid node ID from the registry."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/graph/tree",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/graph/tree?max_depth=2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "graph", "tree"],
+              "query": [
+                {
+                  "key": "max_depth",
+                  "value": "2",
+                  "description": "Depth of tree to return (1–4, default 2)"
+                }
+              ]
+            },
+            "description": "Returns the two root domain nodes with their subtrees up to `max_depth`. Used by a front-end tree navigator."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/graph/chapters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/graph/chapters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "graph", "chapters"]
+            },
+            "description": "Returns all ChapterNode objects from both KBs sorted by KB source and chapter number."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/graph/tools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/graph/tools?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "graph", "tools"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Filter by tool category (partial match, case-insensitive)",
+                  "disabled": true
+                },
+                {
+                  "key": "provider",
+                  "value": "",
+                  "description": "Filter by provider name (partial match, case-insensitive)",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free-text search across tool_name, purpose, category",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Max results to return (1–200, default 50)"
+                }
+              ]
+            },
+            "description": "List all extracted ToolNode objects. Supports optional filters:\n- `category` — e.g. `CRM`, `Analytics`, `Trading`\n- `provider` — e.g. `Salesforce`, `Microsoft`\n- `search` — free-text across name/purpose/category\n- `limit` — max results (1–200)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/graph/search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/graph/search?q=tax+planning&top_k=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "graph", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "tax planning",
+                  "description": "Search term (min 2 characters, required)"
+                },
+                {
+                  "key": "top_k",
+                  "value": "10",
+                  "description": "Number of results to return (1–50, default 10)"
+                },
+                {
+                  "key": "node_type",
+                  "value": "",
+                  "description": "Filter by node type: domain, chapter, section, tool, process, table, glossary",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Hybrid semantic + keyword search across all graph nodes. Returns nodes with a `search_score`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/graph/traverse",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node_id\": \"knowledge::ch4\",\n  \"max_depth\": 3,\n  \"edge_types\": [\"CONTAINS\", \"USES_TOOL\"]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/graph/traverse",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "graph", "traverse"]
+            },
+            "description": "BFS traversal from any node.\n\n**Request fields:**\n- `node_id` (string, required) — Starting node ID.\n- `max_depth` (integer, optional, default 3) — How many hops to traverse.\n- `edge_types` (array of strings, optional) — Filter traversal to specific edge types. Valid types: `CONTAINS`, `USES_TOOL`, `HAS_CONTENT`, `NEXT_STEP`, `RELATED_TO`, `INTEGRATES_WITH`, `IMPLEMENTS`.\n\n**Response fields:**\n- `root_node_id` — Starting node.\n- `traversal_path` — Ordered list of visited node IDs.\n- `nodes` — Full node data for each visited node.\n- `edge_count` — Number of edges within the traversal subgraph."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

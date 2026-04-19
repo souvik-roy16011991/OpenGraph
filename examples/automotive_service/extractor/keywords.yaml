@@ -1,0 +1,25 @@
+tool_column_keywords:
+  - Tool
+  - Service
+  - System
+  - Product
+  - Application
+  - Platform
+  - Software
+  - Vendor
+  - Provider
+  - Scan Tool           # OEM diagnostic scan tools
+  - DMS                 # Dealer Management System
+  - Rig                 # alignment / ADAS calibration rigs
+  - Equipment
+
+process_column_keywords:
+  - Step
+  - Phase
+  - Stage
+  - Workflow
+  - Action
+  - Task
+  - Procedure           # repair / diagnostic procedures
+  - Diagnostic Step
+  - Torque Spec         # tables of torque-sequenced fastener steps

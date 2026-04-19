@@ -1,0 +1,5 @@
+domain_name: medical_records
+domain_display_name: Medical Records
+organization_name: the Health Information Management team
+knowledge_focus_examples: "admission & discharge workflows, clinical documentation, CPT/ICD-10 coding, HIPAA privacy, 42 CFR Part 2, release of information, consent management"
+tool_focus_examples: "EHR platforms (Epic, Cerner), HIE networks (CommonWell, Carequality), coding tools (3M 360 Encompass), ROI platforms, audit & compliance systems"

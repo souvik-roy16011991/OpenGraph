@@ -1,0 +1,5 @@
+domain_name: automotive_service
+domain_display_name: Automotive Service
+organization_name: the Service Department
+knowledge_focus_examples: "diagnostic procedures, repair workflows, torque specifications, fluid specs, technical service bulletins, warranty policy, ADAS calibration"
+tool_focus_examples: "OEM scan tools, dealer management systems, service information systems (Mitchell 1, ALLDATA), alignment machines, ADAS calibration rigs"

@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""
+Upload local KB JSON files to Vercel Blob storage.
+
+Run this once after initial setup, or whenever KB files change.
+
+Usage
+-----
+    python scripts/upload_kb.py              # upload both
+    python scripts/upload_kb.py --source knowledge
+    python scripts/upload_kb.py --source tool
+    python scripts/upload_kb.py --list       # list existing blobs
+
+Requirements
+------------
+    BLOB_READ_WRITE_TOKEN must be set in .env
+"""
+
+import argparse
+import json
+import logging
+import sys
+from pathlib import Path
+
+# Ensure project root is on sys.path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Upload KB files to Vercel Blob")
+    parser.add_argument(
+        "--source",
+        choices=["knowledge", "tool"],
+        default=None,
+        help="Which KB to upload (default: both)",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List existing blobs and exit",
+    )
+    args = parser.parse_args()
+
+    from src.config import BLOB_READ_WRITE_TOKEN, BLOB_STORE_PATH
+
+    if not BLOB_READ_WRITE_TOKEN:
+        logger.error(
+            "BLOB_READ_WRITE_TOKEN is not set. "
+            "Add it to .env before running this script."
+        )
+        sys.exit(1)
+
+    from src.infra.blob_loader import list_kb_blobs, upload_kb_file, upload_kb_files
+
+    if args.list:
+        blobs = list_kb_blobs()
+        if blobs:
+            logger.info(f"Found {len(blobs)} blob(s) under prefix '{BLOB_STORE_PATH}':")
+            for b in blobs:
+                size_kb = b.get("size", 0) / 1024
+                logger.info(f"  {b.get('pathname', '?')}  ({size_kb:.1f} KB)  {b.get('url', '')}")
+        else:
+            logger.info("No blobs found.")
+        return
+
+    if args.source:
+        url = upload_kb_file(args.source)
+        print(f"✓ {args.source}  →  {url}")
+    else:
+        results = upload_kb_files()
+        for source, url in results.items():
+            print(f"✓ {source}  →  {url}")
+
+    logger.info("Upload complete.")
+
+
+if __name__ == "__main__":
+    main()

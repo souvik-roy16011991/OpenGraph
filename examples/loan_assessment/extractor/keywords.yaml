@@ -1,0 +1,29 @@
+# Extends the default keyword sets with loan-workflow specific vocabulary.
+# Columns whose header contains any of these (case-insensitive, substring match)
+# will trigger ToolNode / ProcessNode extraction.
+
+tool_column_keywords:
+  - Tool
+  - Service
+  - System
+  - Product
+  - Application
+  - Platform
+  - Software
+  - Vendor
+  - Provider
+  - Bureau          # CIBIL / Experian / Equifax columns
+  - KYC Partner     # Karza / Digio / Signzy columns
+  - Analyzer        # bank statement analyzers
+
+process_column_keywords:
+  - Step
+  - Phase
+  - Stage
+  - Workflow
+  - Onboarding Step
+  - Process Step
+  - Action
+  - Task
+  - Gate            # credit gate / policy gate steps
+  - TAT             # turn-around-time rows often align with sequenced steps

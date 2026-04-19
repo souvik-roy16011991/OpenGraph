@@ -1,0 +1,9 @@
+domain_name: wealth_management
+domain_display_name: Wealth Management
+organization_name: Meridian Wealth Advisors
+knowledge_focus_examples: "financial planning, investment, compliance concepts"
+tool_focus_examples: "CRM, trading platforms, data feeds"
+
+# Place your KB JSONs in:
+#   knowledge/<anything>.json
+#   tool/<anything>.json
