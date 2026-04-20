@@ -439,10 +439,10 @@ the single session marker.
 
 `render.yaml` provisions two stateless Docker services:
 
-- `kb-backend` — FastAPI on uvicorn, 1 worker (build-job state is
+- `opengraph-backend` — FastAPI on uvicorn, 1 worker (build-job state is
   in-memory; horizontal scale requires moving `_jobs` to Neon — future
   work).
-- `kb-frontend` — Next.js 15 prod build with `NEXT_PUBLIC_API_BASE`
+- `opengraph-frontend` — Next.js 15 prod build with `NEXT_PUBLIC_API_BASE`
   baked in.
 
 See [DEPLOY.md](DEPLOY.md).
