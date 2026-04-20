@@ -21,6 +21,7 @@ from sqlalchemy import func, select
 
 from src.api.auth import require_user
 from src.config import USE_MEMGRAPH, USE_NEON, USE_QDRANT
+from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import (
     BuildJobRow,
@@ -147,7 +148,15 @@ async def create_workspace(body: WorkspaceCreate, user: User = Depends(require_u
         s.add(ws)
         await s.commit()
         await s.refresh(ws)
-        return await _summary_for(ws, s)
+        summary = await _summary_for(ws, s)
+
+    record_audit(
+        user.id, "workspace.create",
+        target_type="workspace", target_id=str(ws.id),
+        workspace_id=ws.id,
+        metadata={"name": ws.name},
+    )
+    return summary
 
 
 @router.get("/workspaces/{workspace_id}", summary="Get workspace detail")
@@ -165,16 +174,28 @@ async def update_workspace(
     user: User = Depends(require_user),
 ):
     _require_neon()
+    changed_fields: list[str] = []
     async with get_session() as s:
         ws = await _load_owned_workspace(s, workspace_id, user.id)
-        if body.name is not None:
+        if body.name is not None and body.name != ws.name:
             ws.name = body.name
-        if body.description is not None:
+            changed_fields.append("name")
+        if body.description is not None and body.description != ws.description:
             ws.description = body.description
+            changed_fields.append("description")
         ws.updated_at = datetime.now(timezone.utc)
         await s.commit()
         await s.refresh(ws)
-        return await _summary_for(ws, s)
+        summary = await _summary_for(ws, s)
+
+    if changed_fields:
+        record_audit(
+            user.id, "workspace.update",
+            target_type="workspace", target_id=str(workspace_id),
+            workspace_id=workspace_id,
+            metadata={"fields": changed_fields},
+        )
+    return summary
 
 
 async def delete_workspace_cascade(workspace_id: uuid.UUID) -> None:
@@ -230,7 +251,16 @@ async def delete_workspace(workspace_id: uuid.UUID, user: User = Depends(require
     """Ownership-checked HTTP wrapper around ``delete_workspace_cascade``."""
     _require_neon()
     async with get_session() as s:
-        await _load_owned_workspace(s, workspace_id, user.id)
+        ws = await _load_owned_workspace(s, workspace_id, user.id)
+        name = ws.name
+    # Record the audit event BEFORE cascade so the target_id is still valid
+    # in the workspace_id FK column (SET NULL triggers when the row goes away).
+    record_audit(
+        user.id, "workspace.delete",
+        target_type="workspace", target_id=str(workspace_id),
+        workspace_id=workspace_id,
+        metadata={"name": name},
+    )
     await delete_workspace_cascade(workspace_id)
     return {"ok": True, "deleted_workspace_id": str(workspace_id)}
 
@@ -295,4 +325,10 @@ async def delete_workspace_file(
 
         await s.delete(wf)
         await s.commit()
+
+    record_audit(
+        user.id, "file.delete",
+        target_type="file", target_id=str(file_id),
+        workspace_id=workspace_id,
+    )
     return {"ok": True, "deleted_file_id": file_id}

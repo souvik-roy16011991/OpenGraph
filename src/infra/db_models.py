@@ -294,6 +294,58 @@ class KbUpload(Base):
 
 
 # ---------------------------------------------------------------------------
+# user_audit_log — append-only record of meaningful user actions.
+# ---------------------------------------------------------------------------
+
+class UserAuditLog(Base):
+    """Who did what, when, against which target.
+
+    Every mutating API call records one row via ``src.infra.audit.record_audit``.
+    The table is append-only by convention — no updates, no deletes (except
+    CASCADE on user deletion).
+
+    Fields are intentionally loose so every consumer can share one table:
+    - ``action`` is a dotted verb string (``workspace.create``, ``build.start``,
+      ``chat.query``, …).
+    - ``target_type`` is the object class (``workspace``, ``template``,
+      ``chat_session`` …).
+    - ``target_id`` is a free-form string; could be a UUID, a job_id, a slug.
+    - ``workspace_id`` is denormalised when known, so the UI can filter the
+      feed per-workspace cheaply.
+    - ``metadata`` JSONB holds per-action context (e.g. ``{"name": "mine"}``
+      on workspace.create).
+    """
+    __tablename__ = "user_audit_log"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    target_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # Free-form context per action. Keep it small — this is an audit trail, not
+    # a log aggregator; large payloads belong in their own table.
+    audit_metadata: Mapped[Optional[dict]] = mapped_column("metadata", JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_user_audit_user_created", "user_id", "created_at"),
+        Index("ix_user_audit_ws_created", "workspace_id", "created_at"),
+        Index("ix_user_audit_action", "action"),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Phase A: anonymous user + default workspace bootstrap helpers
 # ---------------------------------------------------------------------------
 

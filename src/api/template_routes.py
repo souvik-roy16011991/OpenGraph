@@ -19,6 +19,7 @@ from sqlalchemy import func, select
 
 from src.api.auth import require_user
 from src.config import USE_NEON
+from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import User, Workspace
 from src.templates import get_template, search_templates
@@ -141,6 +142,12 @@ async def instantiate_template(
         await s.commit()
         await s.refresh(ws)
 
+    record_audit(
+        user.id, "template.instantiate",
+        target_type="template", target_id=tmpl.slug,
+        workspace_id=ws.id,
+        metadata={"workspace_name": ws.name, "template_name": tmpl.name},
+    )
     return InstantiateResponse(
         id=str(ws.id),
         name=ws.name,

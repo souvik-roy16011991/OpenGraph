@@ -186,6 +186,17 @@ async def _upsert_user(claims: dict[str, Any]) -> Optional[User]:
         s.add(user)
         await s.commit()
         await s.refresh(user)
+        # First-sight signup audit event. Only fires once per user-row creation;
+        # subsequent JWT arrivals hit the update branch above and don't re-record.
+        try:
+            from src.infra.audit import record_audit
+            record_audit(
+                user.id, "auth.signup",
+                target_type="user", target_id=str(user.id),
+                metadata={"email": email, "stack_user_id": sub},
+            )
+        except Exception:
+            pass
         return user
 
 

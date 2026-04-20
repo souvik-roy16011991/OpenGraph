@@ -28,10 +28,12 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from src.api.auth import require_user
 from src.api.deps import require_workspace_id
 from src.config import BLOB_READ_WRITE_TOKEN
+from src.infra.audit import record_audit
 from src.infra.db import get_session
-from src.infra.db_models import KbUpload, WorkspaceFile
+from src.infra.db_models import KbUpload, User, WorkspaceFile
 
 logger = logging.getLogger(__name__)
 
