@@ -1,0 +1,20 @@
+slug: tax-planning
+name: Tax Planning & Compliance
+description: >
+  Corporate and individual tax procedures — jurisdiction-specific filing
+  workflows, tax provisions, audit defense playbooks — backed by tax
+  research, preparation and workpaper tools.
+category: finance
+icon: Calculator
+domain:
+  domain_name: Tax Planning
+  domain_display_name: Tax Planning & Compliance
+  organization_name: Tax Team
+  knowledge_focus_examples: |
+    federal and state filing calendars, corporate tax provision procedures,
+    transfer pricing documentation, sales / use / VAT workflows, R&D credit
+    substantiation, audit defense playbooks, tax planning memoranda
+  tool_focus_examples: |
+    tax research platforms (Bloomberg Tax, CCH, Thomson Reuters), tax
+    provision software, return preparation (OneSource, Corptax), workpaper
+    management, indirect tax engines, document automation

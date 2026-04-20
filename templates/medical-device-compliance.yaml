@@ -1,0 +1,21 @@
+slug: medical-device-compliance
+name: Medical Device Regulatory
+description: >
+  Medical device regulatory affairs — 510(k) / PMA submissions, MDR / IVDR
+  technical files, design history files, post-market surveillance — aligned
+  with FDA / EU / PMDA frameworks.
+category: healthcare
+icon: Stethoscope
+domain:
+  domain_name: Medical Device Compliance
+  domain_display_name: Medical Device Regulatory
+  organization_name: Regulatory Affairs Team
+  knowledge_focus_examples: |
+    510(k) and PMA submission guidance, design history file templates,
+    EU MDR / IVDR technical documentation, post-market surveillance
+    procedures, UDI labeling rules, complaint handling workflows,
+    risk management per ISO 14971
+  tool_focus_examples: |
+    regulatory submission platforms, eQMS / document control, ALM /
+    requirements management, risk management tooling, post-market
+    surveillance databases, UDI compliance tools

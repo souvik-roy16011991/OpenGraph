@@ -1,0 +1,20 @@
+slug: medicine-product-kb
+name: Medicine Product Knowledge Base
+description: >
+  Drug and formulary information — mechanisms, indications, contraindications,
+  dosing, interactions — aligned with pharmacy systems and drug reference
+  databases for accurate clinical lookup.
+category: healthcare
+icon: Pill
+domain:
+  domain_name: Medicine Product KB
+  domain_display_name: Medicine Product Knowledge Base
+  organization_name: Pharmacy Knowledge Team
+  knowledge_focus_examples: |
+    drug monographs, indications and contraindications, dosing guidelines,
+    drug-drug interactions, adverse event profiles, formulary status,
+    therapeutic equivalents
+  tool_focus_examples: |
+    drug reference databases (Lexicomp, Micromedex), ePrescribing platforms,
+    pharmacy information systems, clinical decision support, drug
+    interaction engines, electronic formulary tools

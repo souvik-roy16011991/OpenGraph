@@ -1,0 +1,20 @@
+slug: clinical-trials
+name: Clinical Trials & Research
+description: >
+  Protocol design, IRB submissions, enrollment workflows, data integrity and
+  monitoring — tied to CTMS, EDC and eTMF tooling for GCP-compliant study
+  operations.
+category: healthcare
+icon: FlaskConical
+domain:
+  domain_name: Clinical Trials
+  domain_display_name: Clinical Trials & Research
+  organization_name: Clinical Research Team
+  knowledge_focus_examples: |
+    protocol design standards, IRB / ethics submission packages, informed
+    consent templates, enrollment / randomization procedures, SAE reporting,
+    source data verification, monitoring plans, GCP compliance checklists
+  tool_focus_examples: |
+    CTMS platforms, electronic data capture (EDC), eTMF systems, randomization
+    tools, eConsent platforms, safety reporting databases, statistical
+    analysis software

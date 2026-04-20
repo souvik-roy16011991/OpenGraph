@@ -1,0 +1,21 @@
+slug: wealth-management
+name: Wealth Management
+description: >
+  Advisor-facing portfolio construction, client risk profiling, rebalancing
+  workflows and meeting preparation — integrated with portfolio accounting,
+  financial planning and CRM systems.
+category: finance
+icon: Wallet
+domain:
+  domain_name: Wealth Management
+  domain_display_name: Wealth Management
+  organization_name: Private Wealth Team
+  knowledge_focus_examples: |
+    client onboarding and KYC questionnaires, risk-profiling frameworks,
+    model portfolio construction rules, rebalancing triggers, tax-loss
+    harvesting policies, investment policy statements, advisor meeting
+    agendas
+  tool_focus_examples: |
+    portfolio management systems, financial planning platforms (eMoney,
+    MoneyGuidePro), advisor CRMs (Salesforce FSC, Redtail), performance
+    reporting, trading platforms, custodian integrations

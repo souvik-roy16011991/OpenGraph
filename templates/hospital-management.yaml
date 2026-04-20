@@ -1,0 +1,20 @@
+slug: hospital-management
+name: Hospital Operations Management
+description: >
+  Bed management, admissions and discharge coordination, OR scheduling and
+  revenue-cycle workflows — integrated with EHR, ADT and scheduling systems
+  across hospital departments.
+category: healthcare
+icon: Building2
+domain:
+  domain_name: Hospital Management
+  domain_display_name: Hospital Operations
+  organization_name: Hospital Operations Team
+  knowledge_focus_examples: |
+    bed and capacity management, admission / discharge / transfer workflows,
+    OR block scheduling, ED throughput standards, revenue-cycle procedures,
+    staffing rotation policies, supply-chain par levels
+  tool_focus_examples: |
+    electronic health records (Epic, Cerner), ADT systems, OR scheduling,
+    bed management platforms, patient flow dashboards, revenue-cycle
+    management, supply chain / inventory systems

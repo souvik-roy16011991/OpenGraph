@@ -1,0 +1,20 @@
+slug: quality-control-lab
+name: Pharma / Lab Quality Control
+description: >
+  GMP-grade QA / QC processes for pharmaceutical and laboratory operations —
+  batch release criteria, deviation handling, stability studies and CAPA
+  workflows — grounded in regulatory standards.
+category: healthcare
+icon: Microscope
+domain:
+  domain_name: Quality Control
+  domain_display_name: Pharma / Lab Quality Control
+  organization_name: Quality Assurance Team
+  knowledge_focus_examples: |
+    batch release checklists, deviation and out-of-specification handling,
+    CAPA workflows, stability study protocols, analytical method validation,
+    GMP / GLP compliance procedures, supplier qualification standards
+  tool_focus_examples: |
+    LIMS platforms, electronic batch records, eQMS / document control,
+    chromatography data systems, stability chambers, SCADA integrations,
+    audit management tools
