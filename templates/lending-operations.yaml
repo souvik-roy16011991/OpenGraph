@@ -1,0 +1,22 @@
+slug: lending-operations
+name: Lending Operations
+description: >
+  Loan origination, underwriting, servicing and collections workflows —
+  across consumer, commercial and mortgage portfolios — grounded in LOS /
+  LMS and credit-bureau integrations.
+category: finance
+icon: Landmark
+domain:
+  domain_name: Lending Operations
+  domain_display_name: Lending Operations
+  organization_name: Lending Operations Team
+  knowledge_focus_examples: |
+    loan application intake checklists, underwriting credit policies,
+    documentation requirements, disclosure packages, servicing and
+    escrow workflows, collections and loss-mitigation playbooks,
+    regulatory disclosures (TILA, RESPA, ECOA)
+  tool_focus_examples: |
+    loan origination systems (Encompass, nCino), loan management systems,
+    credit bureau integrations (Experian, TransUnion, Equifax), AUS
+    engines, e-signature platforms, collections dialers, servicing
+    platforms

@@ -1,0 +1,21 @@
+slug: insurance-operations
+name: Insurance Operations
+description: >
+  Claims, underwriting and policy administration workflows — across P&C,
+  life and health lines — integrated with core insurance platforms and
+  adjuster tooling.
+category: finance
+icon: Umbrella
+domain:
+  domain_name: Insurance Operations
+  domain_display_name: Insurance Operations
+  organization_name: Insurance Operations Team
+  knowledge_focus_examples: |
+    policy issuance and endorsement workflows, claims intake and triage,
+    coverage interpretation playbooks, subrogation procedures, fraud
+    indicators, reserving guidelines, renewal and retention playbooks,
+    regulatory filings (NAIC, state DOI)
+  tool_focus_examples: |
+    core insurance platforms (Guidewire, Duck Creek, Majesco), claims
+    management systems, underwriting workstations, rating engines, fraud
+    detection tools, document management, adjuster mobile apps

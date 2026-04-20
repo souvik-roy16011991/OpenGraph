@@ -1,0 +1,21 @@
+slug: credit-analysis
+name: Credit Risk & Analysis
+description: >
+  Credit decisioning frameworks, scorecard logic, delinquency tracking and
+  portfolio risk monitoring — tied to scoring models, bureau data and
+  risk-analytics platforms.
+category: finance
+icon: Gauge
+domain:
+  domain_name: Credit Analysis
+  domain_display_name: Credit Risk & Analysis
+  organization_name: Credit Risk Team
+  knowledge_focus_examples: |
+    credit policy documents, scorecard and model methodology, debt-service
+    coverage standards, early-warning indicators, delinquency bucketing
+    rules, charge-off procedures, stress-testing scenarios, CECL / IFRS 9
+    provisioning
+  tool_focus_examples: |
+    credit decisioning platforms, scoring model engines (FICO, VantageScore),
+    bureau data providers, risk analytics (SAS, Moody's), portfolio
+    monitoring dashboards, case management systems

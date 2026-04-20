@@ -1,0 +1,21 @@
+slug: manufacturing-sops
+name: Manufacturing SOPs
+description: >
+  Shop-floor standard operating procedures — machine setup, changeover,
+  in-process inspection, deviation handling — linked to MES, ERP and
+  maintenance systems.
+category: operations
+icon: Factory
+domain:
+  domain_name: Manufacturing SOPs
+  domain_display_name: Manufacturing SOPs
+  organization_name: Manufacturing Operations
+  knowledge_focus_examples: |
+    machine setup and changeover procedures, in-process inspection
+    checklists, deviation handling, preventive maintenance schedules,
+    5S / lean standards, safety / LOTO procedures, kanban replenishment
+    rules, shift handover templates
+  tool_focus_examples: |
+    manufacturing execution systems (MES), ERP (SAP, Oracle), CMMS /
+    maintenance platforms, SCADA / PLC data collection, electronic batch
+    records, quality management systems, digital andon / downtime tracking

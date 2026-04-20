@@ -1,0 +1,21 @@
+slug: risk-management
+name: Enterprise Risk Management
+description: >
+  Market, credit, operational and liquidity risk frameworks — policy manuals,
+  KRI dashboards, scenario analysis and board reporting — aligned with
+  regulatory capital and Basel / Solvency regimes.
+category: finance
+icon: AlertTriangle
+domain:
+  domain_name: Risk Management
+  domain_display_name: Enterprise Risk Management
+  organization_name: Risk Team
+  knowledge_focus_examples: |
+    risk appetite statements, market / credit / operational risk policies,
+    KRI dashboards, scenario and stress-test libraries, incident response
+    procedures, regulatory capital frameworks (Basel III, Solvency II),
+    board reporting templates
+  tool_focus_examples: |
+    GRC platforms (Archer, ServiceNow GRC), market risk systems (Numerix,
+    Murex), credit risk analytics, incident management, scenario analysis
+    engines, regulatory reporting tools

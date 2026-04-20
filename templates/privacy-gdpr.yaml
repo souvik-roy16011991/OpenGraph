@@ -1,0 +1,21 @@
+slug: privacy-gdpr
+name: Privacy & Data Protection
+description: >
+  Privacy program operations — DPIA workflows, DSAR handling, data-mapping,
+  breach notification — aligned with GDPR, CCPA and other global privacy
+  regimes.
+category: legal
+icon: Lock
+domain:
+  domain_name: Privacy GDPR
+  domain_display_name: Privacy & Data Protection
+  organization_name: Privacy Office
+  knowledge_focus_examples: |
+    data inventory and mapping standards, DPIA / PIA templates, DSAR
+    intake and fulfilment procedures, records of processing (RoPA), breach
+    notification playbooks, cookie and consent management, cross-border
+    transfer standards (SCCs, BCRs)
+  tool_focus_examples: |
+    privacy management platforms (OneTrust, TrustArc), consent management,
+    data discovery and classification, DSAR automation, breach response
+    playbooks, vendor privacy assessments

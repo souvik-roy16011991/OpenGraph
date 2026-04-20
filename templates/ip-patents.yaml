@@ -1,0 +1,20 @@
+slug: ip-patents
+name: IP & Patents
+description: >
+  Patent portfolio management, invention disclosure review, prior-art search
+  and trademark operations — paired with IP management systems and USPTO /
+  EPO filing workflows.
+category: legal
+icon: Lightbulb
+domain:
+  domain_name: IP Patents
+  domain_display_name: IP & Patents
+  organization_name: IP Legal Team
+  knowledge_focus_examples: |
+    invention disclosure intake forms, patentability assessment rubrics,
+    prior-art search methodologies, patent prosecution strategies, trademark
+    clearance procedures, FTO analysis templates, licensing playbooks
+  tool_focus_examples: |
+    IP management platforms (Anaqua, IPfolio), patent search databases
+    (PatBase, Derwent), docketing systems, USPTO / EPO filing portals,
+    trademark monitoring services, e-signature tools

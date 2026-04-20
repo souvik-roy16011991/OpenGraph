@@ -1,0 +1,21 @@
+slug: data-engineering
+name: Data Engineering & Warehouse
+description: >
+  Data platform runbooks, pipeline SLAs, model definitions, schema-change
+  protocols and data-quality frameworks — grounded in warehouse, lake and
+  orchestration tooling.
+category: engineering
+icon: Database
+domain:
+  domain_name: Data Engineering
+  domain_display_name: Data Engineering & Warehouse
+  organization_name: Data Platform Team
+  knowledge_focus_examples: |
+    pipeline SLA / SLO definitions, schema change procedures, data contract
+    templates, data-quality rules, backfill playbooks, PII handling
+    standards, lineage documentation, dbt model review checklists
+  tool_focus_examples: |
+    data warehouses (Snowflake, BigQuery, Redshift), orchestration
+    (Airflow, Dagster, Prefect), dbt transformations, data catalogs
+    (Atlan, Alation), lineage tools, observability (Monte Carlo,
+    Datafold), streaming platforms (Kafka, Kinesis)
