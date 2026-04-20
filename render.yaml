@@ -54,8 +54,13 @@ services:
         value: "0.1"
       - key: LLM_MAX_TOKENS
         value: "4096"
+      # Default embedding model for new workspaces. Each workspace can
+      # override this via the graph-config UI (`/api/v1/config/graph` →
+      # embeddings.model); this value is only the fallback when unset.
       - key: EMBEDDING_MODEL
         value: qwen/qwen3-embedding-8b
+      # Force the deterministic TF-IDF fallback instead of remote embeddings.
+      # "1" is useful for offline tests; leave "0" in production.
       - key: KB_FORCE_TFIDF
         value: "0"
       # Optional comma-separated allowlist. Empty = expose full OpenRouter
@@ -142,7 +147,9 @@ services:
     runtime: docker
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
-    healthCheckPath: /
+    # `/` redirects to `/sign-in` via middleware. Hitting the public sign-in
+    # page directly gives Render a clean 200 (vs. 307) for the health probe.
+    healthCheckPath: /sign-in
     autoDeploy: true
     plan: starter
 
