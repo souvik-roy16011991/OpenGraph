@@ -133,10 +133,30 @@ async function jsonWithWorkspace<T>(
   return handle<T>(res);
 }
 
+/** GET variant that overrides X-Workspace-Id — used by the Playground to
+ *  read data from workspaces other than the sidebar's active one.
+ */
+async function getWithWorkspace<T>(
+  path: string,
+  workspaceIdOverride: string,
+  query?: Record<string, string | number | undefined>,
+): Promise<T> {
+  const qs = query
+    ? "?" + new URLSearchParams(
+        Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+      ).toString()
+    : "";
+  const h = new Headers(withHeaders());
+  h.set("X-Workspace-Id", workspaceIdOverride);
+  const res = await fetch(`${BASE}${path}${qs}`, { cache: "no-store", headers: h });
+  return handle<T>(res);
+}
+
 export const api = {
   // status
   health: () => get<{ status: string; service: string }>("/health"),
   stats: () => get<GraphStats>("/api/v1/graph/stats"),
+  statsFor: (ws_id: string) => getWithWorkspace<GraphStats>("/api/v1/graph/stats", ws_id),
 
   // upload — accepts multiple `knowledge_files` + multiple `tool_files`
   uploadKB: async (form: FormData): Promise<UploadResponse> => {
@@ -166,6 +186,10 @@ export const api = {
   getDomain: () => get<DomainPayload>("/api/v1/config/domain"),
   putDomain: (p: DomainPayload) => json<{ ok: boolean; path: string }>("/api/v1/config/domain", "PUT", p),
   getGraphCfg: () => get<GraphConfigPayload>("/api/v1/config/graph"),
+  getGraphCfgFor: (ws_id: string) =>
+    getWithWorkspace<GraphConfigPayload>("/api/v1/config/graph", ws_id),
+  getDomainFor: (ws_id: string) =>
+    getWithWorkspace<DomainPayload>("/api/v1/config/domain", ws_id),
   putGraphCfg: (p: GraphConfigPayload) => json<PutGraphConfigResponse>("/api/v1/config/graph", "PUT", p),
 
   // build

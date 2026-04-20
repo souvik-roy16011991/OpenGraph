@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   MessageSquareText,
   GitBranch,
+  GitCompareArrows,
   History as HistoryIcon,
   CircleUser,
   CheckCircle2,
@@ -47,6 +48,7 @@ const PRIMARY_NAV: NavItem[] = [
   { href: "/templates", label: "Templates",    icon: LayoutGrid },
   { href: "/chat",      label: "Chat",         icon: MessageSquareText },
   { href: "/upload",    label: "Create Graph", icon: GitBranch, matchPrefixes: WIZARD_ROUTES },
+  { href: "/playground",label: "Playground",   icon: GitCompareArrows },
   { href: "/history",   label: "History",      icon: HistoryIcon },
   { href: "/profile",   label: "Profile",      icon: CircleUser },
 ];
