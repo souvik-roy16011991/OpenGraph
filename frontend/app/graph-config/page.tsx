@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { ModelSelect } from "@/components/ui/model-select";
 import { Stepper } from "@/components/wizard/stepper";
 import { api } from "@/lib/api";
 import type { GraphConfigPayload } from "@/lib/schema";
@@ -28,6 +29,11 @@ export default function GraphConfigPage() {
     queryKey: ["graph-config", activeWs],
     queryFn: api.getGraphCfg,
     enabled: Boolean(activeWs),
+  });
+  const embedModelsQuery = useQuery({
+    queryKey: ["embedding-models"],
+    queryFn: () => api.listEmbeddingModels(),
+    staleTime: 5 * 60 * 1000,
   });
   const [cfg, setCfg] = React.useState<GraphConfigPayload | null>(null);
 
@@ -97,8 +103,14 @@ export default function GraphConfigPage() {
               <CardDescription>Controls density of RELATED_TO edges and embedding quality.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-5 md:grid-cols-2">
-              <FormField label="Model" hint="`org/model` = OpenRouter remote; plain name = sentence-transformers local.">
-                <Input value={e.model} onChange={(ev) => patch("embeddings", { model: ev.target.value })} />
+              <FormField label="Model" hint="Pick an OpenRouter embedding model. Plain sentence-transformers names still work via env EMBEDDING_MODEL.">
+                <ModelSelect
+                  models={embedModelsQuery.data?.models ?? (e.model ? [{ id: e.model, name: e.model }] : [])}
+                  value={e.model}
+                  onChange={(id) => patch("embeddings", { model: id })}
+                  defaultModel={embedModelsQuery.data?.default}
+                  loading={embedModelsQuery.isLoading}
+                />
               </FormField>
               <FormField label="Dimensions (Matryoshka)" hint="Override embedding size. Leave blank for model-native.">
                 <Input

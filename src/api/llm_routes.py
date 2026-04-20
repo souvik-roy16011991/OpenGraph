@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from src.config import (
+    EMBEDDING_MODEL,
     LLM_MODEL,
     OPENROUTER_ALLOWED_MODELS,
     OPENROUTER_API_KEY,
@@ -36,7 +37,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _MODELS_CACHE_KEY = "llm:openrouter:models:v1"
+_EMBED_MODELS_CACHE_KEY = "llm:openrouter:embedding-models:v1"
 _MODELS_CACHE_TTL = 3600  # 1 hour
+
+
+def _is_embedding_model(model: dict) -> bool:
+    """Heuristic: OpenRouter does not expose a stable modality field for embeddings.
+    Match on the model id since every current embedding model follows the
+    ``<provider>/[...]embed[ding]...`` pattern (e.g. openai/text-embedding-3-small,
+    qwen/qwen3-embedding-8b, voyage/voyage-3). Cheap and stable."""
+    mid = (model.get("id") or "").lower()
+    if "embed" in mid:
+        return True
+    # Fallback: OpenRouter sometimes populates architecture.output_modalities.
+    arch = model.get("architecture") or {}
+    out_mods = arch.get("output_modalities") or []
+    if isinstance(out_mods, list) and any("embed" in str(m).lower() for m in out_mods):
+        return True
+    return False
 
 
 def _allowed_set() -> set[str] | None:
@@ -114,6 +132,51 @@ def list_llm_models(refresh: bool = False):
 
     return LLMModelsResponse(
         default=LLM_MODEL,
+        models=data,
+        allowlist_active=allowed is not None,
+    )
+
+
+class EmbeddingModelsResponse(BaseModel):
+    default: str
+    models: list[dict[str, Any]]
+    allowlist_active: bool
+
+
+@router.get(
+    "/llm/embedding-models",
+    response_model=EmbeddingModelsResponse,
+    summary="List OpenRouter models that produce embeddings",
+)
+def list_embedding_models(refresh: bool = False):
+    """Filter OpenRouter's catalog to embedding-capable models only.
+
+    Separate cache key from `/llm/models` because the filter runs on the raw
+    payload (architecture + id) before the summary strips it.
+    """
+    allowed = _allowed_set()
+    data: Optional[list[dict[str, Any]]] = None
+
+    if not refresh:
+        cached = upstash.get_json(_EMBED_MODELS_CACHE_KEY)
+        if isinstance(cached, list):
+            data = cached
+
+    if data is None:
+        try:
+            raw = _fetch_openrouter_models()
+            embed_raw = [m for m in raw if isinstance(m, dict) and _is_embedding_model(m)]
+            data = [_summarize(m) for m in embed_raw]
+        except Exception as exc:
+            logger.error("OpenRouter /models (embedding filter) failed: %s", exc)
+            raise HTTPException(status_code=502, detail=f"OpenRouter /models failed: {exc}")
+        upstash.set_json(_EMBED_MODELS_CACHE_KEY, data, ttl_seconds=_MODELS_CACHE_TTL)
+
+    if allowed:
+        data = [m for m in data if m.get("id") in allowed]
+
+    return EmbeddingModelsResponse(
+        default=EMBEDDING_MODEL,
         models=data,
         allowlist_active=allowed is not None,
     )

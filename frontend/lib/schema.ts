@@ -342,6 +342,11 @@ export interface LLMModelsResponse {
   models: LLMModel[];
   allowlist_active: boolean;
 }
+export interface EmbeddingModelsResponse {
+  default: string;
+  models: LLMModel[];
+  allowlist_active: boolean;
+}
 export interface WorkspaceLLMResponse {
   workspace_id: string;
   llm_model: string | null;

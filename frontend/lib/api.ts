@@ -15,6 +15,7 @@ import type {
   InstantiateTemplateResponse,
   KBTemplate,
   LLMModelsResponse,
+  EmbeddingModelsResponse,
   MeResponse,
   NodeDetail,
   PutGraphConfigResponse,
@@ -203,6 +204,11 @@ export const api = {
   // LLM selection
   listModels: (refresh = false) =>
     get<LLMModelsResponse>("/api/v1/llm/models", refresh ? { refresh: "true" } : undefined),
+  listEmbeddingModels: (refresh = false) =>
+    get<EmbeddingModelsResponse>(
+      "/api/v1/llm/embedding-models",
+      refresh ? { refresh: "true" } : undefined,
+    ),
   getWorkspaceLLM: (ws_id: string) =>
     get<WorkspaceLLMResponse>(`/api/v1/workspaces/${ws_id}/llm`),
   setWorkspaceLLM: (ws_id: string, model: string | null) =>
