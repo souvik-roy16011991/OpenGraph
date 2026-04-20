@@ -11,9 +11,11 @@ import type {
   GraphConfigPayload,
   GraphStats,
   GraphVizPayload,
+  AuditListResponse,
   InstantiateTemplateResponse,
   KBTemplate,
   LLMModelsResponse,
+  MeResponse,
   NodeDetail,
   PutGraphConfigResponse,
   QueryRequest,
@@ -210,6 +212,13 @@ export const api = {
     workspaceIdOverride
       ? jsonWithWorkspace<QueryResponse>("/api/v1/query", "POST", r, workspaceIdOverride)
       : json<QueryResponse>("/api/v1/query", "POST", r),
+
+  // Current user + audit trail
+  me: () => get<MeResponse>("/api/v1/me"),
+  updateMe: (body: { display_name?: string }) =>
+    json<MeResponse>("/api/v1/me", "PATCH", body),
+  myAudit: (opts?: { limit?: number; before_id?: number; workspace_id?: string; action?: string }) =>
+    get<AuditListResponse>("/api/v1/me/audit", opts),
 
   // Templates
   listTemplates: (opts?: { q?: string; category?: string }) =>

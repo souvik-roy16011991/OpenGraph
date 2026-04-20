@@ -22,8 +22,11 @@ import yaml
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from src.api.auth import require_user
 from src.api.deps import require_workspace_id
 from src.config import USE_NEON
+from src.infra.audit import record_audit
+from src.infra.db_models import User
 from src.graph_config import GraphConfig, get_graph_config
 from src.kb_config import get_active_kb_config
 
@@ -97,6 +100,7 @@ async def get_domain(workspace_id: str = Depends(require_workspace_id)):
 async def put_domain(
     payload: DomainPayload,
     workspace_id: str = Depends(require_workspace_id),
+    user: User = Depends(require_user),
 ):
     """Persist the DomainProfile override on ``Workspace.domain_config``.
 
@@ -128,6 +132,12 @@ async def put_domain(
 
     await _record_config_version(workspace_id, "domain", yaml_text, data)
 
+    record_audit(
+        user.id, "config.domain.update",
+        target_type="workspace", target_id=workspace_id,
+        workspace_id=workspace_id,
+        metadata={"domain_name": data.get("domain_name")},
+    )
     return {"ok": True, "workspace_id": workspace_id}
 
 
@@ -298,6 +308,7 @@ class PutGraphConfigResponse(BaseModel):
 async def put_graph_cfg(
     payload: GraphConfigPayload,
     workspace_id: str = Depends(require_workspace_id),
+    user: User = Depends(require_user),
 ):
     if not USE_NEON:
         raise HTTPException(
@@ -326,6 +337,12 @@ async def put_graph_cfg(
         requires_rebuild=requires_rebuild,
     )
 
+    record_audit(
+        user.id, "config.graph.update",
+        target_type="workspace", target_id=workspace_id,
+        workspace_id=workspace_id,
+        metadata={"changed_sections": changed, "requires_rebuild": requires_rebuild},
+    )
     return PutGraphConfigResponse(
         status=status,
         path=f"neon://config_versions/{workspace_id}/graph",

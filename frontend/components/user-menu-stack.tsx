@@ -34,10 +34,14 @@ export default function StackUserMenu() {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border bg-background/60">
+      <Link
+        href="/profile"
+        className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border bg-background/60 hover:bg-accent"
+        title="Open profile"
+      >
         <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="max-w-[160px] truncate" title={label}>{label}</span>
-      </div>
+        <span className="max-w-[160px] truncate">{label}</span>
+      </Link>
       <Button
         variant="ghost"
         size="icon"

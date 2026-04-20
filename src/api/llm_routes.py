@@ -16,7 +16,7 @@ import uuid
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from src.config import (
@@ -25,7 +25,10 @@ from src.config import (
     OPENROUTER_API_KEY,
     OPENROUTER_BASE_URL,
 )
+from src.api.auth import require_user
 from src.infra import upstash
+from src.infra.audit import record_audit
+from src.infra.db_models import User
 from src.infra.workspace_llm import get_workspace_llm_model, set_workspace_llm_model
 
 logger = logging.getLogger(__name__)
@@ -144,7 +147,11 @@ async def get_workspace_llm(workspace_id: uuid.UUID):
 
 @router.put("/workspaces/{workspace_id}/llm", response_model=WorkspaceLLMResponse,
             summary="Set or clear a workspace's LLM preference")
-async def put_workspace_llm(workspace_id: uuid.UUID, body: WorkspaceLLMRequest):
+async def put_workspace_llm(
+    workspace_id: uuid.UUID,
+    body: WorkspaceLLMRequest,
+    user: User = Depends(require_user),
+):
     wid = _validate_workspace_uuid(workspace_id)
 
     # When a model id is provided, validate it against the (possibly filtered)
@@ -172,6 +179,12 @@ async def put_workspace_llm(workspace_id: uuid.UUID, body: WorkspaceLLMRequest):
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
+    record_audit(
+        user.id, "llm.preference.change",
+        target_type="workspace", target_id=wid,
+        workspace_id=wid,
+        metadata={"model": model},
+    )
     return WorkspaceLLMResponse(
         workspace_id=wid,
         llm_model=model,

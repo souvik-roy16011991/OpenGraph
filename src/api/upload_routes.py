@@ -178,6 +178,7 @@ async def _persist_one(
 @router.post("/kb/upload", response_model=UploadResponse, summary="Upload one or more KB JSON files")
 async def upload_kb_files(
     workspace_id: str = Depends(require_workspace_id),
+    user: User = Depends(require_user),
     knowledge_files: list[UploadFile] = File(default=[]),
     tool_files: list[UploadFile] = File(default=[]),
 ):
@@ -194,4 +195,14 @@ async def upload_kb_files(
         info = await _persist_one(workspace_id, "tool", f)
         response.tool.append(info)
 
+    record_audit(
+        user.id, "file.upload",
+        target_type="workspace", target_id=workspace_id,
+        workspace_id=workspace_id,
+        metadata={
+            "knowledge_added": sum(1 for i in response.knowledge if not i.duplicate),
+            "tool_added": sum(1 for i in response.tool if not i.duplicate),
+            "duplicates": sum(1 for i in response.knowledge + response.tool if i.duplicate),
+        },
+    )
     return response

@@ -14,6 +14,7 @@ import {
   MessageSquareText,
   LayoutGrid,
   CheckCircle2,
+  CircleUser,
   Lock,
   Moon,
   Sun,
@@ -59,7 +60,8 @@ const TOP_NAV = [
 ];
 
 const SECONDARY_NAV = [
-  { href: "/history", label: "History", desc: "Audit trail", icon: HistoryIcon },
+  { href: "/history", label: "History", desc: "Audit trail (per workspace)", icon: HistoryIcon },
+  { href: "/profile", label: "Profile", desc: "Your account + activity feed", icon: CircleUser },
 ];
 
 function WorkspaceSwitcher() {

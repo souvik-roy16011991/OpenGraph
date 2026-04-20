@@ -11,8 +11,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.api.auth import require_user
 from src.api.deps import require_workspace_id
 from src.graph_builder.builder import KnowledgeGraph
+from src.infra.audit import record_audit
+from src.infra.db_models import User
 from src.models.nodes import NodeType
 
 logger = logging.getLogger(__name__)
@@ -116,6 +119,7 @@ class TraverseResponse(BaseModel):
 async def query_graph(
     req: QueryRequest,
     workspace_id: str = Depends(require_workspace_id),
+    user: User = Depends(require_user),
 ):
     """
     Main query endpoint. Runs the full LangGraph agent pipeline and
@@ -196,6 +200,17 @@ async def query_graph(
         except Exception as exc:
             logger.warning("Neon chat persistence failed: %s", exc)
 
+    record_audit(
+        user.id, "chat.query",
+        target_type="chat_session", target_id=session_id,
+        workspace_id=workspace_id,
+        metadata={
+            "model": effective_model,
+            "intent": resp.intent,
+            "duration_ms": duration_ms,
+            "query_preview": (req.query[:80] + "…") if len(req.query) > 80 else req.query,
+        },
+    )
     return resp
 
 

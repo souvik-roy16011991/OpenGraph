@@ -13,6 +13,7 @@ from sqlalchemy import select
 from src.api import build_jobs
 from src.api.auth import require_user
 from src.api.deps import require_workspace_id
+from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import BuildJobRow, User, Workspace
 
@@ -43,6 +44,7 @@ class BuildJobResponse(BaseModel):
 async def start_build(
     req: BuildRequest,
     workspace_id: str = Depends(require_workspace_id),
+    user: User = Depends(require_user),
 ):
     try:
         job = build_jobs.start_build(
@@ -53,6 +55,15 @@ async def start_build(
     except RuntimeError as exc:
         running = build_jobs.current_running_job_id(workspace_id)
         raise HTTPException(status_code=409, detail={"error": str(exc), "running_job_id": running})
+    record_audit(
+        user.id, "build.start",
+        target_type="build_job", target_id=job.job_id,
+        workspace_id=workspace_id,
+        metadata={
+            "skip_embeddings": req.skip_embeddings,
+            "skip_llm_cross_links": req.skip_llm_cross_links,
+        },
+    )
     return {"job_id": job.job_id, "workspace_id": job.workspace_id, "status": job.status}
 
 

@@ -278,6 +278,33 @@ export interface SearchResponse {
   results: Array<Record<string, unknown> & { node_id: string; heading: string; search_score: number }>;
 }
 
+// ---------- Current user / audit ----------
+export interface MeResponse {
+  id: string;
+  stack_user_id: string | null;
+  email: string | null;
+  display_name: string | null;
+  created_at: string;
+  auth_mode: "stack" | "dev";
+  workspace_count: number;
+  build_count: number;
+  chat_count: number;
+}
+export interface AuditEntry {
+  id: number;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  workspace_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+export interface AuditListResponse {
+  entries: AuditEntry[];
+  has_more: boolean;
+  next_before_id: number | null;
+}
+
 // ---------- Templates ----------
 export interface KBTemplate {
   slug: string;

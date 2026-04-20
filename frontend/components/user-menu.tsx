@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,10 +40,14 @@ const StackUserMenu = React.lazy(() => import("./user-menu-stack"));
 export function UserMenu() {
   if (!stackConfigured) {
     return (
-      <div className={cn("flex items-center gap-2 text-xs px-2 py-1 rounded-md border bg-background/60")}>
+      <Link
+        href="/profile"
+        className={cn("flex items-center gap-2 text-xs px-2 py-1 rounded-md border bg-background/60 hover:bg-accent")}
+        title="Open profile"
+      >
         <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
         <DevModeBadge />
-      </div>
+      </Link>
     );
   }
   return (

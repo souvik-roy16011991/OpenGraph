@@ -19,6 +19,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PREFIXES = [
   "/handler",       // Stack Auth flows (sign-in, callback, reset)
+  "/sign-in",       // Convenience shortcut → redirects to /handler/sign-in
+  "/sign-up",       // Convenience shortcut → redirects to /handler/sign-up
   "/_next",         // Next internals
   "/favicon.ico",
 ];
