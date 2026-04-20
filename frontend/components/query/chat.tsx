@@ -20,13 +20,23 @@ type Turn =
   | { role: "user"; text: string; id: number }
   | { role: "assistant"; resp: QueryResponse; id: number };
 
-export function Chat() {
+interface ChatProps {
+  /** When provided, the chat runs against *this* workspace regardless of
+   *  the sidebar's active workspace. The /chat Playground page sets this
+   *  from the chat-store; the legacy wizard /query page leaves it undefined
+   *  so the global store wins (backwards-compat). */
+  workspaceId?: string | null;
+}
+
+export function Chat({ workspaceId }: ChatProps = {}) {
   const [turns, setTurns] = React.useState<Turn[]>([]);
   const [input, setInput] = React.useState("");
   const [sessionId, setSessionId] = React.useState<string | null>(null);
   const [llmModel, setLlmModel] = React.useState<string | null>(null);
   const setHighlighted = useWizardStore((s) => s.setHighlightedNodeIds);
-  const activeWs = useWorkspaceStore((s) => s.activeId);
+  const globalActive = useWorkspaceStore((s) => s.activeId);
+  // Chat's effective workspace: prop wins, fall back to global sidebar pick.
+  const activeWs = workspaceId ?? globalActive;
   const scrollerRef = React.useRef<HTMLDivElement>(null);
 
   // Catalog fetch — cached 1h on the backend (Upstash), 10 min on client.
@@ -79,11 +89,17 @@ export function Chat() {
 
   const mutation = useMutation({
     mutationFn: (q: string) =>
-      api.query({
-        query: q,
-        session_id: sessionId ?? undefined,
-        llm_model: llmModel ?? undefined,
-      }),
+      api.query(
+        {
+          query: q,
+          session_id: sessionId ?? undefined,
+          llm_model: llmModel ?? undefined,
+        },
+        // When the parent passed a workspaceId prop, use it as the
+        // X-Workspace-Id override; otherwise the API helper reads the
+        // sidebar-store activeId via withHeaders.
+        workspaceId ?? undefined,
+      ),
     onSuccess: (resp) => {
       setTurns((t) => [...t, { role: "assistant", resp, id: Date.now() }]);
       setHighlighted(resp.traversal_path || []);

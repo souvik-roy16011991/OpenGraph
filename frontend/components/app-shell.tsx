@@ -12,6 +12,7 @@ import {
   Hammer,
   Network,
   MessageSquareText,
+  LayoutGrid,
   CheckCircle2,
   Lock,
   Moon,

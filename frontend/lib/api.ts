@@ -206,7 +206,10 @@ export const api = {
   tree: (max_depth = 2) => get<{ tree: unknown[] }>("/api/v1/graph/tree", { max_depth }),
 
   // agent
-  query: (r: QueryRequest) => json<QueryResponse>("/api/v1/query", "POST", r),
+  query: (r: QueryRequest, workspaceIdOverride?: string) =>
+    workspaceIdOverride
+      ? jsonWithWorkspace<QueryResponse>("/api/v1/query", "POST", r, workspaceIdOverride)
+      : json<QueryResponse>("/api/v1/query", "POST", r),
 
   // Templates
   listTemplates: (opts?: { q?: string; category?: string }) =>
