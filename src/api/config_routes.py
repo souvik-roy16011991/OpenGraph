@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 from src.api.deps import require_workspace_id
 from src.config import USE_NEON
 from src.graph_config import GraphConfig, get_graph_config
-from src.kb_config import get_active_kb_config, reset_active_kb_config
+from src.kb_config import get_active_kb_config
 
 
 async def _record_config_version(
@@ -72,8 +72,16 @@ class DomainPayload(BaseModel):
     tool_focus_examples: str
 
 
-@router.get("/config/domain", response_model=DomainPayload, summary="Read domain.yaml")
+@router.get("/config/domain", response_model=DomainPayload, summary="Read the workspace's domain config")
 async def get_domain(workspace_id: str = Depends(require_workspace_id)):
+    """Return the workspace's DomainProfile.
+
+    Reads ``Workspace.domain_config`` when set, falling back to the disk
+    seed for any field the workspace hasn't overridden. The disk seed is
+    the neutral default — the workspace override is the truth.
+    """
+    # get_active_kb_config() is workspace-aware via the contextvar, so the
+    # returned KBConfig already reflects the workspace's JSONB overrides.
     cfg = get_active_kb_config()
     p = cfg.profile
     return DomainPayload(
@@ -85,11 +93,18 @@ async def get_domain(workspace_id: str = Depends(require_workspace_id)):
     )
 
 
-@router.put("/config/domain", summary="Save domain config snapshot")
+@router.put("/config/domain", summary="Save the workspace's domain config")
 async def put_domain(
     payload: DomainPayload,
     workspace_id: str = Depends(require_workspace_id),
 ):
+    """Persist the DomainProfile override on ``Workspace.domain_config``.
+
+    Also records an audit row in ``config_versions`` (via
+    ``_record_config_version``). Invalidates the per-workspace KBConfig
+    cache so the next request for this workspace sees the new values.
+    Does NOT clear other workspaces' caches — that was the old singleton bug.
+    """
     if not USE_NEON:
         raise HTTPException(
             status_code=503,
@@ -99,10 +114,17 @@ async def put_domain(
     data = payload.model_dump()
     yaml_text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
 
-    # The in-memory active config cache is derived from the bundled seed
-    # kb-config; clear it so the next read re-evaluates with whatever other
-    # layers (env vars, per-workspace overrides) apply.
-    reset_active_kb_config()
+    from src.infra.workspace_domain import set_workspace_domain
+    from src.kb_config import reset_workspace_kb_config
+
+    try:
+        await set_workspace_domain(workspace_id, data)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    # Invalidate ONLY this workspace's cache so the next read reflects the new
+    # override. Other tenants are untouched.
+    reset_workspace_kb_config(workspace_id)
 
     await _record_config_version(workspace_id, "domain", yaml_text, data)
 

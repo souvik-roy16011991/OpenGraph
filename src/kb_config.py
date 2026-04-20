@@ -78,7 +78,14 @@ class KBConfig:
 # Active-config singleton
 # ---------------------------------------------------------------------------
 
+# Process-global seed KBConfig — read from disk exactly once. Used when no
+# workspace context is active (CLI tools, app bootstrap, unit tests).
 _ACTIVE: Optional[KBConfig] = None
+
+# Per-workspace cache of KBConfig built by overlaying the workspace's
+# Workspace.domain_config JSONB override onto the seed. Cleared for a
+# specific workspace by ``reset_workspace_kb_config(wid)`` after a PUT.
+_WORKSPACE_CACHE: dict[str, KBConfig] = {}
 
 
 def set_active_kb_config(cfg: KBConfig) -> None:
@@ -97,10 +104,11 @@ def set_active_kb_config(cfg: KBConfig) -> None:
 
 
 def reset_active_kb_config() -> None:
-    """Clear the cached active config so the next get_active_kb_config() reloads fresh.
+    """Clear the seed cache. No longer drags tenant workspaces with it.
 
-    Call this after writing changes to domain.yaml / extractor/keywords.yaml so
-    that subsequent reads pick up the new values without a server restart.
+    Before multi-tenancy this cleared the one and only singleton; now it only
+    clears the no-context seed. Per-workspace caches have their own key
+    (``reset_workspace_kb_config``).
     """
     global _ACTIVE
     _ACTIVE = None
@@ -111,14 +119,38 @@ def reset_active_kb_config() -> None:
         pass
 
 
-def get_active_kb_config() -> KBConfig:
-    """Return the active config, resolving from ``KB_CONFIG_PATH`` on first call.
+def reset_workspace_kb_config(workspace_id: str) -> None:
+    """Clear the per-workspace cache entry.
 
-    Resolution order:
-      1. Explicit ``set_active_kb_config()`` call.
-      2. ``KB_CONFIG_PATH`` env var pointing to a kb-config folder.
-      3. Project default ``<repo>/kb-config``.
+    Called by ``PUT /config/domain`` so the next ``get_active_kb_config()``
+    from that workspace's context picks up the new override without touching
+    any other tenant.
     """
+    _WORKSPACE_CACHE.pop(workspace_id, None)
+
+
+def _overlay_domain(base: KBConfig, overrides: dict) -> KBConfig:
+    """Return a new KBConfig with DomainProfile fields replaced by *overrides*.
+
+    Only the five DomainProfile fields are overridden; KB paths, prompt
+    overrides, and keyword sets come from the disk seed (which acts as the
+    invariant 'shape' of a domain). The workspace's JSONB only carries the
+    editable identity fields.
+    """
+    from dataclasses import replace as _dc_replace
+    profile = _dc_replace(
+        base.profile,
+        domain_name=overrides.get("domain_name", base.profile.domain_name),
+        domain_display_name=overrides.get("domain_display_name", base.profile.domain_display_name),
+        organization_name=overrides.get("organization_name", base.profile.organization_name),
+        knowledge_focus_examples=overrides.get("knowledge_focus_examples", base.profile.knowledge_focus_examples),
+        tool_focus_examples=overrides.get("tool_focus_examples", base.profile.tool_focus_examples),
+    )
+    return _dc_replace(base, profile=profile)
+
+
+def _load_seed_config() -> KBConfig:
+    """Load the disk-seed KBConfig (no workspace overlay). Idempotent."""
     global _ACTIVE
     if _ACTIVE is not None:
         return _ACTIVE
@@ -131,6 +163,46 @@ def get_active_kb_config() -> KBConfig:
 
     _ACTIVE = load_kb_config(root)
     return _ACTIVE
+
+
+def get_active_kb_config() -> KBConfig:
+    """Return the KBConfig for the **currently active workspace**, falling back
+    to the disk seed when no workspace context is set.
+
+    Resolution:
+      1. If ``src.workspace_context.get_current_workspace()`` is set:
+         - Return the cached per-workspace config if available.
+         - Otherwise load the seed, overlay the workspace's ``domain_config``
+           JSONB, cache the result per-workspace, and return it.
+      2. Otherwise fall through to the disk seed (CLI tools, bootstrap).
+
+    The seed acts as the invariant shape of the domain (KB paths, prompts,
+    keyword sets). Only the five DomainProfile identity fields are tenant-
+    overridable — that matches the shape of ``Workspace.domain_config``.
+    """
+    # Local import to avoid a circular import at module-load time — the
+    # workspace_context / workspace_domain modules pull in db_models which
+    # imports from src.infra.db, and we don't want kb_config on that graph.
+    from src.workspace_context import get_current_workspace
+
+    wid = get_current_workspace()
+    if not wid:
+        return _load_seed_config()
+
+    cached = _WORKSPACE_CACHE.get(wid)
+    if cached is not None:
+        return cached
+
+    seed = _load_seed_config()
+    try:
+        from src.infra.workspace_domain import get_workspace_domain_sync
+        overrides = get_workspace_domain_sync(wid)
+    except Exception:
+        overrides = None
+
+    cfg = _overlay_domain(seed, overrides) if overrides else seed
+    _WORKSPACE_CACHE[wid] = cfg
+    return cfg
 
 
 # ---------------------------------------------------------------------------
