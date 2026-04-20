@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signup } from "@/lib/auth";
 
+import { AuthAnimation } from "@/components/auth/auth-animation";
+import { BrandMark } from "@/components/brand";
+
 const MIN_PASSWORD = 8;
 
 export default function SignUpPage() {
@@ -23,6 +26,9 @@ export default function SignUpPage() {
   const [confirm, setConfirm] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
+
+  // Calculate density based on form completion
+  const density = (email.length > 3 ? 0.2 : 0) + (displayName.length > 2 ? 0.2 : 0) + (password.length > 0 ? 0.2 : 0) + 0.4;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,81 +58,116 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-screen grid place-items-center p-6 bg-background">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>Each email is its own private workspace tenant.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4" noValidate>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={submitting}
-              />
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      {/* Overview Section (Left/Top) */}
+      <section className="relative w-full md:w-1/2 lg:w-3/5 bg-muted/30 overflow-hidden border-b md:border-b-0 md:border-r flex flex-col p-8 md:p-12 justify-between">
+        <AuthAnimation density={density} />
+
+        <div className="relative z-10">
+          <Link href="/" className="inline-flex items-center gap-2 group">
+            <div className="h-8 w-8 rounded-md border bg-white flex items-center justify-center shadow-sm group-hover:shadow transition-shadow">
+              <BrandMark size={18} />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="display_name">Display name (optional)</Label>
-              <Input
-                id="display_name"
-                type="text"
-                autoComplete="name"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                disabled={submitting}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={MIN_PASSWORD}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={submitting}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="confirm">Confirm password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={MIN_PASSWORD}
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                disabled={submitting}
-              />
-            </div>
-            {error ? (
-              <p className="text-xs text-destructive" role="alert">{error}</p>
-            ) : null}
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Creating account…" : "Create account"}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Already have an account?{" "}
-              <Link
-                href={`/sign-in${rawReturn ? `?return_to=${encodeURIComponent(rawReturn)}` : ""}`}
-                className="underline hover:text-foreground"
-              >
-                Sign in
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+            <span className="font-semibold text-xl tracking-tight">OpenGraph</span>
+          </Link>
+        </div>
+
+        <div className="relative z-10 max-w-md">
+          <h2 className="text-3xl font-semibold tracking-tight mb-4">
+            One workspace per tenant.
+          </h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Create an account to start building your own private knowledge graphs.
+            Each email address is isolated into its own secure environment with dedicated
+            vector and graph storage.
+          </p>
+        </div>
+
+      </section>
+
+      {/* Form Section (Right/Bottom) */}
+      <section className="flex-1 flex items-center justify-center p-6 md:p-12 overflow-y-auto">
+        <Card className="w-full max-w-sm border-none shadow-none bg-transparent my-auto">
+          <CardHeader className="px-0 pt-0">
+            <CardTitle className="text-2xl">Create an account</CardTitle>
+            <CardDescription>Each email is its own private workspace tenant.</CardDescription>
+          </CardHeader>
+          <CardContent className="px-0">
+            <form onSubmit={onSubmit} className="space-y-4" noValidate>
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="name@company.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={submitting}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="display_name">Display name (optional)</Label>
+                <Input
+                  id="display_name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Jane Doe"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  disabled={submitting}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={MIN_PASSWORD}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={submitting}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm">Confirm password</Label>
+                <Input
+                  id="confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={MIN_PASSWORD}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  disabled={submitting}
+                  className="bg-background"
+                />
+              </div>
+              {error ? (
+                <p className="text-xs text-destructive" role="alert">{error}</p>
+              ) : null}
+              <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                {submitting ? "Creating account…" : "Create account"}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center pb-4">
+                Already have an account?{" "}
+                <Link
+                  href={`/sign-in${rawReturn ? `?return_to=${encodeURIComponent(rawReturn)}` : ""}`}
+                  className="underline hover:text-foreground font-medium"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
+    </div>
   );
 }
