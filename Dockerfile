@@ -8,7 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Install Python deps first so the layer caches across code changes.
 COPY requirements.txt .
