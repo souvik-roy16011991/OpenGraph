@@ -129,6 +129,19 @@ def reset_workspace_kb_config(workspace_id: str) -> None:
     _WORKSPACE_CACHE.pop(workspace_id, None)
 
 
+def prime_workspace_kb_config(workspace_id: str, domain_override: Optional[dict]) -> KBConfig:
+    """Populate the per-workspace cache with the overlaid KBConfig.
+
+    Called from ``require_workspace_id`` where we already hold the Workspace
+    row — avoids the sync-from-async deadlock that would happen if the cache
+    lookup path tried to await the DB from inside a running event loop.
+    """
+    seed = _load_seed_config()
+    cfg = _overlay_domain(seed, domain_override) if domain_override else seed
+    _WORKSPACE_CACHE[workspace_id] = cfg
+    return cfg
+
+
 def _overlay_domain(base: KBConfig, overrides: dict) -> KBConfig:
     """Return a new KBConfig with DomainProfile fields replaced by *overrides*.
 

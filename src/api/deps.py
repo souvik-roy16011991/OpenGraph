@@ -42,14 +42,25 @@ async def require_workspace_id(
             detail="Neon (DATABASE_URL) is required for workspace-scoped operations.",
         )
 
-    # Verify the workspace exists
+    # Verify the workspace exists AND capture its domain override in one round-trip.
     from sqlalchemy import select
     from src.infra.db import get_session
     from src.infra.db_models import Workspace
     async with get_session() as s:
-        r = await s.execute(select(Workspace).where(Workspace.id == uuid.UUID(x_workspace_id)))
-        if r.scalar_one_or_none() is None:
+        ws = (await s.execute(
+            select(Workspace).where(Workspace.id == uuid.UUID(x_workspace_id))
+        )).scalar_one_or_none()
+        if ws is None:
             raise HTTPException(status_code=404, detail=f"Workspace {x_workspace_id} not found.")
+        domain_override = dict(ws.domain_config) if ws.domain_config else None
 
     set_current_workspace(x_workspace_id)
+
+    # Prefetch the workspace's KBConfig into the per-workspace cache so sync
+    # consumers (get_active_kb_config() inside the request) don't deadlock
+    # trying to re-fetch from the same event-loop thread. Safe to always call
+    # — the function is idempotent and just populates _WORKSPACE_CACHE.
+    from src.kb_config import prime_workspace_kb_config
+    prime_workspace_kb_config(x_workspace_id, domain_override)
+
     return x_workspace_id

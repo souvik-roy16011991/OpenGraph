@@ -127,6 +127,18 @@ DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
 UPSTASH_REDIS_REST_URL: str = os.environ.get("UPSTASH_REDIS_REST_URL", "")
 UPSTASH_REDIS_REST_TOKEN: str = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 
+# Neon Auth (Stack Auth) — JWT-authenticated users. When STACK_PROJECT_ID is
+# absent, auth is parsed-only and never enforced; the app continues to work
+# for unauthenticated traffic (Phase 1b, the "soft" rollout).
+STACK_PROJECT_ID: str = os.environ.get("STACK_PROJECT_ID", "")
+STACK_SECRET_SERVER_KEY: str = os.environ.get("STACK_SECRET_SERVER_KEY", "")
+STACK_JWT_ISSUER: str = os.environ.get(
+    "STACK_JWT_ISSUER",
+    # Default issuer format used by Stack Auth — override only if your project
+    # is hosted on a custom domain.
+    f"https://api.stack-auth.com/api/v1/projects/{STACK_PROJECT_ID}" if STACK_PROJECT_ID else "",
+)
+
 # Optional allowlist of OpenRouter models exposed to end-users. Comma-separated
 # list of model ids (e.g. "anthropic/claude-3-7-sonnet,openai/gpt-4o-mini").
 # When unset/empty, the full OpenRouter catalog is exposed via /api/v1/llm/models.
@@ -140,3 +152,4 @@ USE_MEMGRAPH: bool = bool(MEMGRAPH_URI)
 USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
 USE_NEON: bool = bool(DATABASE_URL)
 USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
+USE_STACK_AUTH: bool = bool(STACK_PROJECT_ID)

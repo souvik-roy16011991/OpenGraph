@@ -44,6 +44,56 @@ function activeWorkspaceId(): string | null {
   }
 }
 
+/** Best-effort read of the Stack Auth access token from the client SDK cookie.
+ *
+ * Stack's nextjs-cookie token store persists auth state under a well-known
+ * cookie name; the client SDK exposes it via the useUser() hook, but the
+ * typical access-token is also readable synchronously via the Stack client
+ * app. We keep this read optional so a page without Stack configured still
+ * works — when no token is available, the Authorization header is just
+ * omitted and the backend falls back to the anonymous path (Phase 1b).
+ */
+async function activeAuthToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    // Lazy-import to avoid pulling the Stack SDK into server bundles that
+    // don't have it configured.
+    const mod = await import("@stackframe/stack");
+    const clientApp = (mod as unknown as {
+      StackClientApp?: new (opts: {
+        tokenStore: string;
+        projectId: string;
+        publishableClientKey: string;
+      }) => {
+        getUser: () => Promise<{ getAuthJson: () => Promise<{ accessToken?: string }> } | null>;
+      };
+    }).StackClientApp;
+    const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
+    const publishableClientKey = process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY;
+    if (!clientApp || !projectId || !publishableClientKey) return null;
+    const app = new clientApp({ tokenStore: "nextjs-cookie", projectId, publishableClientKey });
+    const user = await app.getUser();
+    if (!user) return null;
+    const auth = await user.getAuthJson();
+    return auth.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function withHeaders(headers: HeadersInit = {}): Promise<HeadersInit> {
+  const h = new Headers(headers);
+  const wid = activeWorkspaceId();
+  if (wid) h.set("X-Workspace-Id", wid);
+  const token = await activeAuthToken();
+  if (token) h.set("Authorization", `Bearer ${token}`);
+  return h;
+}
+
+// Legacy name kept for any callers still using the old helper synchronously
+// (multipart upload path). Synchronous — no Authorization header in this
+// code path; the backend tolerates that today. Once Phase 1d enforces auth,
+// the upload path will be migrated to the async helper.
 function withWorkspaceHeader(headers: HeadersInit = {}): HeadersInit {
   const wid = activeWorkspaceId();
   if (!wid) return headers;
@@ -69,7 +119,7 @@ async function get<T>(path: string, query?: Record<string, string | number | und
     : "";
   const res = await fetch(`${BASE}${path}${qs}`, {
     cache: "no-store",
-    headers: withWorkspaceHeader(),
+    headers: await withHeaders(),
   });
   return handle<T>(res);
 }
@@ -77,7 +127,7 @@ async function get<T>(path: string, query?: Record<string, string | number | und
 async function json<T>(path: string, method: "POST" | "PUT" | "DELETE" | "PATCH", body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: withWorkspaceHeader({ "Content-Type": "application/json" }),
+    headers: await withHeaders({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });

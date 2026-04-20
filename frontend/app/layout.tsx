@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/app-shell";
+import { StackProvider, StackTheme } from "@stackframe/stack";
+import { stackServerApp, stackAuthEnabled } from "@/stack";
 
 export const metadata: Metadata = {
   title: "KB Knowledge Graph Engine",
@@ -15,12 +17,25 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Phase 1b: if Stack Auth env vars aren't set, skip the provider entirely
+  // rather than hard-failing at boot. The app keeps serving unauthenticated
+  // traffic; auth lights up the moment env vars are added.
+  const content = (
+    <Providers>
+      <AppShell>{children}</AppShell>
+    </Providers>
+  );
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen">
-        <Providers>
-          <AppShell>{children}</AppShell>
-        </Providers>
+        {stackAuthEnabled && stackServerApp ? (
+          <StackProvider app={stackServerApp}>
+            <StackTheme>{content}</StackTheme>
+          </StackProvider>
+        ) : (
+          content
+        )}
       </body>
     </html>
   );
