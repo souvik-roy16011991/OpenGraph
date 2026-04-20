@@ -3,23 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Auth gate — always on.
  *
- * Until the user has a session cookie they see **nothing** except the
- * sign-in / sign-up pages and Stack Auth's own handler routes. The two
- * accepted session markers are:
- *
- *   - ``stack-refresh-*`` — Stack Auth's refresh cookie, set after a real
- *     sign-in when the Stack Auth env vars are configured.
- *   - ``og-session=dev``  — dev-mode cookie dropped by the "Continue as
- *     dev user" server action on /sign-in. Only reachable when Stack Auth
- *     is unconfigured; lets local dev work without Stack credentials, but
- *     still requires an explicit sign-in gesture.
+ * Until the user has a Neon Auth session cookie (``stack-refresh-*``, set
+ * after sign-in; the cookie name stays the same because the SDK is
+ * @stackframe/stack pointed at the Neon Auth tenant) they see nothing
+ * except the sign-in / sign-up pages and Neon Auth's own handler routes.
  *
  * Anything else on the site is gated: request → redirect to /sign-in,
  * preserving the original path via ?return_to=.
  */
 
 const PUBLIC_PREFIXES = [
-  "/handler",                 // Stack Auth flows (sign-in, OAuth, reset)
+  "/handler",                 // Neon Auth flows (sign-in, OAuth, reset)
   "/sign-in",                 // our smart sign-in page
   "/sign-up",                 // our smart sign-up page
   "/_next",                   // Next internals
@@ -33,9 +27,7 @@ function isPublic(pathname: string): boolean {
 
 function hasSession(req: NextRequest): boolean {
   const cookies = req.cookies.getAll();
-  return cookies.some(
-    (c) => c.name.startsWith("stack-refresh") || c.name === "og-session",
-  );
+  return cookies.some((c) => c.name.startsWith("stack-refresh"));
 }
 
 export function middleware(req: NextRequest) {
@@ -47,10 +39,8 @@ export function middleware(req: NextRequest) {
   const signIn = req.nextUrl.clone();
   signIn.pathname = "/sign-in";
   signIn.search = "";
-  // Preserve where the user was trying to go so the sign-in action can
-  // redirect them back after dev-mode login. Stack Auth's own sign-in
-  // already supports its own `after_auth_return_to` param, which we don't
-  // need to synthesize here.
+  // Preserve where the user was trying to go so the sign-in page can
+  // forward it as Neon Auth's `after_auth_return_to` query param.
   signIn.searchParams.set("return_to", pathname + (search || ""));
   return NextResponse.redirect(signIn);
 }

@@ -48,34 +48,37 @@ function activeWorkspaceId(): string | null {
   }
 }
 
-/** Best-effort read of the Stack Auth access token from the client SDK cookie.
+/** Best-effort read of the Neon Auth access token from the client SDK cookie.
  *
- * Stack's nextjs-cookie token store persists auth state under a well-known
- * cookie name; the client SDK exposes it via the useUser() hook, but the
- * typical access-token is also readable synchronously via the Stack client
- * app. We keep this read optional so a page without Stack configured still
- * works — when no token is available, the Authorization header is just
- * omitted and the backend falls back to the anonymous path (Phase 1b).
+ * The @stackframe/stack client SDK (pointed at the Neon Auth tenant via
+ * baseUrl) stores auth state in the `nextjs-cookie` token store. If env
+ * vars are missing or the user isn't signed in the Authorization header is
+ * omitted and the backend will return 401.
  */
 async function activeAuthToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   try {
-    // Lazy-import to avoid pulling the Stack SDK into server bundles that
-    // don't have it configured.
     const mod = await import("@stackframe/stack");
     const clientApp = (mod as unknown as {
       StackClientApp?: new (opts: {
         tokenStore: string;
+        baseUrl?: string;
         projectId: string;
         publishableClientKey: string;
       }) => {
         getUser: () => Promise<{ getAuthJson: () => Promise<{ accessToken?: string }> } | null>;
       };
     }).StackClientApp;
-    const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
-    const publishableClientKey = process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY;
+    const baseUrl = process.env.NEXT_PUBLIC_NEON_AUTH_BASE_URL;
+    const projectId = process.env.NEXT_PUBLIC_NEON_AUTH_PROJECT_ID;
+    const publishableClientKey = process.env.NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY;
     if (!clientApp || !projectId || !publishableClientKey) return null;
-    const app = new clientApp({ tokenStore: "nextjs-cookie", projectId, publishableClientKey });
+    const app = new clientApp({
+      tokenStore: "nextjs-cookie",
+      baseUrl,
+      projectId,
+      publishableClientKey,
+    });
     const user = await app.getUser();
     if (!user) return null;
     const auth = await user.getAuthJson();

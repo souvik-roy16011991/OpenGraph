@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/app-shell";
 import { StackProvider, StackTheme } from "@stackframe/stack";
-import { stackServerApp, stackAuthEnabled } from "@/stack";
+import { stackServerApp, neonAuthEnabled } from "@/stack";
 
 export const metadata: Metadata = {
   title: "OpenGraph",
@@ -24,9 +24,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Phase 1b: if Stack Auth env vars aren't set, skip the provider entirely
-  // rather than hard-failing at boot. The app keeps serving unauthenticated
-  // traffic; auth lights up the moment env vars are added.
+  // If Neon Auth env vars aren't set, skip the provider so the app still
+  // boots; protected routes will 503 until the deployment is configured.
   const content = (
     <Providers>
       <AppShell>{children}</AppShell>
@@ -36,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen">
-        {stackAuthEnabled && stackServerApp ? (
+        {neonAuthEnabled && stackServerApp ? (
           <StackProvider app={stackServerApp}>
             <StackTheme>{content}</StackTheme>
           </StackProvider>

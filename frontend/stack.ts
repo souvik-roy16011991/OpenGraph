@@ -2,30 +2,33 @@ import "server-only";
 import { StackServerApp } from "@stackframe/stack";
 
 /**
- * Stack Auth server-app singleton.
+ * Neon Auth server-app singleton (Neon Auth is a Neon-hosted Stack Auth
+ * tenant; the SDK is @stackframe/stack with a custom baseUrl).
  *
- * Initialised lazily so the app can still boot without Stack Auth credentials
- * (Phase 1b soft-rollout: auth is parsed when present, never required). When
- * any of the three env vars is missing, ``stackServerApp`` is ``null`` and
- * the layout falls through to the unauthenticated path.
+ * Initialised lazily so the app can still boot without credentials. When
+ * any required env var is missing, ``stackServerApp`` is ``null`` and the
+ * /handler route renders a "not configured" card.
  *
- * Required env vars (set all three or none):
- *   - NEXT_PUBLIC_STACK_PROJECT_ID
- *   - NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY
- *   - STACK_SECRET_SERVER_KEY
+ * Required env vars (set all four or none):
+ *   - NEON_AUTH_BASE_URL
+ *   - NEXT_PUBLIC_NEON_AUTH_PROJECT_ID
+ *   - NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY
+ *   - NEON_AUTH_SECRET_SERVER_KEY
  */
 
-const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
-const publishableClientKey = process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY;
-const secretServerKey = process.env.STACK_SECRET_SERVER_KEY;
+const baseUrl = process.env.NEON_AUTH_BASE_URL;
+const projectId = process.env.NEXT_PUBLIC_NEON_AUTH_PROJECT_ID;
+const publishableClientKey = process.env.NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY;
+const secretServerKey = process.env.NEON_AUTH_SECRET_SERVER_KEY;
 
-export const stackAuthEnabled = Boolean(
-  projectId && publishableClientKey && secretServerKey,
+export const neonAuthEnabled = Boolean(
+  baseUrl && projectId && publishableClientKey && secretServerKey,
 );
 
-export const stackServerApp = stackAuthEnabled
+export const stackServerApp = neonAuthEnabled
   ? new StackServerApp({
       tokenStore: "nextjs-cookie",
+      baseUrl: baseUrl!,
       projectId: projectId!,
       publishableClientKey: publishableClientKey!,
       secretServerKey: secretServerKey!,
