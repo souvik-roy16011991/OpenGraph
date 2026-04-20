@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ModelSelect } from "@/components/ui/model-select";
-import { Stepper } from "@/components/wizard/stepper";
 import { api } from "@/lib/api";
 import type { GraphConfigPayload } from "@/lib/schema";
 import { useRequireWorkspace } from "@/hooks/use-require-workspace";
@@ -83,7 +82,6 @@ export default function GraphConfigPage() {
             Traversal &amp; Search apply live.
           </p>
         </div>
-        <Stepper current="graph-config" />
       </div>
 
       <Tabs defaultValue="embeddings" className="w-full">

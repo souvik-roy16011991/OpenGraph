@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Network } from "lucide-react";
-import { Stepper } from "@/components/wizard/stepper";
 import { CytoscapeView } from "@/components/graph/cytoscape-view";
 import { NodeInspector } from "@/components/graph/node-inspector";
 import { Legend } from "@/components/graph/legend";
@@ -57,7 +56,6 @@ export default function ExplorePage() {
               : "Loading graph…"}
           </p>
         </div>
-        <Stepper current="explore" />
       </div>
 
       <div className="rounded-xl border bg-card overflow-hidden shadow-sm">

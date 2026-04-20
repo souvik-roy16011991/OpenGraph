@@ -12,7 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Stepper } from "@/components/wizard/stepper";
 import { api } from "@/lib/api";
 import { DomainPayloadSchema, type DomainPayload } from "@/lib/schema";
 import { useRequireWorkspace } from "@/hooks/use-require-workspace";
@@ -60,7 +59,6 @@ export default function DomainPage() {
             Context for the agent's prompts and the UI. Maps to <code className="font-mono text-xs">kb-config/domain.yaml</code>.
           </p>
         </div>
-        <Stepper current="domain" />
       </div>
 
       <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="space-y-6">

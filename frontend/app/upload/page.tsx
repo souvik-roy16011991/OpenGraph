@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KbDropzone, type KbFilePreview } from "@/components/upload/kb-dropzone";
-import { Stepper } from "@/components/wizard/stepper";
 import { api } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
 import { useWizardStore } from "@/store/wizard-store";
@@ -80,7 +79,6 @@ export default function UploadPage() {
             graph at build time.
           </p>
         </div>
-        <Stepper current="upload" />
       </div>
 
       {/* Already uploaded */}
