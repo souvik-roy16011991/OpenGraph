@@ -299,20 +299,15 @@ class EdgeBuilder:
     # Persistence helpers for LLM cross-links
     # ------------------------------------------------------------------
     def _load_cross_links(self) -> dict[str, list[str]]:
-        path = Path(CROSS_LINKS_PATH)
-        if path.exists():
-            try:
-                with open(path) as f:
-                    return json.load(f)
-            except Exception:
-                pass
+        # Cross-link cache is intentionally not persisted to local disk. The
+        # build pipeline regenerates these in-memory each run and writes
+        # the resulting IMPLEMENTS edges straight to Memgraph.
         return {}
 
     def _save_cross_links(self, data: dict[str, list[str]]) -> None:
-        path = Path(CROSS_LINKS_PATH)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2)
+        # No-op: see _load_cross_links. Kept to preserve the call site in
+        # _build_implements_edges without a behavior regression.
+        return None
 
     # ------------------------------------------------------------------
     def _add(

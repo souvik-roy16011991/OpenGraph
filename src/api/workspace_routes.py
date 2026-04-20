@@ -224,20 +224,12 @@ async def delete_workspace(workspace_id: uuid.UUID):
         except Exception as exc:
             logger.warning("Qdrant cleanup for ws=%s failed: %s", wid_str, exc)
 
-    # Blob
+    # Blob — authoritative store for uploaded KB JSON.
     try:
         from src.infra.blob_loader import delete_workspace_blobs
         delete_workspace_blobs(wid_str)
     except Exception as exc:
         logger.warning("Blob cleanup for ws=%s failed: %s", wid_str, exc)
-
-    # Local cache
-    try:
-        import shutil
-        from src.config import workspace_data_dir
-        shutil.rmtree(workspace_data_dir(wid_str), ignore_errors=True)
-    except Exception as exc:
-        logger.warning("Local cache cleanup for ws=%s failed: %s", wid_str, exc)
 
     # Neon rows — FK CASCADE handles children
     async with get_session() as s:
@@ -271,7 +263,6 @@ async def list_workspace_files(workspace_id: uuid.UUID, kb_source: Optional[str]
                 "title": r.title,
                 "sha256": r.sha256,
                 "blob_url": r.blob_url,
-                "local_path": r.local_path,
                 "active": r.active,
                 "created_at": r.created_at.isoformat(),
             }
@@ -294,20 +285,12 @@ async def delete_workspace_file(workspace_id: uuid.UUID, file_id: int):
         if wf is None:
             raise HTTPException(status_code=404, detail="File not found.")
 
-        # Best-effort blob + local disk cleanup
         try:
             if wf.blob_url:
                 from src.infra.blob_loader import delete_blob
                 delete_blob(wf.blob_url)
         except Exception as exc:
             logger.warning("Blob delete failed for file=%s: %s", file_id, exc)
-
-        try:
-            if wf.local_path:
-                from pathlib import Path as _P
-                _P(wf.local_path).unlink(missing_ok=True)
-        except Exception:
-            pass
 
         await s.delete(wf)
         await s.commit()

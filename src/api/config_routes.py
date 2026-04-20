@@ -1,12 +1,14 @@
 """
-Config CRUD endpoints for kb-config/domain.yaml and kb-config/graph.yaml.
+Config CRUD endpoints for domain and graph config — Neon-backed.
 
-- GET  /config/domain -> current DomainProfile fields
-- PUT  /config/domain -> write domain.yaml and clear active-config cache
+- GET  /config/domain -> current DomainProfile fields (from active kb-config seed)
+- PUT  /config/domain -> persist a new workspace-scoped config snapshot in Neon
 - GET  /config/graph  -> full GraphConfig JSON (6 sections, ~25 knobs)
-- PUT  /config/graph  -> write graph.yaml and clear graph_config cache
+- PUT  /config/graph  -> persist a new workspace-scoped graph snapshot in Neon
 
-Writes go to the active kb-config root (cfg.root from get_active_kb_config()).
+Writes do NOT touch the local filesystem. Every PUT records a
+``config_versions`` row keyed to (workspace_id, kind) — that row is the
+authoritative record of the config and is surfaced via history endpoints.
 """
 
 from __future__ import annotations
@@ -14,8 +16,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import asdict
-from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 import yaml
 from fastapi import APIRouter, Depends, HTTPException
@@ -84,38 +85,28 @@ async def get_domain(workspace_id: str = Depends(require_workspace_id)):
     )
 
 
-@router.put("/config/domain", summary="Write domain.yaml")
+@router.put("/config/domain", summary="Save domain config snapshot")
 async def put_domain(
     payload: DomainPayload,
     workspace_id: str = Depends(require_workspace_id),
 ):
-    cfg = get_active_kb_config()
-    path = cfg.root / "domain.yaml"
+    if not USE_NEON:
+        raise HTTPException(
+            status_code=503,
+            detail="DATABASE_URL (Neon) is required to persist config changes.",
+        )
 
-    existing: dict[str, Any] = {}
-    if path.is_file():
-        try:
-            with open(path, encoding="utf-8") as f:
-                existing = yaml.safe_load(f) or {}
-            if not isinstance(existing, dict):
-                existing = {}
-        except Exception as exc:
-            logger.warning("Could not parse existing domain.yaml (%s); overwriting.", exc)
-            existing = {}
+    data = payload.model_dump()
+    yaml_text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
 
-    existing.update(payload.model_dump())
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(existing, f, sort_keys=False, allow_unicode=True)
-
+    # The in-memory active config cache is derived from the bundled seed
+    # kb-config; clear it so the next read re-evaluates with whatever other
+    # layers (env vars, per-workspace overrides) apply.
     reset_active_kb_config()
 
-    # Audit: persist the YAML snapshot + parsed view.
-    yaml_text = path.read_text(encoding="utf-8")
-    await _record_config_version(workspace_id, "domain", yaml_text, existing)
+    await _record_config_version(workspace_id, "domain", yaml_text, data)
 
-    return {"ok": True, "path": str(path)}
+    return {"ok": True, "workspace_id": workspace_id}
 
 
 # ---------------------------------------------------------------------------
@@ -281,16 +272,16 @@ class PutGraphConfigResponse(BaseModel):
     requires_rebuild: bool
 
 
-@router.put("/config/graph", response_model=PutGraphConfigResponse, summary="Write graph.yaml")
+@router.put("/config/graph", response_model=PutGraphConfigResponse, summary="Save graph config snapshot")
 async def put_graph_cfg(
     payload: GraphConfigPayload,
     workspace_id: str = Depends(require_workspace_id),
 ):
-    cfg = get_active_kb_config()
-    # Write to the active kb-config root to respect KB_CONFIG_PATH overrides.
-    # The loader at src/graph_config.py reads a fixed path, so we also mirror
-    # there if different.
-    target = cfg.root / "graph.yaml"
+    if not USE_NEON:
+        raise HTTPException(
+            status_code=503,
+            detail="DATABASE_URL (Neon) is required to persist config changes.",
+        )
 
     # Compute changed sections vs current
     current = _graph_config_to_payload(get_graph_config())
@@ -300,28 +291,13 @@ async def put_graph_cfg(
             changed.append(section)
 
     data = _payload_to_yaml_dict(payload)
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with open(target, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
-
-    # Also mirror to the repo-default path that graph_config.py reads.
-    fallback_path = Path(__file__).parent.parent.parent / "kb-config" / "graph.yaml"
-    try:
-        if fallback_path.resolve() != target.resolve():
-            fallback_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(fallback_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
-    except Exception as exc:
-        logger.warning("Mirror write of graph.yaml to %s failed: %s", fallback_path, exc)
+    yaml_text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
 
     get_graph_config.cache_clear()
 
     requires_rebuild = any(s in _REBUILD_SECTIONS for s in changed)
     status = "requires_rebuild" if requires_rebuild else "applied"
 
-    # Audit: persist the YAML + parsed snapshot + which sections changed.
-    yaml_text = target.read_text(encoding="utf-8")
     await _record_config_version(
         workspace_id, "graph", yaml_text, data,
         changed_sections=changed,
@@ -330,7 +306,7 @@ async def put_graph_cfg(
 
     return PutGraphConfigResponse(
         status=status,
-        path=str(target),
+        path=f"neon://config_versions/{workspace_id}/graph",
         changed_sections=changed,
         requires_rebuild=requires_rebuild,
     )

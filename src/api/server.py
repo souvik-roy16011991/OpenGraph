@@ -7,7 +7,6 @@ from __future__ import annotations
 import logging
 import time
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
@@ -15,7 +14,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.api.routes import router, set_knowledge_graph
-from src.config import GRAPH_PICKLE_PATH
 from src.kb_config import get_active_kb_config
 
 logger = logging.getLogger(__name__)

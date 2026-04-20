@@ -459,81 +459,32 @@ def run_embedding_pipeline(
     """
     Top-level entry: generate embeddings, store vectors, build RELATED_TO edges.
 
-    Returns (embedding_dict, related_edges, vector_store)
-    where vector_store is a PineconeVectorStore (when USE_PINECONE) or a FAISS
-    index (local fallback).  May be None when skip_embeddings was requested.
+    Returns (embedding_dict, related_edges, vector_store). Vectors live in
+    Qdrant Cloud (preferred) or Pinecone — the FAISS code path is kept only
+    for offline CLI usage and is never persisted to disk when a cloud vector
+    store is configured.
     """
-    # Resolve workspace-scoped FAISS path (per-workspace local cache).
-    faiss_path = None
-    if workspace_id:
-        from src.config import workspace_paths
-        faiss_path = workspace_paths(workspace_id)["faiss_index"]
-
     pipeline = EmbeddingPipeline(nodes)
     embeddings = pipeline.generate_embeddings()
 
     if USE_QDRANT:
         logger.info("USE_QDRANT=True – upserting vectors to Qdrant Cloud (collection=%s)…",
                     qdrant_collection or "default")
-        remote_ok = False
-        vector_store: Any = None
-        try:
-            vector_store = pipeline.upsert_to_qdrant(embeddings, collection_name=qdrant_collection)
-            remote_ok = True
-        except Exception as exc:
-            logger.error(
-                f"Qdrant upsert failed ({exc}). Falling back to local FAISS index."
-            )
+        vector_store = pipeline.upsert_to_qdrant(embeddings, collection_name=qdrant_collection)
+        related_edges = pipeline.build_related_edges(embeddings, remote_store=vector_store)
+        return embeddings, related_edges, vector_store
 
-        # Always save a local FAISS cache so runtime can still query if Qdrant is down.
-        try:
-            index = pipeline.build_faiss_index(embeddings)
-            pipeline.save_faiss_index(index, path=faiss_path)
-            if not remote_ok:
-                vector_store = index
-        except Exception as exc:
-            logger.warning(f"FAISS local cache save failed (non-fatal): {exc}")
-            index = None
-
-        related_edges = pipeline.build_related_edges(
-            embeddings,
-            remote_store=vector_store if remote_ok else None,
-        )
-    elif USE_PINECONE:
+    if USE_PINECONE:
         logger.info("USE_PINECONE=True – upserting vectors to Pinecone…")
-        try:
-            vector_store = pipeline.upsert_to_pinecone(embeddings)
-            pinecone_ok = True
-        except Exception as exc:
-            logger.error(
-                f"Pinecone upsert failed ({exc}). "
-                "Falling back to local FAISS index."
-            )
-            pinecone_ok = False
-            vector_store = None
+        vector_store = pipeline.upsert_to_pinecone(embeddings)
+        related_edges = pipeline.build_related_edges(embeddings, pinecone_store=vector_store)
+        return embeddings, related_edges, vector_store
 
-        # Always save a local FAISS cache (fast cold-start + Pinecone fallback)
-        try:
-            index = pipeline.build_faiss_index(embeddings)
-            pipeline.save_faiss_index(index, path=faiss_path)
-            if not pinecone_ok:
-                vector_store = index
-        except Exception as exc:
-            logger.warning(f"FAISS local cache save failed (non-fatal): {exc}")
-            index = None
-
-        related_edges = pipeline.build_related_edges(
-            embeddings,
-            pinecone_store=vector_store if pinecone_ok else None,
-        )
-    else:
-        logger.info("USE_QDRANT=False, USE_PINECONE=False – building local FAISS index…")
-        index = pipeline.build_faiss_index(embeddings)
-        pipeline.save_faiss_index(index, path=faiss_path)
-        related_edges = pipeline.build_related_edges(embeddings)
-        vector_store = index
-
-    return embeddings, related_edges, vector_store
+    # Offline / CLI path: build an in-memory FAISS index only. Not persisted.
+    logger.info("USE_QDRANT=False, USE_PINECONE=False – building in-memory FAISS index (not persisted)…")
+    index = pipeline.build_faiss_index(embeddings)
+    related_edges = pipeline.build_related_edges(embeddings)
+    return embeddings, related_edges, index
 
 
 def semantic_search(

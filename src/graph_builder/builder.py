@@ -280,20 +280,60 @@ def _build_networkx_graph(nodes: dict[str, BaseNode], edges: list[Edge]) -> nx.D
     return G
 
 
-def _save_graph(G: nx.DiGraph, nodes: dict[str, BaseNode], workspace_id: str) -> None:
-    paths = workspace_paths(workspace_id)
-    path = paths["graph_pickle"]
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _hydrate_from_neo4j(
+    neo4j_store: Any, workspace_id: str
+) -> tuple[nx.DiGraph, dict[str, BaseNode]]:
+    """Rebuild a NetworkX view + node registry from Memgraph/Neo4j.
 
-    with open(path, "wb") as f:
-        pickle.dump(G, f, protocol=pickle.HIGHEST_PROTOCOL)
-    logger.info("  Graph saved to %s", path)
+    Replaces the legacy pickle+JSON cache on local disk — called at
+    ``KnowledgeGraph.load()`` cold-start and any time we need a fresh
+    in-memory view without touching the filesystem.
+    """
+    driver = neo4j_store._driver
+    database = neo4j_store._database
 
-    registry = {nid: node.to_dict() for nid, node in nodes.items()}
-    reg_path = paths["node_registry"]
-    with open(reg_path, "w", encoding="utf-8") as f:
-        json.dump(registry, f, ensure_ascii=False)
-    logger.info("  Node registry saved to %s", reg_path)
+    G = nx.DiGraph()
+    nodes: dict[str, BaseNode] = {}
+
+    with driver.session(database=database) as s:
+        node_rows = s.run(
+            "MATCH (n:KBNode {workspace_id: $wid}) RETURN properties(n) AS props",
+            wid=workspace_id,
+        )
+        for rec in node_rows:
+            props = dict(rec["props"])
+            node_id = props.get("node_id")
+            if not node_id:
+                continue
+            try:
+                node = node_from_dict(props)
+            except Exception as exc:
+                logger.debug("node_from_dict failed for %s: %s", node_id, exc)
+                continue
+            nodes[node_id] = node
+            G.add_node(node_id, **node.to_dict())
+
+        edge_rows = s.run(
+            """
+            MATCH (src:KBNode {workspace_id: $wid})-[r]->(tgt:KBNode {workspace_id: $wid})
+            RETURN src.node_id AS source_id, tgt.node_id AS target_id,
+                   type(r) AS edge_type, properties(r) AS props
+            """,
+            wid=workspace_id,
+        )
+        for rec in edge_rows:
+            src_id = rec["source_id"]
+            tgt_id = rec["target_id"]
+            if src_id in G and tgt_id in G:
+                edge_props = dict(rec["props"] or {})
+                edge_props["edge_type"] = rec["edge_type"]
+                G.add_edge(src_id, tgt_id, **edge_props)
+
+    logger.info(
+        "Hydrated NetworkX view from %s: %d nodes, %d edges (ws=%s)",
+        neo4j_store.__class__.__name__, G.number_of_nodes(), G.number_of_edges(), workspace_id,
+    )
+    return G, nodes
 
 
 # ---------------------------------------------------------------------------
@@ -341,90 +381,69 @@ class KnowledgeGraph:
     @classmethod
     def load(cls, workspace_id: str) -> "KnowledgeGraph":
         """
-        Load a pre-built graph for *workspace_id*.
+        Load a pre-built graph for *workspace_id* — cloud-only.
 
-        - Loads local NetworkX pickle + node registry from /data/workspaces/{wid}/.
-        - Connects to Qdrant collection `kb-{wid_short}` if USE_QDRANT.
-        - Connects to Memgraph if USE_MEMGRAPH; all reads filter by workspace_id.
+        - Connects to Memgraph (or Neo4j) and rehydrates a NetworkX view from
+          every KBNode / relationship tagged with this workspace_id.
+        - Connects to Qdrant (or Pinecone) for semantic search. No FAISS
+          local index and no pickle/JSON cache on disk are touched.
         """
         if not workspace_id:
             raise ValueError("KnowledgeGraph.load requires workspace_id.")
 
-        paths = workspace_paths(workspace_id)
-        logger.info("Loading KnowledgeGraph for ws=%s from %s", workspace_id, paths["graph_pickle"].parent)
+        logger.info("Loading KnowledgeGraph for ws=%s (cloud hydrate)", workspace_id)
 
-        if not paths["graph_pickle"].exists() or not paths["node_registry"].exists():
+        # --- Graph backend (required for cloud-only loads) ---
+        neo4j_store = None
+        if USE_MEMGRAPH:
+            logger.info("USE_MEMGRAPH=True — connecting to Memgraph (ws=%s)", workspace_id)
+            from src.infra.memgraph_store import MemgraphGraphStore
+            neo4j_store = MemgraphGraphStore(
+                MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
+            )
+        elif USE_NEO4J:
+            logger.info("USE_NEO4J=True — connecting to Neo4j (ws=%s)", workspace_id)
+            from src.infra.neo4j_store import Neo4jGraphStore
+            neo4j_store = Neo4jGraphStore(
+                NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE
+            )
+        else:
+            raise RuntimeError(
+                "KnowledgeGraph.load requires USE_MEMGRAPH or USE_NEO4J — the "
+                "cloud graph store is the authoritative source of the graph."
+            )
+
+        G, nodes = _hydrate_from_neo4j(neo4j_store, workspace_id)
+        if G.number_of_nodes() == 0:
             raise FileNotFoundError(
-                f"No local cache for workspace {workspace_id}. "
+                f"No graph found in cloud store for workspace {workspace_id}. "
                 f"Run POST /api/v1/build for this workspace first."
             )
 
-        with open(paths["graph_pickle"], "rb") as f:
-            G: nx.DiGraph = pickle.load(f)
-
-        with open(paths["node_registry"], encoding="utf-8") as f:
-            registry_raw: dict[str, dict] = json.load(f)
-
-        nodes = {nid: node_from_dict(data) for nid, data in registry_raw.items()}
-
         # --- Vector search backend ---
-        faiss_index = None
-        faiss_node_ids: list[str] = []
-        embed_model = None
         pinecone_store = None
         qdrant_collection = f"kb-{_short_wid(workspace_id)}"
 
         if USE_QDRANT:
             logger.info("USE_QDRANT=True — connecting to Qdrant collection %s", qdrant_collection)
-            try:
-                from src.infra.qdrant_store import QdrantVectorStore
-                pinecone_store = QdrantVectorStore(
-                    url=QDRANT_URL,
-                    api_key=QDRANT_API_KEY,
-                    collection_name=qdrant_collection,
-                    dimension=EMBEDDING_DIM,
-                )
-            except Exception as exc:
-                logger.warning("Qdrant connect failed (%s); falling back to FAISS.", exc)
+            from src.infra.qdrant_store import QdrantVectorStore
+            pinecone_store = QdrantVectorStore(
+                url=QDRANT_URL,
+                api_key=QDRANT_API_KEY,
+                collection_name=qdrant_collection,
+                dimension=EMBEDDING_DIM,
+            )
         elif USE_PINECONE:
             logger.info("USE_PINECONE=True — connecting to Pinecone for semantic search…")
-            try:
-                from src.infra.pinecone_store import PineconeVectorStore
-                pinecone_store = PineconeVectorStore(
-                    api_key=PINECONE_API_KEY,
-                    index_name=PINECONE_INDEX_NAME,
-                    namespace=f"{PINECONE_NAMESPACE}-{_short_wid(workspace_id)}",
-                    dimension=EMBEDDING_DIM,
-                )
-            except Exception as exc:
-                logger.warning("Pinecone connect failed (%s); falling back to FAISS.", exc)
+            from src.infra.pinecone_store import PineconeVectorStore
+            pinecone_store = PineconeVectorStore(
+                api_key=PINECONE_API_KEY,
+                index_name=PINECONE_INDEX_NAME,
+                namespace=f"{PINECONE_NAMESPACE}-{_short_wid(workspace_id)}",
+                dimension=EMBEDDING_DIM,
+            )
 
-        if pinecone_store is None:
-            faiss_path = paths["faiss_index"]
-            if faiss_path.exists():
-                faiss_index, faiss_node_ids = EmbeddingPipeline.load_faiss_index(faiss_path)
-                embed_model = _load_embed_model(faiss_path, nodes)
-
-        # --- Graph backend ---
-        neo4j_store = None
-        if USE_MEMGRAPH:
-            logger.info("USE_MEMGRAPH=True — connecting to Memgraph (ws=%s)", workspace_id)
-            try:
-                from src.infra.memgraph_store import MemgraphGraphStore
-                neo4j_store = MemgraphGraphStore(
-                    MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
-                )
-            except Exception as exc:
-                logger.warning("Memgraph connect failed (%s); using NetworkX fallback.", exc)
-        elif USE_NEO4J:
-            logger.info("USE_NEO4J=True — connecting to Neo4j (ws=%s)", workspace_id)
-            try:
-                from src.infra.neo4j_store import Neo4jGraphStore
-                neo4j_store = Neo4jGraphStore(
-                    NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE
-                )
-            except Exception as exc:
-                logger.warning("Neo4j connect failed (%s); using NetworkX fallback.", exc)
+        embed_model = _build_query_embedder(nodes) if pinecone_store is not None else None
 
         logger.info("Loaded graph ws=%s: %d nodes, %d edges",
                     workspace_id, G.number_of_nodes(), G.number_of_edges())
@@ -432,8 +451,8 @@ class KnowledgeGraph:
             G=G,
             nodes=nodes,
             workspace_id=workspace_id,
-            faiss_index=faiss_index,
-            faiss_node_ids=faiss_node_ids,
+            faiss_index=None,
+            faiss_node_ids=[],
             neo4j_store=neo4j_store,
             pinecone_store=pinecone_store,
         )
@@ -552,34 +571,27 @@ class KnowledgeGraph:
 
     def semantic_search(self, query: str, top_k: int | None = None) -> list[tuple[str, float]]:
         """
-        Semantic search using Pinecone (cloud) or FAISS (local).
+        Semantic search via the cloud vector store (Qdrant / Pinecone).
 
-        Falls back to keyword search if neither backend is available.
+        Falls back to an in-memory FAISS index only when the cloud store is
+        unavailable at load time. Never reads a FAISS index file from disk.
         """
         if top_k is None:
             top_k = get_graph_config().search.default_top_k
-        # --- Pinecone path ---
-        if self._pinecone is not None:
-            embed_model = self._embed_model
-            if embed_model is None:
-                # Lazily load the embed model for query-time use
-                faiss_path = Path(FAISS_INDEX_PATH)
-                if faiss_path.exists():
-                    embed_model = _load_embed_model(faiss_path, self.nodes)
-                    self._embed_model = embed_model
-            if embed_model is not None:
-                import numpy as np
-                vec = embed_model.encode(
-                    [query], normalize_embeddings=True, show_progress_bar=False
-                ).astype(np.float32)
-                return self._pinecone.query(vec[0].tolist(), top_k=top_k)
-            else:
-                logger.warning("No embed model available for Pinecone query; falling back to keyword.")
-                return self.keyword_search(query, top_k)
 
-        # --- FAISS path ---
+        # --- Remote vector store path (Qdrant or Pinecone) ---
+        if self._pinecone is not None:
+            if self._embed_model is None:
+                self._embed_model = _build_query_embedder(self.nodes)
+            import numpy as np
+            vec = self._embed_model.encode(
+                [query], normalize_embeddings=True, show_progress_bar=False
+            ).astype(np.float32)
+            return self._pinecone.query(vec[0].tolist(), top_k=top_k)
+
+        # --- In-memory FAISS fallback (only set when remote vector store is down) ---
         if self._faiss_index is None or self._embed_model is None:
-            logger.warning("FAISS index or embed model not loaded; falling back to keyword search.")
+            logger.warning("No vector backend available; falling back to keyword search.")
             return self.keyword_search(query, top_k)
 
         import numpy as np
