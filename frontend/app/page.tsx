@@ -9,7 +9,7 @@ import { BrandMark } from "@/components/brand";
 import { useWorkspaceStore } from "@/store/workspace-store";
 
 const STEPS = [
-  { n: 1, href: "/upload", icon: Upload, title: "Upload KB files", desc: "Drop one or more JSONs — knowledge and/or tool." },
+  { n: 1, href: "/upload", icon: Upload, title: "Upload KB files", desc: "Drop one or more knowledge and/or tool files." },
   { n: 2, href: "/domain", icon: Tag, title: "Configure domain", desc: "Name the domain, organization, and focus areas." },
   { n: 3, href: "/graph-config", icon: Sliders, title: "Tune graph knobs", desc: "Adjust how dense, how deep, how precise the graph should be." },
   { n: 4, href: "/build", icon: Hammer, title: "Run the build", desc: "Embeddings, edges, cross-KB links. Watch it happen." },
@@ -36,9 +36,9 @@ export default function Home() {
           a chat for every graph.
         </h1>
         <p className="text-muted-foreground max-w-2xl">
-          Pick a template or bring your own knowledge + tool JSONs, tune the
+          Pick a template or bring your own knowledge + tool definitions, tune the
           graph parameters, build, and query. Every workspace has its own
-          Memgraph partition, its own Qdrant collection, and its own chat
+          dedicated partition, its own vector storage, and its own chat
           history — isolated end-to-end.
         </p>
         <div className="flex gap-3 pt-2 flex-wrap">

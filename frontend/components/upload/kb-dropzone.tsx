@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Upload, FileJson, CheckCircle2, AlertCircle, X, Plus } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertCircle, X, Plus } from "lucide-react";
+
 import { cn, formatBytes } from "@/lib/utils";
 
 export interface KbFilePreview {
@@ -18,7 +19,8 @@ async function parsePreview(file: File): Promise<KbFilePreview> {
     const text = await file.text();
     const json = JSON.parse(text);
     if (!json || typeof json !== "object" || !Array.isArray((json as { chapters: unknown }).chapters)) {
-      return { file, chapters: 0, ok: false, error: "Missing top-level `chapters: [...]` array" };
+      return { file, chapters: 0, ok: false, error: "Invalid format — missing data array" };
+
     }
     return {
       file,
@@ -111,13 +113,15 @@ export function KbDropzone({
         {value.length === 0 ? (
           <>
             <Upload className="h-6 w-6 text-muted-foreground" />
-            <p className="text-sm font-medium">Drop JSON files or click to browse</p>
+            <p className="text-sm font-medium">Drop files or click to browse</p>
+
             <p className="text-xs text-muted-foreground">{helpText} · multi-select supported</p>
           </>
         ) : (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Plus className="h-4 w-4" />
-            <span>Add more JSON files</span>
+            <span>Add more files</span>
+
           </div>
         )}
       </div>
@@ -132,7 +136,7 @@ export function KbDropzone({
                 !v.ok && "border-destructive/50 bg-destructive/5"
               )}
             >
-              <FileJson className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="flex-1 min-w-0">
                 <p className="truncate font-medium">{v.file.name}</p>
                 <p className="text-xs text-muted-foreground truncate">

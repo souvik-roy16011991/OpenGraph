@@ -106,10 +106,7 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
         {active ? (
           <>
             <span className="block text-sm font-medium truncate">{active.name}</span>
-            <span className="block text-[10px] text-muted-foreground font-mono truncate">
-              k{active.file_counts.knowledge}/t{active.file_counts.tool}
-              {active.stats?.total_nodes !== undefined ? ` · ${active.stats.total_nodes}n` : ""}
-            </span>
+
           </>
         ) : (
           <span className="block text-sm text-muted-foreground">Select workspace…</span>
@@ -147,9 +144,7 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
                 <span className="flex items-center gap-2">
                   {w.id === activeId && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
                   <span className="truncate flex-1">{w.name}</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    k{w.file_counts.knowledge}/t{w.file_counts.tool}
-                  </span>
+
                 </span>
               </button>
             ))
@@ -183,28 +178,7 @@ function StatusPill() {
   return <Badge variant="destructive">{status.message}</Badge>;
 }
 
-function BackendBadges() {
-  const activeWs = useWorkspaceStore((s) => s.activeId);
-  const { data } = useQuery({
-    queryKey: ["stats-backends", activeWs],
-    queryFn: api.stats,
-    enabled: Boolean(activeWs),
-    refetchInterval: 15_000,
-  });
-  const b = data?.backends;
-  if (!b) return null;
-  const style = (val?: string) => {
-    if (!val) return "outline" as const;
-    if (val === "memgraph" || val === "qdrant" || val === "neo4j" || val === "pinecone") return "secondary" as const;
-    return "outline" as const;
-  };
-  return (
-    <div className="hidden md:flex items-center gap-1">
-      <Badge variant={style(b.graph)} className="text-[10px] font-mono">graph: {b.graph}</Badge>
-      <Badge variant={style(b.vectors)} className="text-[10px] font-mono">vec: {b.vectors}</Badge>
-    </div>
-  );
-}
+
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -352,7 +326,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-sm font-medium truncate">{headerLabel}</span>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-            <BackendBadges />
+
             <StatusPill />
             <UserMenu />
             <ThemeToggle />

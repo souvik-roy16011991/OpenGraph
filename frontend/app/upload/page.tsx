@@ -4,7 +4,8 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowRight, UploadCloud, Trash2, FileJson, Briefcase, AlertTriangle } from "lucide-react";
+import { ArrowRight, UploadCloud, Trash2, FileText, Briefcase, AlertTriangle } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +76,7 @@ export default function UploadPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Upload knowledge bases</h1>
           <p className="text-muted-foreground text-sm">
-            Drop one or more JSONs per category. All files for this workspace are merged into a single
+            Drop one or more files per category. All files for this workspace are merged into a single
             graph at build time.
           </p>
         </div>
@@ -105,7 +106,6 @@ export default function UploadPage() {
             <UploadCloud className="h-5 w-5" /> Add new files
           </CardTitle>
           <CardDescription>
-            Each file must be an object with a top-level <code className="font-mono text-xs">chapters: [...]</code> array.
             Duplicates (same SHA-256 within this workspace) are silently skipped.
           </CardDescription>
         </CardHeader>
@@ -132,9 +132,9 @@ export default function UploadPage() {
           {pendingValid === 0
             ? "Drop at least one file to enable upload."
             : <>
-                <AlertTriangle className="h-3 w-3 text-amber-500" />
-                {pendingValid} file{pendingValid === 1 ? "" : "s"} staged to upload into this workspace.
-              </>}
+              <AlertTriangle className="h-3 w-3 text-amber-500" />
+              {pendingValid} file{pendingValid === 1 ? "" : "s"} staged to upload into this workspace.
+            </>}
         </p>
         <div className="flex gap-2">
           <Button
@@ -181,7 +181,8 @@ function FileList({
               key={f.id}
               className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm"
             >
-              <FileJson className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+
               <div className="flex-1 min-w-0">
                 <p className="truncate font-medium">{f.filename}</p>
                 <p className="text-[10px] text-muted-foreground">
