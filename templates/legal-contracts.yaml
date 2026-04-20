@@ -1,0 +1,17 @@
+slug: legal-contracts
+name: Legal & Contracts
+description: >
+  Contract templates, clause libraries, review checklists and negotiation
+  playbooks — routed through CLM and e-sign platforms.
+category: legal
+icon: Scale
+domain:
+  domain_name: Legal Contracts
+  domain_display_name: Legal & Contracts
+  organization_name: Legal Team
+  knowledge_focus_examples: |
+    clause standards, contract templates, redline guidelines, regulatory
+    obligations, negotiation playbooks
+  tool_focus_examples: |
+    contract lifecycle management, e-signature tools, data-room platforms,
+    compliance tracking systems

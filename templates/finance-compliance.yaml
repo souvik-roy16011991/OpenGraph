@@ -1,0 +1,17 @@
+slug: finance-compliance
+name: Finance & Compliance
+description: >
+  Controls, audit procedures, KYC / AML flows and tax guidance — mapped to
+  accounting, audit and GRC tooling.
+category: finance
+icon: LineChart
+domain:
+  domain_name: Finance Compliance
+  domain_display_name: Finance & Compliance
+  organization_name: Finance Team
+  knowledge_focus_examples: |
+    financial controls, audit procedures, KYC / AML workflows, tax guidance,
+    approval matrices, regulatory reporting
+  tool_focus_examples: |
+    accounting platforms, audit tooling, GRC systems, fraud detection
+    services, reporting warehouses

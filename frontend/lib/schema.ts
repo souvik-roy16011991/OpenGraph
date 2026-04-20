@@ -278,6 +278,28 @@ export interface SearchResponse {
   results: Array<Record<string, unknown> & { node_id: string; heading: string; search_score: number }>;
 }
 
+// ---------- Templates ----------
+export interface KBTemplate {
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  domain: {
+    domain_name: string;
+    domain_display_name: string;
+    organization_name: string;
+    knowledge_focus_examples: string;
+    tool_focus_examples: string;
+  };
+}
+export interface InstantiateTemplateResponse {
+  id: string;
+  name: string;
+  description: string | null;
+  template_slug: string;
+}
+
 // ---------- LLM selection ----------
 export interface LLMModel {
   id: string;

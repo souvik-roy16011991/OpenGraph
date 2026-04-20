@@ -1,0 +1,17 @@
+slug: it-support
+name: IT Support & Ticketing
+description: >
+  Internal help-desk knowledge base — device issues, access requests, incident
+  runbooks — mapped to ServiceNow / Jira / Freshservice tooling.
+category: operations
+icon: Wrench
+domain:
+  domain_name: IT Support
+  domain_display_name: IT Support
+  organization_name: IT Operations
+  knowledge_focus_examples: |
+    troubleshooting steps, known incidents, service-level agreements,
+    runbooks, escalation paths
+  tool_focus_examples: |
+    ticketing platforms, endpoint management, SSO providers, monitoring
+    dashboards, incident response tooling

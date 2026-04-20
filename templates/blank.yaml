@@ -1,0 +1,15 @@
+slug: blank
+name: Blank workspace
+description: >
+  Start empty — bring your own knowledge + tool JSONs and fill the domain
+  profile yourself. Choose this when none of the other templates match.
+category: general
+icon: FilePlus
+domain:
+  domain_name: Custom Domain
+  domain_display_name: Custom Domain
+  organization_name: Your Organization
+  knowledge_focus_examples: |
+    describe what your knowledge KB covers — processes, policies, playbooks
+  tool_focus_examples: |
+    describe what your tool KB covers — systems, platforms, integrations

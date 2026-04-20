@@ -439,6 +439,7 @@ from src.api.viz_routes import router as viz_router              # noqa: E402
 from src.api.history_routes import router as history_router      # noqa: E402
 from src.api.workspace_routes import router as workspace_router  # noqa: E402
 from src.api.llm_routes import router as llm_router              # noqa: E402
+from src.api.template_routes import router as template_router    # noqa: E402
 
 router.include_router(workspace_router, tags=["workspace"])
 router.include_router(upload_router, tags=["kb"])
@@ -447,3 +448,4 @@ router.include_router(build_router, tags=["build"])
 router.include_router(viz_router, tags=["graph"])
 router.include_router(history_router, tags=["history"])
 router.include_router(llm_router, tags=["llm"])
+router.include_router(template_router, tags=["templates"])

@@ -1,0 +1,17 @@
+slug: product-docs
+name: Product Documentation
+description: >
+  Customer-facing product guides, API references and release notes — paired
+  with documentation platforms and analytics.
+category: engineering
+icon: BookOpen
+domain:
+  domain_name: Product Documentation
+  domain_display_name: Product Docs
+  organization_name: Documentation Team
+  knowledge_focus_examples: |
+    feature walkthroughs, API references, release notes, troubleshooting
+    guides, best-practice playbooks
+  tool_focus_examples: |
+    documentation platforms, API explorers, changelog tooling, analytics
+    dashboards, feedback collection services

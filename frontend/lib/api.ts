@@ -11,6 +11,8 @@ import type {
   GraphConfigPayload,
   GraphStats,
   GraphVizPayload,
+  InstantiateTemplateResponse,
+  KBTemplate,
   LLMModelsResponse,
   NodeDetail,
   PutGraphConfigResponse,
@@ -134,6 +136,27 @@ async function json<T>(path: string, method: "POST" | "PUT" | "DELETE" | "PATCH"
   return handle<T>(res);
 }
 
+/** POST/GET variant that overrides X-Workspace-Id — used by the standalone
+ *  chat page where the active chat workspace is independent of the sidebar's.
+ */
+async function jsonWithWorkspace<T>(
+  path: string,
+  method: "POST" | "PUT" | "DELETE" | "PATCH",
+  body: unknown,
+  workspaceIdOverride: string,
+): Promise<T> {
+  const base = await withHeaders({ "Content-Type": "application/json" });
+  const h = new Headers(base);
+  h.set("X-Workspace-Id", workspaceIdOverride);
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: h,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: "no-store",
+  });
+  return handle<T>(res);
+}
+
 export const api = {
   // status
   health: () => get<{ status: string; service: string }>("/health"),
@@ -184,6 +207,13 @@ export const api = {
 
   // agent
   query: (r: QueryRequest) => json<QueryResponse>("/api/v1/query", "POST", r),
+
+  // Templates
+  listTemplates: (opts?: { q?: string; category?: string }) =>
+    get<{ templates: KBTemplate[] }>("/api/v1/templates", opts),
+  getTemplate: (slug: string) => get<KBTemplate>(`/api/v1/templates/${slug}`),
+  instantiateTemplate: (slug: string, body: { name?: string; description?: string } = {}) =>
+    json<InstantiateTemplateResponse>(`/api/v1/templates/${slug}/instantiate`, "POST", body),
 
   // LLM selection
   listModels: (refresh = false) =>

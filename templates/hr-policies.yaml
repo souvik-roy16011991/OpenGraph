@@ -1,0 +1,17 @@
+slug: hr-policies
+name: HR Policies & People Ops
+description: >
+  Employee handbook, benefits, leave, onboarding and offboarding flows —
+  linked to HRIS / payroll / performance tooling.
+category: people
+icon: Users
+domain:
+  domain_name: HR Policies
+  domain_display_name: People Operations
+  organization_name: People Team
+  knowledge_focus_examples: |
+    employee handbook sections, leave policies, code of conduct,
+    benefits eligibility, onboarding / offboarding steps
+  tool_focus_examples: |
+    HRIS platforms, payroll systems, performance management tools,
+    benefits portals, learning management systems

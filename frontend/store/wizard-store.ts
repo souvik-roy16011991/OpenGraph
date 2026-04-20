@@ -3,7 +3,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type WizardStep = "upload" | "domain" | "graph-config" | "build" | "explore" | "query";
+// Chat ("query") is no longer part of the build wizard — it lives as a
+// standalone Playground route and has its own workspace selector. The union
+// here is only the *build* steps that gate each other.
+export type WizardStep = "upload" | "domain" | "graph-config" | "build" | "explore";
 
 interface WizardState {
   completed: Record<WizardStep, boolean>;
@@ -21,7 +24,6 @@ const initial: Record<WizardStep, boolean> = {
   "graph-config": false,
   build: false,
   explore: false,
-  query: false,
 };
 
 export const useWizardStore = create<WizardState>()(
