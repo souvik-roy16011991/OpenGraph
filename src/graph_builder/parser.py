@@ -34,8 +34,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Generator, Iterator, Union
 
-from src.config import USE_BLOB_STORAGE
-
 # A KB source can be either a local Path (legacy/CLI mode) or an in-memory
 # ``(filename, bytes)`` tuple carrying raw JSON fetched from Vercel Blob.
 KBSourceInput = Union[Path, tuple[str, bytes]]

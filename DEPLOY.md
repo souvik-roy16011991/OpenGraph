@@ -1,12 +1,15 @@
 # Deploying to Render
 
 The repo ships with a [`render.yaml`](./render.yaml) Blueprint that provisions
-**two services** + one persistent disk:
+**two stateless services**:
 
-| Service        | Purpose                                    | Port  | Disk        |
-| -------------- | ------------------------------------------ | ----- | ----------- |
-| `kb-backend`   | FastAPI — all API routes + build workers   | auto  | `/var/data` |
-| `kb-frontend`  | Next.js 15 production server               | auto  | —           |
+| Service        | Purpose                                    | Port  |
+| -------------- | ------------------------------------------ | ----- |
+| `kb-backend`   | FastAPI — all API routes + build workers   | auto  |
+| `kb-frontend`  | Next.js 15 production server               | auto  |
+
+All runtime state lives in the managed stores below — neither container
+touches a persistent disk.
 
 The frontend builds with `NEXT_PUBLIC_API_BASE` already set to the backend's
 Render host, so the browser calls the backend directly (no proxy hop).
@@ -22,9 +25,9 @@ Render only runs your code. You still need the managed data stores:
 | **Neon** (Postgres)      | users, workspaces, build jobs, chat history, configs | neon.tech |
 | **Memgraph Cloud**       | knowledge graph nodes + edges                    | memgraph.com/cloud |
 | **Qdrant Cloud**         | embedding vectors (one collection per workspace) | qdrant.tech |
-| **Vercel Blob**          | durable copies of uploaded KB JSONs              | vercel.com/dashboard/stores |
+| **Vercel Blob**          | uploaded KB JSONs (authoritative file store)     | vercel.com/dashboard/stores |
 | **OpenRouter**           | LLM + embedding API                              | openrouter.ai |
-| **Upstash Redis**  *(Phase C)* | JWKS + token cache for auth                | upstash.com |
+| **Upstash Redis**        | cross-link + session cache                       | upstash.com |
 
 Grab the connection string / API key from each one — you'll paste them into
 Render's secret fields in step 3.
@@ -145,7 +148,6 @@ Before pushing, reproduce the prod setup locally:
 # From the repo root
 docker build -t kb-backend .
 docker run --rm -p 8000:8000 \
-  -e DATA_DIR=/var/data \
   -e OPENROUTER_API_KEY=... \
   -e MEMGRAPH_URI=bolt+ssc://... \
   -e MEMGRAPH_USERNAME=... \
@@ -154,7 +156,8 @@ docker run --rm -p 8000:8000 \
   -e QDRANT_API_KEY=... \
   -e DATABASE_URL=postgresql://... \
   -e BLOB_READ_WRITE_TOKEN=... \
-  -v $(pwd)/.data-local:/var/data \
+  -e UPSTASH_REDIS_REST_URL=https://... \
+  -e UPSTASH_REDIS_REST_TOKEN=... \
   kb-backend
 
 # Frontend in another terminal

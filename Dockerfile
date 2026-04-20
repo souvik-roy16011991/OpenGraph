@@ -18,12 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Multi-tenant runtime: graphs are built per-workspace via POST /api/v1/build.
-# Per-workspace artifacts (FAISS + NetworkX pickle + node_registry) land
-# under $DATA_DIR, which we default to a path intended to be backed by a
-# Render Persistent Disk mounted at /var/data. Subfolders are auto-created
-# by workspace_data_dir().
-ENV DATA_DIR=/var/data
-RUN mkdir -p /var/data
+# All per-workspace artifacts live in cloud stores (Memgraph, Qdrant, Vercel
+# Blob, Neon, Upstash) — the container filesystem is stateless.
 
 # Render assigns PORT; fall back to 8000 for local docker run.
 ENV PORT=8000

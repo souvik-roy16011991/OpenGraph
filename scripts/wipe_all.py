@@ -1,7 +1,7 @@
 """
 One-shot wipe: clear every backing store so we can start clean with the
-multi-workspace schema. Runs Memgraph, Qdrant, Vercel Blob, local /data,
-and Neon in sequence. Idempotent — safe to re-run.
+multi-workspace schema. Runs Memgraph, Qdrant, Vercel Blob, and Neon in
+sequence. Idempotent — safe to re-run.
 
 Usage:  python3 scripts/wipe_all.py
 """
@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -18,22 +16,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("wipe")
-
-
-def wipe_local_data() -> None:
-    from src.config import DATA_DIR
-    if not Path(DATA_DIR).exists():
-        logger.info("Local /data absent; nothing to wipe.")
-        return
-    for p in Path(DATA_DIR).iterdir():
-        if p.is_dir():
-            shutil.rmtree(p)
-        else:
-            try:
-                p.unlink()
-            except OSError:
-                pass
-    logger.info("Wiped local /data contents.")
 
 
 def wipe_memgraph() -> None:
@@ -117,7 +99,6 @@ async def wipe_neon() -> None:
 
 
 async def main() -> None:
-    wipe_local_data()
     wipe_memgraph()
     wipe_qdrant()
     wipe_blob()

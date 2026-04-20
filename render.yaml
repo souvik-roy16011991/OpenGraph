@@ -2,9 +2,9 @@
 # Render Blueprint
 # ---------------------------------------------------------------------------
 # Two services:
-#   1. kb-backend   — FastAPI (uvicorn) on a Docker runtime with a persistent
-#                     Render Disk mounted at /var/data for per-workspace
-#                     NetworkX pickles + FAISS indexes.
+#   1. kb-backend   — FastAPI (uvicorn) on a Docker runtime. Stateless: all
+#                     per-workspace state lives in Memgraph, Qdrant, Vercel
+#                     Blob, Neon, and Upstash.
 #   2. kb-frontend  — Next.js production server on a Docker runtime. The
 #                     NEXT_PUBLIC_API_BASE build-arg freezes the backend URL
 #                     into the client bundle.
@@ -16,7 +16,7 @@
 #   - MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD
 #   - DATABASE_URL  (Neon pooled connection string)
 #   - BLOB_READ_WRITE_TOKEN
-#   - UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN  (Phase C only)
+#   - UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 # ---------------------------------------------------------------------------
 
 services:
@@ -32,17 +32,10 @@ services:
     autoDeploy: true
     plan: starter           # Free tier is 512 MB RAM; starter is 1 GB — needed
                             # when faiss + sentence-transformers are loaded.
-    disk:
-      name: kb-backend-data
-      mountPath: /var/data
-      sizeGB: 10            # Per-workspace artifacts (pickle + faiss) are small;
-                            # 10 GB is a comfortable ceiling for dozens of workspaces.
+    # No Render Disk: the container is stateless. All state lives in cloud
+    # stores (Memgraph, Qdrant, Vercel Blob, Neon, Upstash).
 
     envVars:
-      # --- Storage roots ------------------------------------------------
-      - key: DATA_DIR
-        value: /var/data     # Matches the mounted Render Disk.
-
       # --- OpenRouter (LLM + remote embeddings) -------------------------
       - key: OPENROUTER_API_KEY
         sync: false
@@ -90,7 +83,7 @@ services:
       - key: BLOB_STORE_PATH
         value: v0-it-support-automation-blob/kb-config
 
-      # --- Upstash Redis (Phase C: JWKS + token cache) ------------------
+      # --- Upstash Redis (cross-link + session cache) -------------------
       - key: UPSTASH_REDIS_REST_URL
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN

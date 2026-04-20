@@ -13,8 +13,6 @@ Embedding strategy:
 from __future__ import annotations
 
 import logging
-import pickle
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -23,7 +21,6 @@ from src.config import (
     EMBEDDING_DIM,
     EMBEDDING_DIMENSIONS,
     EMBEDDING_MODEL,
-    FAISS_INDEX_PATH,
     MAX_RELATED_EDGES_PER_NODE,
     OPENROUTER_API_KEY,
     OPENROUTER_BASE_URL,
@@ -251,49 +248,6 @@ class EmbeddingPipeline:
         return index
 
     # ------------------------------------------------------------------
-    def save_faiss_index(self, index: Any, path: Path | None = None) -> None:
-        import faiss
-        path = Path(path or FAISS_INDEX_PATH)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        faiss.write_index(index, str(path))
-
-        # Save the ordered node_ids list alongside
-        ids_path = path.with_suffix(".ids.pkl")
-        with open(ids_path, "wb") as f:
-            pickle.dump(self._node_ids, f)
-
-        # Save model type so semantic_search can reload the right model
-        if isinstance(self._model, _TFIDFEmbedder):
-            model_type = "tfidf"
-        elif isinstance(self._model, _OpenRouterEmbedder):
-            model_type = "openrouter"
-        else:
-            model_type = "sentence_transformers"
-        model_type_path = path.with_suffix(".model_type.txt")
-        model_type_path.write_text(model_type)
-
-        # Persist TF-IDF pipeline for reuse
-        if isinstance(self._model, _TFIDFEmbedder):
-            tfidf_path = path.with_suffix(".tfidf.pkl")
-            with open(tfidf_path, "wb") as f:
-                pickle.dump(self._model, f, protocol=pickle.HIGHEST_PROTOCOL)
-            logger.info(f"TF-IDF model saved to {tfidf_path}")
-
-        logger.info(f"FAISS index saved to {path}")
-
-    # ------------------------------------------------------------------
-    @staticmethod
-    def load_faiss_index(path: Path | None = None) -> tuple[Any, list[str]]:
-        """Load a previously saved FAISS index + node_ids mapping."""
-        import faiss
-        p = Path(path or FAISS_INDEX_PATH)
-        index = faiss.read_index(str(p))
-        ids_path = p.with_suffix(".ids.pkl")
-        with open(ids_path, "rb") as f:
-            node_ids: list[str] = pickle.load(f)
-        return index, node_ids
-
-    # ------------------------------------------------------------------
     def upsert_to_pinecone(self, embeddings: dict[str, list[float]]) -> Any:
         """
         Upsert all node embeddings into Pinecone.
@@ -485,61 +439,3 @@ def run_embedding_pipeline(
     index = pipeline.build_faiss_index(embeddings)
     related_edges = pipeline.build_related_edges(embeddings)
     return embeddings, related_edges, index
-
-
-def semantic_search(
-    query: str,
-    index: Any,
-    node_ids: list[str],
-    nodes: dict[str, BaseNode],
-    top_k: int = 10,
-) -> list[tuple[str, float]]:
-    """
-    Perform semantic search against the FAISS index.
-    Returns list of (node_id, score) sorted by descending score.
-
-    Loads the same model used at build time (sentence-transformers or TF-IDF fallback).
-    """
-    import pickle
-    import faiss
-
-    ids_path = Path(FAISS_INDEX_PATH).with_suffix(".ids.pkl")
-    model_type_path = Path(FAISS_INDEX_PATH).with_suffix(".model_type.txt")
-
-    # Determine which model was used
-    model_type = "sentence_transformers"
-    if model_type_path.exists():
-        model_type = model_type_path.read_text().strip()
-
-    if model_type == "tfidf":
-        tfidf_path = Path(FAISS_INDEX_PATH).with_suffix(".tfidf.pkl")
-        if tfidf_path.exists():
-            with open(tfidf_path, "rb") as f:
-                model = pickle.load(f)
-        else:
-            model = _TFIDFEmbedder()
-            all_texts = [_node_text(n) for n in nodes.values()]
-            model.fit(all_texts)
-    elif model_type == "openrouter":
-        model = _OpenRouterEmbedder(
-            EMBEDDING_MODEL, OPENROUTER_API_KEY, OPENROUTER_BASE_URL, EMBEDDING_DIMENSIONS
-        )
-    else:
-        try:
-            from sentence_transformers import SentenceTransformer
-            model = SentenceTransformer(EMBEDDING_MODEL)
-        except Exception:
-            model = _TFIDFEmbedder()
-            all_texts = [_node_text(n) for n in nodes.values()]
-            model.fit(all_texts)
-
-    vec = model.encode([query], normalize_embeddings=True).astype(np.float32)
-    distances, indices = index.search(vec, top_k)
-
-    results: list[tuple[str, float]] = []
-    for dist, pos in zip(distances[0], indices[0]):
-        if pos < 0:
-            continue
-        results.append((node_ids[pos], float(dist)))
-
-    return results
