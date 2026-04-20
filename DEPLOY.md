@@ -6,8 +6,8 @@ pods. All runtime state lives in managed cloud stores.
 
 | Service        | Purpose                                   | Port |
 | -------------- | ----------------------------------------- | ---- |
-| `kb-backend`   | FastAPI — all API routes + build workers  | auto |
-| `kb-frontend`  | Next.js 15 production server              | auto |
+| `opengraph-backend`   | FastAPI — all API routes + build workers  | auto |
+| `opengraph-frontend`  | Next.js 15 production server              | auto |
 
 The frontend bakes `NEXT_PUBLIC_API_BASE` with the backend's Render host
 at build time, so the browser calls the backend directly (no proxy hop).
@@ -60,12 +60,12 @@ git push origin main
 3. Render parses `render.yaml` and shows the two planned services.
 4. Click **Apply**.
 
-The first deploy will **fail on `kb-backend`** because the `sync: false`
+The first deploy will **fail on `opengraph-backend`** because the `sync: false`
 secrets aren't set yet. Fill them in next.
 
-### Required secrets on `kb-backend`
+### Required secrets on `opengraph-backend`
 
-Open `kb-backend` → **Environment** tab → add:
+Open `opengraph-backend` → **Environment** tab → add:
 
 ```ini
 # Core app — required
@@ -91,7 +91,7 @@ PASSWORD_MIN_LENGTH       = 8
 Non-secrets (model names, `MAX_WORKSPACES_PER_USER`, CORS target, etc.)
 are pre-populated by `render.yaml` and need no editing.
 
-### Required secrets on `kb-frontend`
+### Required secrets on `opengraph-frontend`
 
 None. The browser stores the JWT in localStorage + a non-HttpOnly
 `auth_token` cookie after signup/login — there are no third-party auth
@@ -100,7 +100,7 @@ auto-wired via `fromService` and do not need manual entry.
 
 ### Trigger redeploy
 
-`kb-backend` → **Manual Deploy** → Deploy latest commit. Once
+`opengraph-backend` → **Manual Deploy** → Deploy latest commit. Once
 `/health` returns 200, the frontend build automatically picks up the
 backend host and deploys.
 
@@ -147,12 +147,12 @@ open https://<fe>.onrender.com/
 
 ### 5.1 Rotate `JWT_SECRET`
 
-Set a fresh 48-byte secret and redeploy `kb-backend`. All existing JWTs
+Set a fresh 48-byte secret and redeploy `opengraph-backend`. All existing JWTs
 become invalid; every browser bounces to /sign-in on its next request.
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(48))"
-# Paste into Render → kb-backend → Environment → JWT_SECRET → redeploy.
+# Paste into Render → opengraph-backend → Environment → JWT_SECRET → redeploy.
 ```
 
 ### 5.2 Pre-flight: sanity-check the `workspaces.domain_config` column
@@ -204,7 +204,7 @@ Reproduce the prod setup before pushing:
 
 ```bash
 # Backend
-docker build -t kb-backend .
+docker build -t opengraph-backend .
 docker run --rm -p 8000:8000 \
   -e OPENROUTER_API_KEY=... \
   -e DATABASE_URL=postgresql://... \
@@ -214,14 +214,14 @@ docker run --rm -p 8000:8000 \
   -e BLOB_READ_WRITE_TOKEN=... \
   -e UPSTASH_REDIS_REST_URL=... -e UPSTASH_REDIS_REST_TOKEN=... \
   -e JWT_SECRET=... \
-  kb-backend
+  opengraph-backend
 
 # Frontend — only NEXT_PUBLIC_API_BASE needs to be baked at build time
 cd frontend
-docker build -t kb-frontend \
+docker build -t opengraph-frontend \
   --build-arg NEXT_PUBLIC_API_BASE=http://host.docker.internal:8000 \
   .
-docker run --rm -p 3000:3000 kb-frontend
+docker run --rm -p 3000:3000 opengraph-frontend
 ```
 
 On macOS `host.docker.internal` lets the frontend container reach the
