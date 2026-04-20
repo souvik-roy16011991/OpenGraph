@@ -255,9 +255,11 @@ def _run_build(job: BuildJob) -> None:
         from src.workspace_context import set_current_workspace
         set_current_workspace(job.workspace_id)
 
-        # Collect the list of active knowledge + tool files from Neon.
-        knowledge_paths, tool_paths = _collect_workspace_files(job.workspace_id)
-        if not knowledge_paths and not tool_paths:
+        # Collect the list of active knowledge + tool files from Neon and
+        # download their bytes from Vercel Blob. Nothing is read from local
+        # disk — the Blob is the authoritative store.
+        knowledge_sources, tool_sources = _collect_workspace_sources(job.workspace_id)
+        if not knowledge_sources and not tool_sources:
             raise RuntimeError(
                 f"Workspace {job.workspace_id} has no uploaded files. "
                 "Upload at least one knowledge or tool JSON before building."
@@ -268,8 +270,8 @@ def _run_build(job: BuildJob) -> None:
             use_llm_cross_links=not job.skip_llm_cross_links,
             skip_embeddings=job.skip_embeddings,
             workspace_id=job.workspace_id,
-            knowledge_paths=knowledge_paths,
-            tool_paths=tool_paths,
+            knowledge_sources=knowledge_sources,
+            tool_sources=tool_sources,
         )
 
         # Cache the live kg for this workspace so the API can serve queries.
@@ -307,18 +309,21 @@ def _run_build(job: BuildJob) -> None:
             _running_by_ws.pop(job.workspace_id, None)
 
 
-def _collect_workspace_files(workspace_id: str):
-    """Fetch active file local paths for a workspace, partitioned by kb_source.
+def _collect_workspace_sources(workspace_id: str):
+    """Fetch active KB files for a workspace from Vercel Blob.
 
-    Runs from the build THREAD, so we must schedule the async SQLAlchemy work
-    onto the main event loop (where the async engine lives) via
-    ``run_coroutine_threadsafe`` and block until it completes. Using
+    Returns two lists of ``(filename, bytes)`` tuples, partitioned by
+    kb_source. Every file row must carry a ``blob_url`` — rows without one
+    are skipped with a warning since local disk is no longer an option.
+
+    Runs from the build THREAD, so async SQLAlchemy work is scheduled onto
+    the main event loop via ``run_coroutine_threadsafe`` (using
     ``asyncio.run`` here would spin up a new loop whose Futures don't match
-    the engine's loop and you'd see "Future attached to a different loop".
+    the engine's loop).
     """
     import asyncio
-    from pathlib import Path
     from sqlalchemy import select
+    from src.infra.blob_loader import download_bytes_by_url
     from src.infra.db import get_main_loop, get_session
     from src.infra.db_models import WorkspaceFile
 
@@ -339,19 +344,31 @@ def _collect_workspace_files(workspace_id: str):
         )
     fut = asyncio.run_coroutine_threadsafe(_fetch(), loop)
     rows = fut.result(timeout=30)
-    knowledge_paths: list[Path] = []
-    tool_paths: list[Path] = []
+
+    knowledge_sources: list[tuple[str, bytes]] = []
+    tool_sources: list[tuple[str, bytes]] = []
     for r in rows:
-        if not r.local_path:
+        if not r.blob_url:
+            logger.warning(
+                "WorkspaceFile id=%s (%s/%s) has no blob_url; skipping.",
+                r.id, r.kb_source, r.filename,
+            )
             continue
-        p = Path(r.local_path)
-        if not p.exists():
-            continue
+        try:
+            data = download_bytes_by_url(r.blob_url)
+        except Exception as exc:
+            logger.error(
+                "Blob download failed for ws=%s file=%s (%s): %s",
+                workspace_id, r.filename, r.blob_url, exc,
+            )
+            raise RuntimeError(
+                f"Failed to fetch KB file {r.filename!r} from Vercel Blob: {exc}"
+            )
         if r.kb_source == "knowledge":
-            knowledge_paths.append(p)
+            knowledge_sources.append((r.filename, data))
         elif r.kb_source == "tool":
-            tool_paths.append(p)
-    return knowledge_paths, tool_paths
+            tool_sources.append((r.filename, data))
+    return knowledge_sources, tool_sources
 
 
 def start_build(

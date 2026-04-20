@@ -1,32 +1,29 @@
 """
-Graph builder orchestrator.
+Graph builder orchestrator — cloud-only persistence.
 
 Pipeline:
-  1. Parse both KB JSON files -> ParsedKB objects
+  1. Parse KB JSON sources (bytes from Vercel Blob) -> ParsedKB objects
   2. Extract nodes -> dict[node_id, BaseNode]
   3. Build structural + cross-KB edges
-  4. Generate embeddings + vector store (Pinecone or FAISS) + RELATED_TO edges
-  5. Persist graph: Neo4j (cloud) or NetworkX pickle (local)
+  4. Generate embeddings + vector store (Qdrant or Pinecone) + RELATED_TO edges
+  5. Persist graph: Memgraph (cloud) or Neo4j (cloud)
 
 Also provides KnowledgeGraph – the runtime graph object loaded by the agent.
-At runtime, each method checks self._neo4j first; if present it delegates to
-the Neo4j store, otherwise it falls back to the local NetworkX graph.
+The in-memory NetworkX DiGraph is used as a fast runtime cache only — it is
+never persisted to disk. On cold start, ``KnowledgeGraph.load()`` rehydrates
+the NetworkX view directly from the Memgraph (or Neo4j) workspace; no pickle
+files touch the local filesystem.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import pickle
-from pathlib import Path
 from typing import Any
 
 import networkx as nx
 
 from src.config import (
     EMBEDDING_DIM,
-    FAISS_INDEX_PATH,
-    GRAPH_PICKLE_PATH,
     MEMGRAPH_DATABASE,
     MEMGRAPH_PASSWORD,
     MEMGRAPH_URI,
@@ -35,7 +32,6 @@ from src.config import (
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
-    NODE_REGISTRY_PATH,
     PINECONE_API_KEY,
     PINECONE_INDEX_NAME,
     PINECONE_NAMESPACE,
@@ -48,24 +44,18 @@ from src.config import (
     USE_PINECONE,
     USE_QDRANT,
 )
-from src.config import workspace_paths
 from src.graph_config import get_graph_config
 from src.kb_config import get_active_kb_config
 from src.graph_builder.edges import build_edges
-from src.graph_builder.embeddings import EmbeddingPipeline, run_embedding_pipeline, semantic_search
+from src.graph_builder.embeddings import run_embedding_pipeline
 from src.graph_builder.extractor import extract_all_nodes
-from src.graph_builder.parser import parse_kb_file, parse_kb_files
+from src.graph_builder.parser import KBSourceInput, parse_kb_files
 from src.workspace_context import get_current_workspace
 from src.models.nodes import (
     BaseNode,
-    ChapterNode,
     Edge,
     EdgeType,
-    GlossaryNode,
-    KBSource,
     NodeType,
-    SectionNode,
-    TableNode,
     ToolNode,
     node_from_dict,
 )
@@ -73,53 +63,42 @@ from src.models.nodes import (
 logger = logging.getLogger(__name__)
 
 
-def _load_embed_model(faiss_path: Path, nodes: dict) -> Any:
+def _build_query_embedder(nodes: dict) -> Any:
     """
-    Load the embedding model that was used at build time.
-    Checks the model_type marker file to decide which model to load.
+    Build a fresh query-time embedder for semantic_search when we have a
+    remote vector store (Qdrant/Pinecone). No persisted model state is read
+    from disk — the model is reconstructed in-memory from the configured
+    EMBEDDING_MODEL. For TF-IDF (hash-based, deterministic) this is a no-op
+    rebuild; for remote OpenRouter / sentence-transformers it's a network /
+    local-cache init.
     """
-    from src.graph_builder.embeddings import _TFIDFEmbedder, _node_text
+    from src.graph_builder.embeddings import _TFIDFEmbedder, _OpenRouterEmbedder, _node_text
+    from src.config import (
+        EMBEDDING_DIMENSIONS,
+        EMBEDDING_MODEL,
+        OPENROUTER_API_KEY,
+        OPENROUTER_BASE_URL,
+    )
+    import os
 
-    model_type_path = faiss_path.with_suffix(".model_type.txt")
-    model_type = "sentence_transformers"
-    if model_type_path.exists():
-        model_type = model_type_path.read_text().strip()
-
-    if model_type == "tfidf":
-        tfidf_path = faiss_path.with_suffix(".tfidf.pkl")
-        if tfidf_path.exists():
-            logger.info("Loading saved TF-IDF embedding model…")
-            with open(tfidf_path, "rb") as f:
-                import pickle as _pkl
-                return _pkl.load(f)
-        else:
-            logger.info("Reconstructing TF-IDF embedding model from nodes…")
-            model = _TFIDFEmbedder()
-            texts = [_node_text(n) for n in nodes.values()]
-            model.fit(texts)
-            return model
-    elif model_type == "openrouter":
-        from src.graph_builder.embeddings import _OpenRouterEmbedder
-        from src.config import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+    force_tfidf = os.environ.get("KB_FORCE_TFIDF", "").lower() in ("1", "true", "yes")
+    if force_tfidf:
+        model = _TFIDFEmbedder()
+        model.fit([_node_text(n) for n in nodes.values()])
+        return model
+    if "/" in EMBEDDING_MODEL:
         logger.info(f"Loading OpenRouter embedding model: {EMBEDDING_MODEL}")
         return _OpenRouterEmbedder(
             EMBEDDING_MODEL, OPENROUTER_API_KEY, OPENROUTER_BASE_URL, EMBEDDING_DIMENSIONS
         )
-    else:
-        from src.config import EMBEDDING_MODEL
-        for local_only in (True, False):
-            try:
-                from sentence_transformers import SentenceTransformer
-                logger.info(f"Loading sentence-transformer model (local_files_only={local_only})…")
-                return SentenceTransformer(EMBEDDING_MODEL, local_files_only=local_only)
-            except Exception as exc:
-                if local_only:
-                    logger.debug(f"Local-only load failed: {exc}")
-                    continue
-                logger.warning(f"sentence-transformers failed ({exc}), using TF-IDF fallback")
+    try:
+        from sentence_transformers import SentenceTransformer
+        logger.info(f"Loading sentence-transformer model {EMBEDDING_MODEL}")
+        return SentenceTransformer(EMBEDDING_MODEL)
+    except Exception as exc:
+        logger.warning(f"sentence-transformers failed ({exc}); using TF-IDF fallback.")
         model = _TFIDFEmbedder()
-        texts = [_node_text(n) for n in nodes.values()]
-        model.fit(texts)
+        model.fit([_node_text(n) for n in nodes.values()])
         return model
 
 
@@ -136,8 +115,8 @@ def build_graph(
     use_llm_cross_links: bool = True,
     skip_embeddings: bool = False,
     workspace_id: str | None = None,
-    knowledge_paths: list[Path] | None = None,
-    tool_paths: list[Path] | None = None,
+    knowledge_sources: list[KBSourceInput] | None = None,
+    tool_sources: list[KBSourceInput] | None = None,
 ) -> "KnowledgeGraph":
     """
     Full build pipeline for a workspace. Returns a KnowledgeGraph ready for queries.
@@ -145,11 +124,11 @@ def build_graph(
     Args:
         use_llm_cross_links: Whether to call the LLM for cross-KB IMPLEMENTS edges.
         skip_embeddings: Set True to skip embedding generation (faster during dev).
-        workspace_id: REQUIRED — every artifact (Memgraph nodes, Qdrant collection,
-            local cache, Neon rows) is scoped to this id.
-        knowledge_paths, tool_paths: lists of local JSON files to merge into a
-            single ParsedKB per kb_source. If None, falls back to
-            get_active_kb_config() single-file paths (legacy CLI mode).
+        workspace_id: REQUIRED — every artifact (Memgraph nodes, Qdrant
+            collection, Neon rows) is scoped to this id.
+        knowledge_sources, tool_sources: lists of ``(filename, bytes)`` tuples
+            fetched from Vercel Blob, or Paths for legacy CLI usage. If None,
+            falls back to ``get_active_kb_config()`` single-file paths.
     """
     if workspace_id is None:
         workspace_id = get_current_workspace()
@@ -158,7 +137,6 @@ def build_graph(
             "build_graph requires workspace_id (explicit arg or via workspace_context)."
         )
 
-    paths = workspace_paths(workspace_id)
     qdrant_collection = f"kb-{_short_wid(workspace_id)}"
 
     logger.info("=== KB Knowledge Graph Build Pipeline (ws=%s) ===", workspace_id)
@@ -167,29 +145,29 @@ def build_graph(
     elif USE_NEO4J:
         logger.info("  Graph backend: Neo4j (workspace-scoped)")
     else:
-        logger.info("  Graph backend: NetworkX (local cache only)")
+        logger.info("  Graph backend: NetworkX (in-memory only)")
     if USE_QDRANT:
         logger.info("  Vector backend: Qdrant Cloud — collection %s", qdrant_collection)
     elif USE_PINECONE:
         logger.info("  Vector backend: Pinecone")
     else:
-        logger.info("  Vector backend: FAISS (local)")
+        logger.info("  Vector backend: FAISS (in-memory only)")
 
-    # 1. Parse — multi-file aware
+    # 1. Parse — multi-source aware (bytes-from-Blob or legacy Paths)
     logger.info("Step 1/5 – Parsing KB files…")
-    if knowledge_paths is None or tool_paths is None:
+    if knowledge_sources is None or tool_sources is None:
         cfg = get_active_kb_config()
-        if knowledge_paths is None:
-            knowledge_paths = [cfg.knowledge_kb_path]
-        if tool_paths is None:
-            tool_paths = [cfg.tool_kb_path]
+        if knowledge_sources is None:
+            knowledge_sources = [cfg.knowledge_kb_path]
+        if tool_sources is None:
+            tool_sources = [cfg.tool_kb_path]
 
-    knowledge_kb = parse_kb_files(knowledge_paths, "knowledge")
-    tool_kb = parse_kb_files(tool_paths, "tool")
+    knowledge_kb = parse_kb_files(knowledge_sources, "knowledge")
+    tool_kb = parse_kb_files(tool_sources, "tool")
     logger.info(
-        "  Knowledge KB: %d chapters across %d file(s) | Tool KB: %d chapters across %d file(s)",
-        len(knowledge_kb.chapters), len(knowledge_paths),
-        len(tool_kb.chapters), len(tool_paths),
+        "  Knowledge KB: %d chapters across %d source(s) | Tool KB: %d chapters across %d source(s)",
+        len(knowledge_kb.chapters), len(knowledge_sources),
+        len(tool_kb.chapters), len(tool_sources),
     )
 
     # 2. Extract nodes (stamped with workspace_id so every node carries tenancy)
@@ -221,60 +199,44 @@ def build_graph(
     else:
         logger.info("Step 4/5 – Skipping embeddings (skip_embeddings=True)")
 
-    # 5. Persist graph (per-workspace)
+    # 5. Persist graph (per-workspace) — cloud only; no local pickle/JSON.
     neo4j_store = None
     G: nx.DiGraph | None = None
 
     if USE_MEMGRAPH:
         logger.info("Step 5/5 – Writing graph to Memgraph (ws=%s)…", workspace_id)
-        try:
-            from src.infra.memgraph_store import MemgraphGraphStore
-            neo4j_store = MemgraphGraphStore(
-                MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
-            )
-            neo4j_store.clear_workspace(workspace_id)
-            neo4j_store.bulk_create_nodes_no_apoc(nodes, workspace_id=workspace_id)
-            neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
-            ws_stats = neo4j_store.stats(workspace_id=workspace_id)
-            logger.info(
-                "  Memgraph ws=%s: %d nodes, %d edges",
-                workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"],
-            )
-        except Exception as exc:
-            logger.error(
-                "Memgraph write failed (%s). Continuing with local NetworkX fallback.", exc
-            )
-            neo4j_store = None
-
+        from src.infra.memgraph_store import MemgraphGraphStore
+        neo4j_store = MemgraphGraphStore(
+            MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
+        )
+        neo4j_store.clear_workspace(workspace_id)
+        neo4j_store.bulk_create_nodes_no_apoc(nodes, workspace_id=workspace_id)
+        neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
+        ws_stats = neo4j_store.stats(workspace_id=workspace_id)
+        logger.info(
+            "  Memgraph ws=%s: %d nodes, %d edges",
+            workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"],
+        )
         G = _build_networkx_graph(nodes, edges)
-        logger.info("  NetworkX cache: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
-        _save_graph(G, nodes, workspace_id=workspace_id)
+        logger.info("  NetworkX cache (in-memory): %d nodes, %d edges",
+                    G.number_of_nodes(), G.number_of_edges())
     elif USE_NEO4J:
         logger.info("Step 5/5 – Writing graph to Neo4j (ws=%s)…", workspace_id)
-        try:
-            from src.infra.neo4j_store import Neo4jGraphStore
-            neo4j_store = Neo4jGraphStore(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE)
-            neo4j_store.clear_workspace(workspace_id)
-            neo4j_store.bulk_create_nodes_no_apoc(nodes, workspace_id=workspace_id)
-            neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
-            ws_stats = neo4j_store.stats(workspace_id=workspace_id)
-            logger.info("  Neo4j ws=%s: %d nodes, %d edges",
-                        workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"])
-        except Exception as exc:
-            logger.error(
-                "Neo4j write failed (%s). Continuing with local NetworkX fallback.", exc
-            )
-            neo4j_store = None
-
-        # Always build a local NetworkX graph as a fast runtime cache
+        from src.infra.neo4j_store import Neo4jGraphStore
+        neo4j_store = Neo4jGraphStore(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE)
+        neo4j_store.clear_workspace(workspace_id)
+        neo4j_store.bulk_create_nodes_no_apoc(nodes, workspace_id=workspace_id)
+        neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
+        ws_stats = neo4j_store.stats(workspace_id=workspace_id)
+        logger.info("  Neo4j ws=%s: %d nodes, %d edges",
+                    workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"])
         G = _build_networkx_graph(nodes, edges)
-        logger.info("  NetworkX cache: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
-        _save_graph(G, nodes, workspace_id=workspace_id)
+        logger.info("  NetworkX cache (in-memory): %d nodes, %d edges",
+                    G.number_of_nodes(), G.number_of_edges())
     else:
-        logger.info("Step 5/5 – Populating NetworkX DiGraph (ws=%s)…", workspace_id)
+        logger.info("Step 5/5 – Populating NetworkX DiGraph (in-memory, ws=%s)…", workspace_id)
         G = _build_networkx_graph(nodes, edges)
         logger.info("  Graph: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
-        _save_graph(G, nodes, workspace_id=workspace_id)
 
     kg = KnowledgeGraph(
         G=G,

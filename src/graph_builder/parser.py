@@ -32,9 +32,13 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generator, Iterator
+from typing import Any, Generator, Iterator, Union
 
 from src.config import USE_BLOB_STORAGE
+
+# A KB source can be either a local Path (legacy/CLI mode) or an in-memory
+# ``(filename, bytes)`` tuple carrying raw JSON fetched from Vercel Blob.
+KBSourceInput = Union[Path, tuple[str, bytes]]
 
 
 # ---------------------------------------------------------------------------
@@ -200,29 +204,31 @@ def _extract_chapter_num(heading: str, fallback: int = 0) -> int:
     return fallback
 
 
-def parse_kb_file(path: Path, kb_source: str) -> ParsedKB:
+def parse_kb_file(source: KBSourceInput, kb_source: str) -> ParsedKB:
     """
-    Load and parse a KB JSON file into a ParsedKB object.
+    Load and parse a KB JSON source into a ParsedKB object.
 
     Args:
-        path: Path to the .json file (used as fallback when USE_BLOB_STORAGE is False).
+        source: Either a local Path (legacy/CLI mode) or a ``(filename, bytes)``
+            tuple carrying raw JSON fetched from Vercel Blob.
         kb_source: "knowledge" or "tool" – used for node ID namespacing.
 
-    Local-first: reads the on-disk file under kb-config/{kb_source}/ if present.
-    Falls back to Vercel Blob download only when the local file is missing AND
-    USE_BLOB_STORAGE is True. Uploaded files always land locally first (the
-    /api/v1/kb/upload endpoint writes to disk and mirrors to Blob), so the
-    local path is normally used.
+    Cloud-first: the API pipeline always passes ``(filename, bytes)`` produced
+    by downloading from Vercel Blob, so no local disk read occurs at request
+    time. The Path branch is retained only so the legacy CLI helpers under
+    ``scripts/`` keep working against a seed kb-config folder.
     """
-    if path and Path(path).is_file():
-        with open(path, encoding="utf-8") as fh:
+    if isinstance(source, tuple):
+        _, data = source
+        raw = json.loads(data.decode("utf-8"))
+    elif isinstance(source, (str, Path)) and Path(source).is_file():
+        with open(source, encoding="utf-8") as fh:
             raw = json.load(fh)
-    elif USE_BLOB_STORAGE:
-        from src.infra.blob_loader import download_kb_file
-        raw = download_kb_file(kb_source)
     else:
-        with open(path, encoding="utf-8") as fh:
-            raw = json.load(fh)
+        raise ValueError(
+            f"parse_kb_file: unsupported source {source!r} — pass a Path or "
+            "(filename, bytes) tuple."
+        )
 
     chapters: list[ParsedChapter] = []
     for ch_idx, ch_raw in enumerate(raw.get("chapters", [])):
@@ -253,9 +259,15 @@ def parse_kb_file(path: Path, kb_source: str) -> ParsedKB:
     )
 
 
-def parse_kb_files(paths: list[Path], kb_source: str) -> ParsedKB:
+def _source_name(source: KBSourceInput) -> str:
+    if isinstance(source, tuple):
+        return Path(source[0]).stem
+    return Path(source).stem
+
+
+def parse_kb_files(sources: list[KBSourceInput], kb_source: str) -> ParsedKB:
     """
-    Parse multiple KB JSON files and merge them into a single ParsedKB.
+    Parse multiple KB JSON sources and merge them into a single ParsedKB.
 
     - Chapters are concatenated across files.
     - chapter_num is remapped to be globally unique across the merged set:
@@ -263,29 +275,27 @@ def parse_kb_files(paths: list[Path], kb_source: str) -> ParsedKB:
       get offset by (max of file 0) + 1, etc. The heading text is prefixed
       with "[<filename>] " so the origin remains debuggable in the UI.
     - The output ParsedKB.title is "<first file title> (+N more)".
-    - Empty path list returns a ParsedKB with no chapters (callers should
-      guard against this upstream rather than relying on silent no-op).
+    - Empty list returns a ParsedKB with no chapters (callers should guard
+      against this upstream rather than relying on silent no-op).
 
     Args:
-        paths: list of local JSON paths. Duplicates are allowed; callers are
-               responsible for dedup.
+        sources: list of Paths OR ``(filename, bytes)`` tuples. Duplicates are
+            allowed; callers are responsible for dedup.
         kb_source: "knowledge" or "tool" — applied uniformly to every chapter.
     """
-    if not paths:
+    if not sources:
         return ParsedKB(title="", subtitle="", kb_source=kb_source, metadata={}, chapters=[])
 
-    parsed_each: list[ParsedKB] = [parse_kb_file(p, kb_source) for p in paths]
+    parsed_each: list[ParsedKB] = [parse_kb_file(s, kb_source) for s in sources]
 
     merged: list[ParsedChapter] = []
     offset = 0
-    for file_idx, (path, pkb) in enumerate(zip(paths, parsed_each)):
+    for file_idx, (source, pkb) in enumerate(zip(sources, parsed_each)):
         # Largest chapter_num in this file determines the offset for the next one.
         local_max = 0
-        fname = Path(path).stem
+        fname = _source_name(source)
         for ch in pkb.chapters:
             new_num = ch.chapter_num + offset
-            # Prefix heading with file origin so the UI can show it without
-            # loading extra metadata.
             prefixed_heading = ch.heading if file_idx == 0 else f"[{fname}] {ch.heading}"
             merged.append(ParsedChapter(
                 heading=prefixed_heading,
@@ -309,8 +319,8 @@ def parse_kb_files(paths: list[Path], kb_source: str) -> ParsedKB:
         kb_source=kb_source,
         metadata={
             **first.metadata,
-            "merged_files": [Path(p).name for p in paths],
-            "merged_count": len(paths),
+            "merged_files": [_source_name(s) for s in sources],
+            "merged_count": len(sources),
         },
         chapters=merged,
     )

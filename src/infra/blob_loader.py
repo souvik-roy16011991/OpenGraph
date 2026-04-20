@@ -100,6 +100,13 @@ def download_by_url(blob_url: str) -> dict[str, Any]:
     return resp.json()
 
 
+def download_bytes_by_url(blob_url: str) -> bytes:
+    """Download raw bytes from a Blob URL. Raises on HTTP error."""
+    resp = httpx.get(blob_url, headers=_auth_headers(), timeout=120, follow_redirects=True)
+    resp.raise_for_status()
+    return resp.content
+
+
 # ---------------------------------------------------------------------------
 # Delete
 # ---------------------------------------------------------------------------

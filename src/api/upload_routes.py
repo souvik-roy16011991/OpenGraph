@@ -1,18 +1,18 @@
 """
-KB JSON upload endpoints — per-workspace, multi-file.
+KB JSON upload endpoints — per-workspace, multi-file, cloud-only.
 
 POST /api/v1/kb/upload (X-Workspace-Id required)
   - Accepts any number of ``knowledge_files`` and any number of ``tool_files``
     in a single multipart request.
-  - Each file is validated, sha256-hashed, persisted locally under
-    /data/workspaces/{ws_id}/uploads/{kb_source}/{filename}, mirrored to
-    Vercel Blob at {BLOB_STORE_PATH}/{ws_id}/{kb_source}/{filename}, and
-    recorded as a WorkspaceFile + kb_uploads row.
+  - Each file is validated, sha256-hashed, uploaded to Vercel Blob at
+    {BLOB_STORE_PATH}/{ws_id}/{kb_source}/{filename}, and recorded as a
+    WorkspaceFile + kb_uploads row in Neon.
   - Duplicates (same sha256 for same kb_source in this workspace) are
     silently skipped.
 
-The graph build pipeline reads the list of active WorkspaceFile rows and
-merges all files of each kb_source into one ParsedKB.
+Nothing is written to the local filesystem — Vercel Blob is the single
+source of truth for uploaded KB content. If the Blob upload fails the whole
+request fails; there is no local fallback to drift out of sync.
 """
 
 from __future__ import annotations
@@ -27,10 +27,9 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from src.api.deps import require_workspace_id
-from src.config import BLOB_READ_WRITE_TOKEN, USE_NEON, workspace_data_dir
+from src.config import BLOB_READ_WRITE_TOKEN
 from src.infra.db import get_session
 from src.infra.db_models import KbUpload, WorkspaceFile
 
@@ -47,9 +46,7 @@ class UploadedFileInfo(BaseModel):
     chapters: int
     title: Optional[str] = None
     sha256: str
-    local_path: str
-    blob_url: Optional[str] = None
-    blob_error: Optional[str] = None
+    blob_url: str
     duplicate: bool = False
 
 
@@ -77,12 +74,6 @@ async def _read_and_validate(file: UploadFile, label: str) -> tuple[bytes, dict[
             detail=f"{label} JSON must be an object with a top-level `chapters` list",
         )
     return raw, payload
-
-
-def _upload_dir(workspace_id: str, kb_source: str) -> Path:
-    d = workspace_data_dir(workspace_id) / "uploads" / kb_source
-    d.mkdir(parents=True, exist_ok=True)
-    return d
 
 
 def _safe_filename(filename: Optional[str], kb_source: str, sha: str) -> str:
@@ -120,27 +111,27 @@ async def _persist_one(
                 chapters=existing.chapters,
                 title=existing.title,
                 sha256=existing.sha256,
-                local_path=existing.local_path or "",
-                blob_url=existing.blob_url,
+                blob_url=existing.blob_url or "",
                 duplicate=True,
             )
 
-    # Persist locally
-    local_path = _upload_dir(workspace_id, kb_source) / filename
-    local_path.write_bytes(raw)
+    # Upload to Vercel Blob — the single source of truth. Fail the request
+    # if this fails; we will not silently fall back to local disk.
+    if not BLOB_READ_WRITE_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="BLOB_READ_WRITE_TOKEN is not configured; cannot accept uploads.",
+        )
+    try:
+        from src.infra.blob_loader import upload_file_bytes
+        blob_url = upload_file_bytes(workspace_id, kb_source, filename, raw)
+    except Exception as exc:
+        logger.error("Vercel Blob upload failed for ws=%s %s/%s: %s", workspace_id, kb_source, filename, exc)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Vercel Blob upload failed: {exc}",
+        )
 
-    # Mirror to Vercel Blob (best effort)
-    blob_url: Optional[str] = None
-    blob_error: Optional[str] = None
-    if BLOB_READ_WRITE_TOKEN:
-        try:
-            from src.infra.blob_loader import upload_file_bytes
-            blob_url = upload_file_bytes(workspace_id, kb_source, filename, raw)
-        except Exception as exc:
-            blob_error = str(exc)
-            logger.warning("Blob mirror for ws=%s %s/%s failed: %s", workspace_id, kb_source, filename, exc)
-
-    # Record in Neon
     async with get_session() as s:
         wf = WorkspaceFile(
             workspace_id=uuid.UUID(workspace_id),
@@ -151,11 +142,10 @@ async def _persist_one(
             title=payload.get("title"),
             sha256=sha,
             blob_url=blob_url,
-            local_path=str(local_path),
+            local_path=None,
             active=True,
         )
         s.add(wf)
-        # Also audit into kb_uploads
         s.add(KbUpload(
             workspace_id=uuid.UUID(workspace_id),
             kb_source=kb_source,
@@ -165,7 +155,7 @@ async def _persist_one(
             title=payload.get("title"),
             sha256=sha,
             blob_url=blob_url,
-            blob_error=blob_error,
+            blob_error=None,
         ))
         await s.commit()
         await s.refresh(wf)
@@ -178,9 +168,7 @@ async def _persist_one(
         chapters=len(payload.get("chapters", [])),
         title=payload.get("title"),
         sha256=sha,
-        local_path=str(local_path),
         blob_url=blob_url,
-        blob_error=blob_error,
         duplicate=False,
     )
 
@@ -199,13 +187,9 @@ async def upload_kb_files(
     for f in knowledge_files or []:
         info = await _persist_one(workspace_id, "knowledge", f)
         response.knowledge.append(info)
-        if info.blob_error:
-            response.warnings.append(f"knowledge/{info.filename}: blob mirror failed ({info.blob_error})")
 
     for f in tool_files or []:
         info = await _persist_one(workspace_id, "tool", f)
         response.tool.append(info)
-        if info.blob_error:
-            response.warnings.append(f"tool/{info.filename}: blob mirror failed ({info.blob_error})")
 
     return response
