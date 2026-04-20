@@ -92,7 +92,21 @@ def create_app() -> FastAPI:
     # Health check
     @app.get("/health", tags=["health"])
     async def health():
-        return {"status": "ok", "service": "kb-knowledge-graph"}
+        from src.config import (
+            USE_BLOB_STORAGE,
+            USE_MEMGRAPH,
+            USE_NEON,
+            USE_QDRANT,
+            USE_UPSTASH,
+        )
+        backends = {
+            "neon": USE_NEON,
+            "memgraph": USE_MEMGRAPH,
+            "qdrant": USE_QDRANT,
+            "vercel_blob": USE_BLOB_STORAGE,
+            "upstash": USE_UPSTASH,
+        }
+        return {"status": "ok", "service": "kb-knowledge-graph", "backends": backends}
 
     # Root redirect
     @app.get("/", tags=["root"])

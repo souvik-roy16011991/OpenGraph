@@ -12,14 +12,14 @@ Edge types built here:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
-from pathlib import Path
 from typing import Any
 
-from src.config import CROSS_LINKS_PATH
 from src.graph_config import get_graph_config
+from src.workspace_context import get_current_workspace
 from src.models.nodes import (
     BaseNode,
     ChapterNode,
@@ -298,16 +298,58 @@ class EdgeBuilder:
     # ------------------------------------------------------------------
     # Persistence helpers for LLM cross-links
     # ------------------------------------------------------------------
+    def _cross_links_cache_key(self) -> str | None:
+        """Compute the per-workspace / per-content Upstash key for cross-links.
+
+        Returns None when there is no workspace context (legacy CLI path) — in
+        that case the cache is simply skipped. The key folds in a sha256 of
+        the chapter-heading sets so that re-uploading a different KB reliably
+        misses the old cache.
+        """
+        wid = get_current_workspace()
+        if not wid:
+            return None
+        tool_headings = sorted(
+            node.heading for node in self.nodes.values()
+            if isinstance(node, ChapterNode) and node.kb_source == KBSource.TOOL
+        )
+        know_headings = sorted(
+            node.heading for node in self.nodes.values()
+            if isinstance(node, ChapterNode) and node.kb_source == KBSource.KNOWLEDGE
+        )
+        payload = json.dumps(
+            {"tool": tool_headings, "know": know_headings},
+            ensure_ascii=False, separators=(",", ":"),
+        ).encode("utf-8")
+        content_sha = hashlib.sha256(payload).hexdigest()[:16]
+        return f"kb:{wid}:cross_links:{content_sha}"
+
     def _load_cross_links(self) -> dict[str, list[str]]:
-        # Cross-link cache is intentionally not persisted to local disk. The
-        # build pipeline regenerates these in-memory each run and writes
-        # the resulting IMPLEMENTS edges straight to Memgraph.
+        """Best-effort read from Upstash, keyed by (workspace_id, content-hash).
+
+        Disk is not touched. Returns {} when Upstash is off, the cache misses,
+        or anything goes wrong — callers will just regenerate.
+        """
+        key = self._cross_links_cache_key()
+        if key is None:
+            return {}
+        from src.infra import upstash
+        data = upstash.get_json(key)
+        if isinstance(data, dict):
+            logger.info("cross_links cache hit (%s)", key)
+            return data
         return {}
 
     def _save_cross_links(self, data: dict[str, list[str]]) -> None:
-        # No-op: see _load_cross_links. Kept to preserve the call site in
-        # _build_implements_edges without a behavior regression.
-        return None
+        """Best-effort write to Upstash. No-op on failure or when not configured."""
+        key = self._cross_links_cache_key()
+        if key is None or not data:
+            return
+        from src.infra import upstash
+        # 7-day TTL: builds are rare; the hash changes when content changes,
+        # so stale entries naturally age out instead of piling up forever.
+        if upstash.set_json(key, data, ttl_seconds=7 * 24 * 3600):
+            logger.info("cross_links cache stored (%s)", key)
 
     # ------------------------------------------------------------------
     def _add(

@@ -148,6 +148,10 @@ BLOB_STORE_PATH: str = os.environ.get("BLOB_STORE_PATH", "v0-it-support-automati
 # Neon Postgres (application data: build jobs, chat history, config versions, uploads)
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
 
+# Upstash Redis REST (cache: LLM cross-links, JWKS, rate-limit counters)
+UPSTASH_REDIS_REST_URL: str = os.environ.get("UPSTASH_REDIS_REST_URL", "")
+UPSTASH_REDIS_REST_TOKEN: str = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
+
 # Feature flags — auto-detected from credential presence
 USE_PINECONE: bool = bool(PINECONE_API_KEY)
 USE_QDRANT: bool = bool(QDRANT_URL and QDRANT_API_KEY)
@@ -155,3 +159,4 @@ USE_NEO4J: bool = bool(NEO4J_URI)
 USE_MEMGRAPH: bool = bool(MEMGRAPH_URI)
 USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
 USE_NEON: bool = bool(DATABASE_URL)
+USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
