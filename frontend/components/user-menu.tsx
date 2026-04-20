@@ -2,21 +2,22 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { LogOut, UserRound } from "lucide-react";
+import { LogIn, LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
  * Header user menu.
  *
- * When Stack Auth is configured (both NEXT_PUBLIC_* env vars set), shows the
- * signed-in user's email + a sign-out action. When Stack Auth is not
- * configured, shows a muted "Dev mode" label — the backend is running
- * against the shared dev anon user.
+ * - Stack Auth ON  → lazy-load the Stack SDK and show signed-in user +
+ *   sign-out (or a "Sign in" button when logged out).
+ * - Stack Auth OFF → show a "dev mode" chip linking to /profile AND a
+ *   prominent "Sign in" button that goes to /sign-in (a smart page that
+ *   redirects to Stack's handler when configured, or explains the dev-mode
+ *   state otherwise).
  *
- * The Stack SDK's ``useUser()`` hook would throw if no StackProvider is
- * mounted above, so we guard via the same env check that the layout uses
- * to decide whether to mount StackProvider.
+ * The intent is that sign-in is always *visible* — never silently hidden
+ * just because env vars are missing.
  */
 
 const stackConfigured =
@@ -40,14 +41,24 @@ const StackUserMenu = React.lazy(() => import("./user-menu-stack"));
 export function UserMenu() {
   if (!stackConfigured) {
     return (
-      <Link
-        href="/profile"
-        className={cn("flex items-center gap-2 text-xs px-2 py-1 rounded-md border bg-background/60 hover:bg-accent")}
-        title="Open profile"
-      >
-        <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
-        <DevModeBadge />
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/profile"
+          className={cn(
+            "flex items-center gap-2 text-xs px-2 py-1 rounded-md border bg-background/60 hover:bg-accent",
+          )}
+          title="Open profile (dev user)"
+        >
+          <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+          <DevModeBadge />
+        </Link>
+        <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
+          <Link href="/sign-in">
+            <LogIn className="h-3.5 w-3.5" />
+            <span className="text-xs">Sign in</span>
+          </Link>
+        </Button>
+      </div>
     );
   }
   return (

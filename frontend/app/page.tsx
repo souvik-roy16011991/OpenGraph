@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, LayoutGrid } from "lucide-react";
+import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, LayoutGrid, LogIn, UserPlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceStore } from "@/store/workspace-store";
@@ -18,14 +17,10 @@ const STEPS = [
 ];
 
 export default function Home() {
-  const router = useRouter();
   const activeId = useWorkspaceStore((s) => s.activeId);
-
-  // Fresh visit with no workspace: start them at the template catalog (the
-  // OpenRouter-style landing experience) instead of a cold workspace picker.
-  React.useEffect(() => {
-    if (!activeId) router.replace("/templates");
-  }, [activeId, router]);
+  // No auto-redirect. The landing page is the unauthenticated entry point;
+  // users need to see Sign in / Sign up / Browse templates clearly. Returning
+  // users with an active workspace can jump straight to /upload from here.
 
   return (
     <div className="space-y-8">
@@ -44,15 +39,21 @@ export default function Home() {
         </p>
         <div className="flex gap-3 pt-2 flex-wrap">
           <Button asChild size="lg">
+            <Link href="/sign-up"><UserPlus className="h-4 w-4" /> Sign up</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/sign-in"><LogIn className="h-4 w-4" /> Sign in</Link>
+          </Button>
+          <Button asChild variant="ghost" size="lg">
             <Link href="/templates"><LayoutGrid className="h-4 w-4" /> Browse templates</Link>
           </Button>
           {activeId && (
             <>
               <Button asChild variant="outline" size="lg">
-                <Link href="/upload">Continue current workspace <ArrowRight className="h-4 w-4" /></Link>
+                <Link href="/upload">Continue workspace <ArrowRight className="h-4 w-4" /></Link>
               </Button>
               <Button asChild variant="ghost" size="lg">
-                <Link href="/chat"><MessageSquareText className="h-4 w-4" /> Open Playground</Link>
+                <Link href="/chat"><MessageSquareText className="h-4 w-4" /> Playground</Link>
               </Button>
             </>
           )}

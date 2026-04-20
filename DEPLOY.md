@@ -1,42 +1,45 @@
 # Deploying to Render
 
-The repo ships with a [`render.yaml`](./render.yaml) Blueprint that provisions
-**two stateless services**:
+The repo ships with a [`render.yaml`](./render.yaml) Blueprint that
+provisions **two stateless Docker services** — no disks, no stateful
+pods. All runtime state lives in managed cloud stores.
 
-| Service        | Purpose                                    | Port  |
-| -------------- | ------------------------------------------ | ----- |
-| `kb-backend`   | FastAPI — all API routes + build workers   | auto  |
-| `kb-frontend`  | Next.js 15 production server               | auto  |
+| Service        | Purpose                                   | Port |
+| -------------- | ----------------------------------------- | ---- |
+| `kb-backend`   | FastAPI — all API routes + build workers  | auto |
+| `kb-frontend`  | Next.js 15 production server              | auto |
 
-All runtime state lives in the managed stores below — neither container
-touches a persistent disk.
-
-The frontend builds with `NEXT_PUBLIC_API_BASE` already set to the backend's
-Render host, so the browser calls the backend directly (no proxy hop).
+The frontend bakes `NEXT_PUBLIC_API_BASE` with the backend's Render host
+at build time, so the browser calls the backend directly (no proxy hop).
 
 ---
 
-## 1. Before deploying — provision external stores
+## 1. Provision managed stores
 
-Render only runs your code. You still need the managed data stores:
+Render runs your code; everything else comes from these SaaS vendors.
+Grab the listed secrets from each dashboard — you'll paste them into
+Render in step 3.
 
-| Store                    | Used for                                         | Where to create |
-| ------------------------ | ------------------------------------------------ | --------------- |
-| **Neon** (Postgres)      | users, workspaces, build jobs, chat history, configs | neon.tech |
-| **Memgraph Cloud**       | knowledge graph nodes + edges                    | memgraph.com/cloud |
-| **Qdrant Cloud**         | embedding vectors (one collection per workspace) | qdrant.tech |
-| **Vercel Blob**          | uploaded KB JSONs (authoritative file store)     | vercel.com/dashboard/stores |
-| **OpenRouter**           | LLM + embedding API                              | openrouter.ai |
-| **Upstash Redis**        | cross-link + session cache                       | upstash.com |
+| Store                   | Used for                                          | Where to create            | Secrets you'll need |
+| ----------------------- | ------------------------------------------------- | -------------------------- | ------------------- |
+| **Neon** (Postgres)     | users, workspaces, builds, chats, configs, audit  | neon.tech                  | `DATABASE_URL` |
+| **Neon Auth** (Stack)   | user sign-up / sign-in / OAuth                    | neon.tech → project → Auth (or app.stack-auth.com direct) | `STACK_PROJECT_ID`, `STACK_SECRET_SERVER_KEY`, `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY` |
+| **Memgraph Cloud**      | knowledge graph nodes + edges                     | memgraph.com/cloud         | `MEMGRAPH_URI`, `_USERNAME`, `_PASSWORD` |
+| **Qdrant Cloud**        | embedding vectors (one collection per workspace)  | qdrant.tech                | `QDRANT_URL`, `QDRANT_API_KEY` |
+| **Vercel Blob**         | uploaded KB JSONs (authoritative file store)      | vercel.com/dashboard/stores | `BLOB_READ_WRITE_TOKEN` |
+| **OpenRouter**          | LLM + embedding API (any of 342 models)           | openrouter.ai              | `OPENROUTER_API_KEY` |
+| **Upstash Redis**       | JWKS cache, cross-link cache, model-catalog cache | upstash.com                | `UPSTASH_REDIS_REST_URL`, `_TOKEN` |
 
-Grab the connection string / API key from each one — you'll paste them into
-Render's secret fields in step 3.
+**Stack Auth is optional** at first boot. When its vars are unset the
+backend runs every request as a shared anonymous dev user. Flip on
+enforcement later (step 5) once you've tested the plumbing.
 
 ---
 
 ## 2. Push this repo to GitHub
 
-Render watches a Git branch. Push to any branch — the Blueprint picks it up.
+Render watches a Git branch. Your `.env*` files are already in
+`.gitignore`, so no secrets leak.
 
 ```bash
 git add .
@@ -44,54 +47,63 @@ git commit -m "Prepare for Render"
 git push origin main
 ```
 
-Your `.env` and `.env.local` are already in `.gitignore`, so no secrets leak.
-
 ---
 
 ## 3. Create the Blueprint on Render
 
 1. Render dashboard → **New** → **Blueprint**.
 2. Connect the GitHub repo.
-3. Render parses `render.yaml` and shows two planned services + one disk.
+3. Render parses `render.yaml` and shows the two planned services.
 4. Click **Apply**.
 
-First deploy will **fail on `kb-backend`** because the secret env vars
-(marked `sync: false` in `render.yaml`) haven't been set yet. Fill them in:
+The first deploy will **fail on `kb-backend`** because the `sync: false`
+secrets aren't set yet. Fill them in next.
 
-### Secrets to set on `kb-backend`
+### Required secrets on `kb-backend`
 
-Open `kb-backend` → **Environment** tab → add each:
+Open `kb-backend` → **Environment** tab → add:
 
+```ini
+# Core app — required
+OPENROUTER_API_KEY         = sk-or-v1-...
+DATABASE_URL               = postgresql://<user>:<pw>@<host>.neon.tech/<db>?sslmode=require
+MEMGRAPH_URI               = bolt+ssc://<host>:7687
+MEMGRAPH_USERNAME          = <user>
+MEMGRAPH_PASSWORD          = <pw>
+QDRANT_URL                 = https://<cluster>.qdrant.io:6333
+QDRANT_API_KEY             = eyJhbGci...
+BLOB_READ_WRITE_TOKEN      = vercel_blob_rw_...
+UPSTASH_REDIS_REST_URL     = https://<name>.upstash.io
+UPSTASH_REDIS_REST_TOKEN   = <token>
+
+# Stack Auth — optional on first deploy, leave blank to keep dev mode on
+STACK_PROJECT_ID           =
+STACK_SECRET_SERVER_KEY    =
+STACK_JWT_ISSUER           =   # only override if self-hosting Stack Auth
 ```
-OPENROUTER_API_KEY        = sk-or-v1-...
-MEMGRAPH_URI              = bolt+ssc://<host>:7687
-MEMGRAPH_USERNAME         = <user>
-MEMGRAPH_PASSWORD         = <pw>
-QDRANT_URL                = https://<cluster>.qdrant.io:6333
-QDRANT_API_KEY            = eyJhbGci...
-DATABASE_URL              = postgresql://<user>:<pw>@<host>.neon.tech/<db>?sslmode=require
-BLOB_READ_WRITE_TOKEN     = vercel_blob_rw_...
-UPSTASH_REDIS_REST_URL    = https://<name>.upstash.io    # optional, Phase C
-UPSTASH_REDIS_REST_TOKEN  = <token>                      # optional, Phase C
+
+Non-secrets (model names, `MAX_WORKSPACES_PER_USER`, CORS target, etc.)
+are pre-populated by `render.yaml` and need no editing.
+
+### Required secrets on `kb-frontend`
+
+Open `kb-frontend` → **Environment** tab → add (same rule: leave blank
+to skip Stack Auth on first deploy):
+
+```ini
+NEXT_PUBLIC_STACK_PROJECT_ID               =
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY   =
+STACK_SECRET_SERVER_KEY                    =
 ```
 
-The non-secret values (model names, URLs, feature flags, CORS origins)
-come pre-populated from `render.yaml` and don't need editing for a default
-deploy.
+The other frontend envs (`NEXT_PUBLIC_API_BASE`, `BACKEND_URL`) are
+auto-wired via `fromService` and do not need manual entry.
 
-### Secret **not** needed on `kb-frontend`
+### Trigger redeploy
 
-The frontend reads its API URL from `NEXT_PUBLIC_API_BASE`, which is
-auto-wired via `fromService` in `render.yaml` — no manual action needed.
-
-### Trigger a redeploy
-
-`kb-backend` → **Manual Deploy** → Deploy latest commit.
-
-Render builds the Dockerfile (no graph is baked in — graphs are now built
-per-workspace at runtime). Once healthcheck `/health` returns 200, the frontend
-build kicks off and wires its `NEXT_PUBLIC_API_BASE` to the backend's public
-host.
+`kb-backend` → **Manual Deploy** → Deploy latest commit. Once
+`/health` returns 200, the frontend build automatically picks up the
+backend host and deploys.
 
 ---
 
@@ -100,87 +112,198 @@ host.
 Replace `<fe>` and `<be>` with your actual Render hosts.
 
 ```bash
-# 1. Backend health
+# 1. Backend health — should list all 5 cloud backends as true
 curl https://<be>.onrender.com/health
-# expects {"status":"ok","service":"kb-knowledge-graph"}
 
-# 2. Create a workspace
+# 2. Template catalog (public; no auth)
+curl https://<be>.onrender.com/api/v1/templates | jq '.templates | length'
+# => 29
+
+# 3. With Stack Auth still OFF, the dev user can create workspaces anonymously.
+#    With Stack Auth ON, this call returns 401 — sign in through the frontend.
 curl -X POST -H 'Content-Type: application/json' \
   -d '{"name":"production-test"}' \
   https://<be>.onrender.com/api/v1/workspaces
+WID=<uuid-returned>
 
-# 3. Copy the returned id, export it, upload KB JSON(s)
-WID=<uuid-from-above>
+# 4. Upload, build, query
 curl -H "X-Workspace-Id: $WID" \
-  -F "knowledge_files=@my-knowledge.json" \
-  -F "tool_files=@my-tools.json" \
+  -F "knowledge_files=@knowledge.json" -F "tool_files=@tools.json" \
   https://<be>.onrender.com/api/v1/kb/upload
-
-# 4. Build
 curl -X POST -H "X-Workspace-Id: $WID" -H 'Content-Type: application/json' \
-  -d '{"skip_embeddings":true}' \
+  -d '{"skip_embeddings":false}' \
   https://<be>.onrender.com/api/v1/build
 
-# 5. Open the frontend — the workspace will be listed.
-open https://<fe>.onrender.com/workspaces
+# 5. Frontend landing — will redirect to /templates
+open https://<fe>.onrender.com/
 ```
 
 ---
 
-## 5. Tighten CORS for production
+## 5. Enabling Neon Auth (production cutover)
 
-Once you know the frontend origin, update the backend env var:
+Stack Auth is off until you set the 3 env vars. The switch-on procedure:
 
-```
-CORS_ALLOW_ORIGINS = https://<fe>.onrender.com
-```
+### 5.1 Create a Stack Auth project
 
-(Multiple origins: comma-separate. A single `"*"` keeps everything permissive
-but forbids credentials, which is fine for header-based X-Workspace-Id auth.)
+1. In your Neon project dashboard → **Auth** tab → enable Neon Auth. Neon
+   provisions a Stack Auth project behind the scenes.
+   (Alternative: create one at https://app.stack-auth.com and note the
+   project id + keys.)
+2. Copy three values:
+   - `STACK_PROJECT_ID`
+   - `STACK_SECRET_SERVER_KEY`       (server-only, keep secret)
+   - `STACK_PUBLISHABLE_CLIENT_KEY`  (baked into the client bundle, OK to expose)
 
----
+### 5.2 Pre-flight: sanity-check the `workspaces.domain_config` column
 
-## 6. Local Docker parity check
-
-Before pushing, reproduce the prod setup locally:
+On first Neon snapshot, confirm the column exists (it should, since
+`create_all()` ran it at startup):
 
 ```bash
-# From the repo root
+psql "$DATABASE_URL" -c "\d workspaces" | grep domain_config
+# should show: domain_config | jsonb | nullable
+```
+
+### 5.3 Take a Neon snapshot
+
+Neon dashboard → **Branches** → create a point-in-time branch. The
+anon-workspace migration below is irreversible.
+
+### 5.4 Wipe anonymous-owned data
+
+Every workspace currently belongs to the synthetic `__anonymous__` user.
+Once Stack Auth is enforced, real users can't access that data anyway,
+so either delete it or reassign.
+
+```bash
+# Render shell, from the kb-backend service:
+python3 scripts/migrate_anon_workspaces.py --dry-run     # preview counts
+python3 scripts/migrate_anon_workspaces.py --delete-all  # nuclear
+# OR:
+python3 scripts/migrate_anon_workspaces.py --assign-to <your-new-stack-sub>
+```
+
+### 5.5 Set the three env vars on BOTH services and redeploy
+
+On `kb-backend`:
+
+```ini
+STACK_PROJECT_ID          = <from 5.1>
+STACK_SECRET_SERVER_KEY   = <from 5.1>
+```
+
+On `kb-frontend`:
+
+```ini
+NEXT_PUBLIC_STACK_PROJECT_ID              = <from 5.1>
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY  = <from 5.1>
+STACK_SECRET_SERVER_KEY                   = <from 5.1>
+```
+
+Redeploy **both services in the same window**. A backend-only deploy
+would 401 every live frontend tab.
+
+### 5.6 Verify the flip
+
+```bash
+# Unauthed request on any workspace route → 401
+curl -i https://<be>.onrender.com/api/v1/workspaces
+# HTTP/1.1 401 Unauthorized
+
+# Template catalog is still public — no 401
+curl -i https://<be>.onrender.com/api/v1/templates | head -n 1
+# HTTP/1.1 200 OK
+
+# Visit the frontend — middleware bounces unauth'd to /handler/sign-in
+open https://<fe>.onrender.com/
+```
+
+### 5.7 First user sign-up
+
+1. Open `https://<fe>.onrender.com/` → redirects to `/handler/sign-in`.
+2. Click **Sign up**, create an account (email/password or an OAuth
+   provider that Stack Auth supports).
+3. On first JWT the backend auto-creates a `users` row and emits an
+   `auth.signup` audit event — confirm via `/profile`.
+
+---
+
+## 6. Tighten CORS
+
+`render.yaml` pre-wires `CORS_ALLOW_ORIGINS` to the frontend's Render
+host via `fromService`, so the backend only accepts requests from that
+exact origin once both services are up. If you later add a custom
+domain, update the value manually to a comma-separated list.
+
+---
+
+## 7. Local Docker parity check
+
+Reproduce the prod setup before pushing:
+
+```bash
+# Backend
 docker build -t kb-backend .
 docker run --rm -p 8000:8000 \
   -e OPENROUTER_API_KEY=... \
-  -e MEMGRAPH_URI=bolt+ssc://... \
-  -e MEMGRAPH_USERNAME=... \
-  -e MEMGRAPH_PASSWORD=... \
-  -e QDRANT_URL=https://... \
-  -e QDRANT_API_KEY=... \
   -e DATABASE_URL=postgresql://... \
+  -e MEMGRAPH_URI=bolt+ssc://... \
+  -e MEMGRAPH_USERNAME=... -e MEMGRAPH_PASSWORD=... \
+  -e QDRANT_URL=https://... -e QDRANT_API_KEY=... \
   -e BLOB_READ_WRITE_TOKEN=... \
-  -e UPSTASH_REDIS_REST_URL=https://... \
-  -e UPSTASH_REDIS_REST_TOKEN=... \
+  -e UPSTASH_REDIS_REST_URL=... -e UPSTASH_REDIS_REST_TOKEN=... \
+  -e STACK_PROJECT_ID=... -e STACK_SECRET_SERVER_KEY=... \
   kb-backend
 
-# Frontend in another terminal
+# Frontend (Stack Auth only activates when all 3 NEXT_PUBLIC_* build args are set)
 cd frontend
 docker build -t kb-frontend \
-  --build-arg NEXT_PUBLIC_API_BASE=http://host.docker.internal:8000 .
-docker run --rm -p 3000:3000 kb-frontend
+  --build-arg NEXT_PUBLIC_API_BASE=http://host.docker.internal:8000 \
+  --build-arg NEXT_PUBLIC_STACK_PROJECT_ID=... \
+  --build-arg NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=... \
+  --build-arg STACK_SECRET_SERVER_KEY=... \
+  .
+docker run --rm -p 3000:3000 \
+  -e STACK_SECRET_SERVER_KEY=... \
+  kb-frontend
 ```
 
 On macOS `host.docker.internal` lets the frontend container reach the
-backend running on the host network.
+backend running on the host.
+
+---
+
+## 8. Observability & admin
+
+- **Render logs** — every uvicorn + Next.js log line is stream-searchable
+  in the Render dashboard. No external aggregator required for Phase 1.
+- **Audit trail** — `/profile` in the UI lists every user action. Raw
+  access: `GET /api/v1/me/audit` (paginated, filterable by action /
+  workspace).
+- **Wipe everything** — `python3 scripts/wipe_all.py` clears Memgraph +
+  Qdrant + Blob + Neon in sequence. Idempotent.
+- **Per-workspace history** — `/history` in the UI reads from Neon
+  `build_jobs`, `chat_messages`, `config_versions`, `kb_uploads`.
 
 ---
 
 ## Common pitfalls
 
-- **`Missing X-Workspace-Id header`** on every request: the frontend hasn't
-  picked a workspace yet. Visit `/workspaces` and select or create one.
-- **Backend starts but `/graph/stats` returns 503**: expected until the first
-  workspace is built. Hit `POST /api/v1/build` with a workspace id.
-- **`orphaned — process restarted`** on old build jobs: startup-time scan
-  flips any `running` row to `error`. This is cosmetic; new builds work fine.
-- **Qdrant collection limit**: each workspace gets its own collection
-  (`kb-{short_wid}`). Qdrant Cloud free is ~100 collections — if you expect
-  more workspaces, delete unused ones via `DELETE /api/v1/workspaces/{id}`
-  (it purges Memgraph + Qdrant + Blob + local disk + Neon in one call).
+- **`401 Unauthorized` right after flipping Stack Auth on** — expected
+  on any open tab that was authenticated with dev mode. Refresh; the
+  middleware bounces to sign-in.
+- **`401 Unauthorized` during local dev** — Stack Auth vars are
+  partially set. Either set all three or unset all three. A partial
+  config throws off the client SDK.
+- **Backend starts but `/graph/*` returns 503** — expected until the
+  first workspace is built. Hit `POST /api/v1/build`.
+- **`orphaned — process restarted` on old build jobs** — startup-time
+  scan flips any `running` row to `error`. Cosmetic; new builds work.
+- **Qdrant collection limit** — each workspace = one Qdrant collection
+  (`kb-{short_wid}`). Free tier is ~100. Delete unused workspaces via
+  `DELETE /api/v1/workspaces/{id}` (cascades Memgraph + Qdrant + Blob +
+  Neon).
+- **CORS errors after a custom-domain switch** — remember to update
+  `CORS_ALLOW_ORIGINS` on the backend; `fromService` only tracks the
+  Render `.onrender.com` host.
