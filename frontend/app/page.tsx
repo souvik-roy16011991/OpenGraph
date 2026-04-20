@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, Briefcase } from "lucide-react";
+import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, LayoutGrid } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceStore } from "@/store/workspace-store";
@@ -14,16 +14,17 @@ const STEPS = [
   { n: 3, href: "/graph-config", icon: Sliders,           title: "Tune graph knobs", desc: "Adjust how dense, how deep, how precise the graph should be." },
   { n: 4, href: "/build",        icon: Hammer,            title: "Run the build",    desc: "Embeddings, edges, cross-KB links. Watch it happen." },
   { n: 5, href: "/explore",      icon: Network,           title: "Explore visually", desc: "Zoom, filter, and inspect every node of the finished graph." },
-  { n: 6, href: "/query",        icon: MessageSquareText, title: "Ask the agent",    desc: "Natural-language queries over the graph with traced reasoning." },
+  { n: 6, href: "/chat",         icon: MessageSquareText, title: "Chat with it",     desc: "Pick any workspace, pick any model, and query it in natural language." },
 ];
 
 export default function Home() {
   const router = useRouter();
   const activeId = useWorkspaceStore((s) => s.activeId);
 
-  // If no workspace is active, send the user to the workspace picker first.
+  // Fresh visit with no workspace: start them at the template catalog (the
+  // OpenRouter-style landing experience) instead of a cold workspace picker.
   React.useEffect(() => {
-    if (!activeId) router.replace("/workspaces");
+    if (!activeId) router.replace("/templates");
   }, [activeId, router]);
 
   return (
@@ -41,21 +42,26 @@ export default function Home() {
           build, and query. Every workspace has its own Memgraph partition, its own Qdrant collection,
           and its own chat history.
         </p>
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-2 flex-wrap">
           <Button asChild size="lg">
-            <Link href="/workspaces"><Briefcase className="h-4 w-4" /> Manage workspaces</Link>
+            <Link href="/templates"><LayoutGrid className="h-4 w-4" /> Browse templates</Link>
           </Button>
           {activeId && (
-            <Button asChild variant="outline" size="lg">
-              <Link href="/upload">Continue current workspace <ArrowRight className="h-4 w-4" /></Link>
-            </Button>
+            <>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/upload">Continue current workspace <ArrowRight className="h-4 w-4" /></Link>
+              </Button>
+              <Button asChild variant="ghost" size="lg">
+                <Link href="/chat"><MessageSquareText className="h-4 w-4" /> Open Playground</Link>
+              </Button>
+            </>
           )}
         </div>
       </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {STEPS.map((s) => (
-          <Link key={s.n} href={activeId ? s.href : "/workspaces"}>
+          <Link key={s.n} href={activeId ? s.href : "/templates"}>
             <Card className="group hover:border-primary/50 hover:shadow-md transition cursor-pointer h-full">
               <CardHeader className="space-y-2">
                 <div className="flex items-center gap-3">

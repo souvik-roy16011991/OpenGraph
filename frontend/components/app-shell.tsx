@@ -40,17 +40,26 @@ interface NavItem {
   requires?: WizardStep[];
 }
 
+// Build-wizard steps. Chat no longer lives here — it's a standalone top-level
+// route (see TOP_NAV below), because querying a graph is a separate action
+// from building one.
 const NAV: NavItem[] = [
   { step: "upload",       href: "/upload",       label: "Upload KB",     icon: Upload,            desc: "Knowledge + tool JSONs" },
   { step: "domain",       href: "/domain",       label: "Domain",        icon: Tag,               desc: "Fill domain.yaml fields", requires: ["upload"] },
   { step: "graph-config", href: "/graph-config", label: "Graph Config",  icon: Sliders,           desc: "Tune graph.yaml knobs",   requires: ["upload", "domain"] },
   { step: "build",        href: "/build",        label: "Build",         icon: Hammer,            desc: "Run the build pipeline",  requires: ["upload", "domain"] },
   { step: "explore",      href: "/explore",      label: "Explore",       icon: Network,           desc: "Interactive graph viz",   requires: ["build"] },
-  { step: "query",        href: "/query",        label: "Query",         icon: MessageSquareText, desc: "Chat with the agent",     requires: ["build"] },
+];
+
+// Top-level routes shown ABOVE the wizard — the things a user cares about
+// before starting a build, plus the standalone chat.
+const TOP_NAV = [
+  { href: "/templates", label: "Templates", desc: "Start from a KB template", icon: LayoutGrid },
+  { href: "/chat",      label: "Chat",      desc: "Query any workspace",      icon: MessageSquareText },
 ];
 
 const SECONDARY_NAV = [
-  { href: "/history", label: "History", desc: "Audit trail",   icon: HistoryIcon },
+  { href: "/history", label: "History", desc: "Audit trail", icon: HistoryIcon },
 ];
 
 function WorkspaceSwitcher() {
@@ -195,6 +204,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <WorkspaceSwitcher />
         </div>
         <nav className="p-3 flex flex-col gap-1">
+          {TOP_NAV.map((item) => {
+            const active = pathname?.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "group flex items-start gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
+                  active && "bg-accent text-accent-foreground",
+                  !active && "hover:bg-accent/60",
+                )}
+              >
+                <item.icon className="h-4 w-4 mt-0.5" />
+                <span className="flex flex-col flex-1 min-w-0">
+                  <span className="font-medium">{item.label}</span>
+                  <span className="text-[11px] text-muted-foreground truncate">{item.desc}</span>
+                </span>
+              </Link>
+            );
+          })}
+
+          <div className="h-px bg-border my-3 mx-2" />
           {NAV.map((item, idx) => {
             const active = pathname?.startsWith(item.href);
             const locked = isLocked(item);
