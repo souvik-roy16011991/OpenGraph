@@ -33,7 +33,7 @@ services:
   # Backend — FastAPI + background build threads
   # =========================================================================
   - type: web
-    name: kb-backend
+    name: opengraph-backend
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
@@ -130,7 +130,7 @@ services:
       - key: CORS_ALLOW_ORIGINS
         fromService:
           type: web
-          name: kb-frontend
+          name: opengraph-frontend
           property: host
 
       # --- Misc --------------------------------------------------------
@@ -143,7 +143,7 @@ services:
   # Frontend — Next.js 15 App Router
   # =========================================================================
   - type: web
-    name: kb-frontend
+    name: opengraph-frontend
     runtime: docker
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
@@ -160,12 +160,12 @@ services:
       - key: NEXT_PUBLIC_API_BASE
         fromService:
           type: web
-          name: kb-backend
+          name: opengraph-backend
           property: host     # e.g. https://kb-backend-xxxx.onrender.com
       - key: BACKEND_URL
         fromService:
           type: web
-          name: kb-backend
+          name: opengraph-backend
           property: host
       - key: NODE_ENV
         value: production
