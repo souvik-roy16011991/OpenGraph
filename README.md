@@ -1,4 +1,4 @@
-# OpenGraph
+# OpenGraph.tech
 
 <p align="left">
   <picture>
