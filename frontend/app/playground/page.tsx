@@ -15,7 +15,9 @@ import {
   Clock,
   Database,
   Network,
+  Beaker,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -53,7 +55,7 @@ function WorkspacePicker({
   onChange: (id: string) => void;
   workspaces: WorkspaceSummary[];
   disabledIds?: string[];
-  accent: "sky" | "emerald";
+  accent: "sky" | "emerald" | "neutral";
 }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -71,11 +73,15 @@ function WorkspacePicker({
   const accentClass =
     accent === "sky"
       ? "border-sky-500/40 bg-sky-500/5"
-      : "border-emerald-500/40 bg-emerald-500/5";
+      : accent === "emerald"
+        ? "border-emerald-500/40 bg-emerald-500/5"
+        : "bg-card";
   const pillClass =
     accent === "sky"
       ? "bg-sky-500/15 text-sky-700 dark:text-sky-300"
-      : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300";
+      : accent === "emerald"
+        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+        : "bg-muted text-muted-foreground";
 
   return (
     <div className={cn("rounded-lg border p-3", accentClass)} ref={ref}>
@@ -434,6 +440,61 @@ interface SideResult {
   loading: boolean;
 }
 
+function QuerySingle({ ws }: { ws: WorkspaceSummary | null }) {
+  const [prompt, setPrompt] = React.useState("");
+  const [result, setResult] = React.useState<SideResult>({ loading: false });
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!prompt.trim() || !ws?.id) return;
+      setResult({ loading: true });
+      try {
+        const data = await api.query({ query: prompt.trim() }, ws.id);
+        setResult({ data, loading: false });
+      } catch (e) {
+        setResult({ error: (e as Error).message, loading: false });
+      }
+    },
+  });
+
+  const canRun = Boolean(ws && prompt.trim() && !mutation.isPending);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        <label className="block">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1.5 block">
+            Ask this graph
+          </span>
+          <Textarea
+            rows={3}
+            placeholder="e.g. How is applicant income verified under the current policy?"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+        </label>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Runs against the selected workspace using its graph config and LLM.
+          </p>
+          <Button onClick={() => mutation.mutate()} disabled={!canRun} size="lg">
+            {mutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Running…
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" /> Ask
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+      <QueryResultCard label="Workspace" workspace={ws} result={result} accent="neutral" />
+    </div>
+  );
+}
+
 function QueryCompare({
   wsA,
   wsB,
@@ -512,14 +573,20 @@ function QueryResultCard({
   label: string;
   workspace: WorkspaceSummary | null;
   result: SideResult;
-  accent: "sky" | "emerald";
+  accent: "sky" | "emerald" | "neutral";
 }) {
   const pillClass =
     accent === "sky"
       ? "bg-sky-500/15 text-sky-700 dark:text-sky-300"
-      : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300";
+      : accent === "emerald"
+        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+        : "bg-muted text-muted-foreground";
   const borderClass =
-    accent === "sky" ? "border-sky-500/30" : "border-emerald-500/30";
+    accent === "sky"
+      ? "border-sky-500/30"
+      : accent === "emerald"
+        ? "border-emerald-500/30"
+        : "";
   const r = result.data;
   return (
     <Card className={cn("border", borderClass)}>
@@ -550,9 +617,7 @@ function QueryResultCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {!workspace && (
-          <p className="text-sm text-muted-foreground italic">
-            Pick a workspace to compare against.
-          </p>
+          <p className="text-sm text-muted-foreground italic">Pick a workspace.</p>
         )}
         {workspace && result.loading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
@@ -561,7 +626,7 @@ function QueryResultCard({
         )}
         {workspace && !result.loading && !r && !result.error && (
           <p className="text-sm text-muted-foreground italic">
-            Enter a prompt and click Run on both.
+            Enter a prompt above and run.
           </p>
         )}
         {result.error && (
@@ -625,22 +690,31 @@ export default function PlaygroundPage() {
 
   const [aId, setAId] = React.useState<string | null>(null);
   const [bId, setBId] = React.useState<string | null>(null);
+  const [mode, setMode] = React.useState<"single" | "compare">("single");
 
-  // Auto-pick the two most recent workspaces on first load
+  // Auto-pick the two most recent workspaces on first load, and default to
+  // compare mode when there are 2+ workspaces available.
   React.useEffect(() => {
     if (workspaces.length === 0) return;
     if (!aId && workspaces[0]) setAId(workspaces[0].id);
     if (!bId && workspaces[1]) setBId(workspaces[1].id);
+    if (workspaces.length >= 2) setMode((m) => (m === "single" && bId === null ? "compare" : m));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaces.length]);
+
+  // Force single mode when fewer than 2 workspaces exist.
+  React.useEffect(() => {
+    if (workspaces.length < 2 && mode === "compare") setMode("single");
+  }, [workspaces.length, mode]);
 
   const wsA = workspaces.find((w) => w.id === aId) ?? null;
   const wsB = workspaces.find((w) => w.id === bId) ?? null;
 
   const bundleA = useWorkspaceBundle(aId);
-  const bundleB = useWorkspaceBundle(bId);
+  const bundleB = useWorkspaceBundle(mode === "compare" ? bId : null);
 
   const sameWs = Boolean(aId && aId === bId);
+  const compareDisabled = workspaces.length < 2;
 
   const swap = () => {
     const tmp = aId;
@@ -655,120 +729,209 @@ export default function PlaygroundPage() {
           <GitCompareArrows className="h-5 w-5" /> Playground
         </h1>
         <p className="text-muted-foreground text-sm">
-          Compare two graph configurations side by side — their settings, their graph shape, and the answers they give to the same question.
+          Test a single graph or compare two side by side — inspect configs, graph shape, and the answers they give to the same question.
         </p>
       </div>
 
       {wsQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading workspaces…</p>
-      ) : workspaces.length < 2 ? (
+      ) : workspaces.length < 1 ? (
         <Card className="border-amber-500/40 bg-amber-500/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Need at least two workspaces
+              No workspaces yet
             </CardTitle>
             <CardDescription>
-              The Playground compares two workspaces with built graphs. You currently have {workspaces.length}.{" "}
+              The Playground needs at least one workspace with a built graph.{" "}
               <Link href="/workspaces" className="underline font-medium">
-                Create another workspace
+                Create a workspace
               </Link>{" "}
-              to start comparing.
+              to start.
             </CardDescription>
           </CardHeader>
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-center">
+          {/* Mode selector */}
+          <div className="inline-flex rounded-lg border bg-muted/40 p-1" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "single"}
+              onClick={() => setMode("single")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                mode === "single"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Beaker className="h-3.5 w-3.5" /> Test one graph
+            </button>
+            {compareDisabled ? (
+              <Tooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <span
+                    aria-disabled
+                    className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground opacity-50 cursor-not-allowed"
+                  >
+                    <GitCompareArrows className="h-3.5 w-3.5" /> Compare two graphs
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Need at least 2 workspaces to compare
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "compare"}
+                onClick={() => setMode("compare")}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  mode === "compare"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <GitCompareArrows className="h-3.5 w-3.5" /> Compare two graphs
+              </button>
+            )}
+          </div>
+
+          {/* Workspace picker(s) */}
+          {mode === "single" ? (
             <WorkspacePicker
-              label="A"
+              label="Workspace"
               value={aId}
               onChange={setAId}
               workspaces={workspaces}
-              disabledIds={bId ? [bId] : []}
-              accent="sky"
+              accent="neutral"
             />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={swap}
-              disabled={!aId || !bId}
-              aria-label="Swap A and B"
-              className="h-10 w-10 justify-self-center"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </Button>
-            <WorkspacePicker
-              label="B"
-              value={bId}
-              onChange={setBId}
-              workspaces={workspaces}
-              disabledIds={aId ? [aId] : []}
-              accent="emerald"
-            />
-          </div>
-
-          {sameWs && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Same workspace selected on both sides — pick two different workspaces to see a diff.
-            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-center">
+                <WorkspacePicker
+                  label="A"
+                  value={aId}
+                  onChange={setAId}
+                  workspaces={workspaces}
+                  disabledIds={bId ? [bId] : []}
+                  accent="sky"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={swap}
+                  disabled={!aId || !bId}
+                  aria-label="Swap A and B"
+                  className="h-10 w-10 justify-self-center"
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                </Button>
+                <WorkspacePicker
+                  label="B"
+                  value={bId}
+                  onChange={setBId}
+                  workspaces={workspaces}
+                  disabledIds={aId ? [aId] : []}
+                  accent="emerald"
+                />
+              </div>
+              {sameWs && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Same workspace selected on both sides — pick two different workspaces to see a diff.
+                </div>
+              )}
+            </>
           )}
 
-          <Tabs defaultValue="overview">
-            <TabsList>
-              <TabsTrigger value="overview">
-                <Database className="h-3.5 w-3.5 mr-1.5" /> Overview
-              </TabsTrigger>
-              <TabsTrigger value="config">Configuration</TabsTrigger>
-              <TabsTrigger value="query">Query</TabsTrigger>
-            </TabsList>
+          {/* Tabs */}
+          {mode === "single" ? (
+            <Tabs defaultValue="overview">
+              <TabsList>
+                <TabsTrigger value="overview">
+                  <Database className="h-3.5 w-3.5 mr-1.5" /> Overview
+                </TabsTrigger>
+                <TabsTrigger value="query">Query</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="overview">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card className="border-sky-500/30">
+              <TabsContent value="overview">
+                <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Workspace A</CardTitle>
+                    <CardTitle className="text-base">
+                      {wsA?.name ?? "Select a workspace"}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <OverviewColumn ws={wsA} stats={bundleA.stats.data} />
                   </CardContent>
                 </Card>
-                <Card className="border-emerald-500/30">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Workspace B</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <OverviewColumn ws={wsB} stats={bundleB.stats.data} />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="config">
-              {(bundleA.cfg.isLoading || bundleB.cfg.isLoading) && (
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading configs…
-                </p>
-              )}
-              {(bundleA.cfg.isError || bundleB.cfg.isError) && (
-                <p className="text-sm text-destructive">
-                  {(bundleA.cfg.error as Error)?.message ??
-                    (bundleB.cfg.error as Error)?.message}
-                </p>
-              )}
-              <div className="mb-3 grid grid-cols-[180px_1fr_1fr] gap-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                <span>Key</span>
-                <span className="text-sky-700 dark:text-sky-300">A · {wsA?.name ?? "—"}</span>
-                <span className="text-emerald-700 dark:text-emerald-300">B · {wsB?.name ?? "—"}</span>
-              </div>
-              <ConfigDiff cfgA={bundleA.cfg.data} cfgB={bundleB.cfg.data} />
-            </TabsContent>
+              <TabsContent value="query">
+                <QuerySingle ws={wsA} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <Tabs defaultValue="overview">
+              <TabsList>
+                <TabsTrigger value="overview">
+                  <Database className="h-3.5 w-3.5 mr-1.5" /> Overview
+                </TabsTrigger>
+                <TabsTrigger value="config">Configuration</TabsTrigger>
+                <TabsTrigger value="query">Query</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="query">
-              <QueryCompare wsA={wsA} wsB={wsB} />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="overview">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <Card className="border-sky-500/30">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Workspace A</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <OverviewColumn ws={wsA} stats={bundleA.stats.data} />
+                    </CardContent>
+                  </Card>
+                  <Card className="border-emerald-500/30">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Workspace B</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <OverviewColumn ws={wsB} stats={bundleB.stats.data} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="config">
+                {(bundleA.cfg.isLoading || bundleB.cfg.isLoading) && (
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading configs…
+                  </p>
+                )}
+                {(bundleA.cfg.isError || bundleB.cfg.isError) && (
+                  <p className="text-sm text-destructive">
+                    {(bundleA.cfg.error as Error)?.message ??
+                      (bundleB.cfg.error as Error)?.message}
+                  </p>
+                )}
+                <div className="mb-3 grid grid-cols-[180px_1fr_1fr] gap-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <span>Key</span>
+                  <span className="text-sky-700 dark:text-sky-300">A · {wsA?.name ?? "—"}</span>
+                  <span className="text-emerald-700 dark:text-emerald-300">B · {wsB?.name ?? "—"}</span>
+                </div>
+                <ConfigDiff cfgA={bundleA.cfg.data} cfgB={bundleB.cfg.data} />
+              </TabsContent>
+
+              <TabsContent value="query">
+                <QueryCompare wsA={wsA} wsB={wsB} />
+              </TabsContent>
+            </Tabs>
+          )}
         </>
       )}
     </div>
