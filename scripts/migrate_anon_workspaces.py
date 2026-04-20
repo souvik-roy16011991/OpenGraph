@@ -84,11 +84,11 @@ async def _summary() -> dict:
 
 
 async def _delete_all() -> None:
-    """Iterate each anon workspace and run the full delete_workspace flow
-    (Memgraph clear, Qdrant drop, Blob wipe, Neon cascade)."""
+    """Iterate each anon workspace and run the full cascade (Memgraph clear,
+    Qdrant drop, Blob wipe, Neon cascade) via the auth-free helper."""
     import uuid
     from sqlalchemy import select, delete
-    from src.api.workspace_routes import delete_workspace
+    from src.api.workspace_routes import delete_workspace_cascade
     from src.infra.db import get_session
     from src.infra.db_models import ANONYMOUS_STACK_ID, User, Workspace
 
@@ -106,7 +106,7 @@ async def _delete_all() -> None:
     for wid in ws_ids:
         try:
             logger.info("deleting workspace %s ...", wid)
-            await delete_workspace(uuid.UUID(str(wid)))
+            await delete_workspace_cascade(uuid.UUID(str(wid)))
         except Exception as exc:
             logger.error("delete_workspace(%s) failed: %s", wid, exc)
 

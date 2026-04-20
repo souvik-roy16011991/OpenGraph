@@ -38,6 +38,10 @@ from src.config import (
     USE_NEON,
     USE_STACK_AUTH,
 )
+
+# NOTE: We deliberately import `ANONYMOUS_STACK_ID` lazily inside the dev
+# fallback so this module stays importable in environments where db_models
+# is stripped of the constant (e.g. a future Phase 2 migration).
 from src.infra import upstash
 from src.infra.db import get_session
 from src.infra.db_models import User

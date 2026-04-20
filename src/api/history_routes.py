@@ -12,8 +12,10 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.auth import require_user
 from src.api.deps import require_workspace_id
 from src.config import USE_NEON
+from src.infra.db_models import User
 
 logger = logging.getLogger(__name__)
 
@@ -77,17 +79,22 @@ async def list_builds(
 
 
 @router.get("/history/builds/{job_id}", summary="Detail for a single build job")
-async def get_build(job_id: str):
+async def get_build(job_id: str, user: User = Depends(require_user)):
     _require_neon()
     from sqlalchemy import select
     from src.infra.db import get_session
-    from src.infra.db_models import BuildJobRow
+    from src.infra.db_models import BuildJobRow, Workspace
 
     async with get_session() as s:
-        result = await s.execute(select(BuildJobRow).where(BuildJobRow.job_id == job_id))
-        r = result.scalar_one_or_none()
-    if r is None:
-        raise HTTPException(status_code=404, detail=f"Build {job_id!r} not found")
+        r = (await s.execute(select(BuildJobRow).where(BuildJobRow.job_id == job_id))).scalar_one_or_none()
+        if r is None:
+            raise HTTPException(status_code=404, detail=f"Build {job_id!r} not found")
+        owner_id = (await s.execute(
+            select(Workspace.user_id).where(Workspace.id == r.workspace_id)
+        )).scalar_one_or_none()
+        if owner_id != user.id:
+            # Return 404 rather than 403 to avoid cross-tenant existence leaks.
+            raise HTTPException(status_code=404, detail=f"Build {job_id!r} not found")
 
     return {
         "job_id": r.job_id,
@@ -159,12 +166,12 @@ async def list_chats(
 
 
 @router.get("/history/chats/{session_id}", summary="Full message thread for a session")
-async def get_chat(session_id: str):
+async def get_chat(session_id: str, user: User = Depends(require_user)):
     _require_neon()
     import uuid as _uuid
     from sqlalchemy import select
     from src.infra.db import get_session
-    from src.infra.db_models import ChatSession, ChatMessage
+    from src.infra.db_models import ChatSession, ChatMessage, Workspace
 
     try:
         sid = _uuid.UUID(session_id)
@@ -174,6 +181,11 @@ async def get_chat(session_id: str):
     async with get_session() as s:
         sess = (await s.execute(select(ChatSession).where(ChatSession.session_id == sid))).scalar_one_or_none()
         if sess is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        owner_id = (await s.execute(
+            select(Workspace.user_id).where(Workspace.id == sess.workspace_id)
+        )).scalar_one_or_none()
+        if owner_id != user.id:
             raise HTTPException(status_code=404, detail="Session not found")
         msgs = (await s.execute(
             select(ChatMessage)
@@ -248,16 +260,21 @@ async def list_configs(
 
 
 @router.get("/history/configs/{config_id}", summary="Full YAML + parsed snapshot")
-async def get_config(config_id: int):
+async def get_config(config_id: int, user: User = Depends(require_user)):
     _require_neon()
     from sqlalchemy import select
     from src.infra.db import get_session
-    from src.infra.db_models import ConfigVersion
+    from src.infra.db_models import ConfigVersion, Workspace
 
     async with get_session() as s:
         r = (await s.execute(select(ConfigVersion).where(ConfigVersion.id == config_id))).scalar_one_or_none()
-    if r is None:
-        raise HTTPException(status_code=404, detail="Config version not found")
+        if r is None:
+            raise HTTPException(status_code=404, detail="Config version not found")
+        owner_id = (await s.execute(
+            select(Workspace.user_id).where(Workspace.id == r.workspace_id)
+        )).scalar_one_or_none()
+        if owner_id != user.id:
+            raise HTTPException(status_code=404, detail="Config version not found")
 
     return {
         "id": r.id,

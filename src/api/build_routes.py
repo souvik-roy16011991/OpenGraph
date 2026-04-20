@@ -4,11 +4,17 @@ Build trigger + status endpoints — workspace-scoped.
 
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from src.api import build_jobs
+from src.api.auth import require_user
 from src.api.deps import require_workspace_id
+from src.infra.db import get_session
+from src.infra.db_models import BuildJobRow, User, Workspace
 
 router = APIRouter()
 
@@ -51,8 +57,29 @@ async def start_build(
 
 
 @router.get("/build/{job_id}", response_model=BuildJobResponse, summary="Get build status")
-async def get_build_status(job_id: str):
-    # No workspace header check here — caller has the opaque job_id.
+async def get_build_status(job_id: str, user: User = Depends(require_user)):
+    """Return build status — ownership-checked via the job's workspace_id.
+
+    We look up the BuildJobRow in Neon (authoritative record of
+    workspace_id); the in-memory ``build_jobs`` dict is only used for the
+    live ``log_tail`` / ``stage`` updates.
+    """
+    # First, ownership: the job must belong to a workspace this user owns.
+    # A non-existent job and a cross-tenant job both return 404 to avoid
+    # leaking job existence across accounts.
+    async with get_session() as s:
+        row = (await s.execute(
+            select(BuildJobRow.workspace_id).where(BuildJobRow.job_id == job_id)
+        )).scalar_one_or_none()
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Build job '{job_id}' not found")
+        ws_owner = (await s.execute(
+            select(Workspace.user_id).where(Workspace.id == row)
+        )).scalar_one_or_none()
+        if ws_owner is None or ws_owner != user.id:
+            raise HTTPException(status_code=404, detail=f"Build job '{job_id}' not found")
+
+    # Ownership ok — return the live in-memory job snapshot.
     job = build_jobs.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Build job '{job_id}' not found")

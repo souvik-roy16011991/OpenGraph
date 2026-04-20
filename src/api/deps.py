@@ -1,31 +1,41 @@
 """
 Shared FastAPI dependencies.
 
-- ``require_workspace_id`` extracts X-Workspace-Id from the request, validates
-  it exists in Neon for the anonymous user (Phase A) or current user
-  (Phase B), sets the ``workspace_context`` contextvar so deeply-nested code
-  in the graph pipeline can read it, and returns the id.
+- ``require_user`` resolves the caller's Stack Auth identity (soft-fallbacks
+  to a shared dev user when Stack is not configured). Re-exported from
+  ``src.api.auth`` for convenience so route modules have a single import.
+- ``require_workspace_id`` extracts X-Workspace-Id, validates it, **verifies
+  ownership against the caller's User row**, loads the workspace's
+  ``domain_config`` into the per-workspace cache, installs the
+  ``workspace_context`` contextvar, and returns the id.
 """
 from __future__ import annotations
 
 import logging
 import uuid
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 
+from src.api.auth import require_user  # re-export so callers can `from src.api.deps import require_user`
 from src.config import USE_NEON
+from src.infra.db_models import User
 from src.workspace_context import set_current_workspace
+
+__all__ = ["require_user", "require_workspace_id"]
 
 logger = logging.getLogger(__name__)
 
 
 async def require_workspace_id(
     x_workspace_id: str | None = Header(default=None, alias="X-Workspace-Id"),
+    user: User = Depends(require_user),
 ) -> str:
-    """Validate and install the active workspace for this request.
+    """Validate workspace header, verify ownership, install context.
 
     Raises:
         400 if header is missing or malformed.
+        401 if the caller is not authenticated (bubbled up from require_user).
+        403 if the workspace exists but isn't owned by the caller.
         404 if the workspace id doesn't exist in Neon.
         503 if Neon is not configured.
     """
@@ -42,7 +52,7 @@ async def require_workspace_id(
             detail="Neon (DATABASE_URL) is required for workspace-scoped operations.",
         )
 
-    # Verify the workspace exists AND capture its domain override in one round-trip.
+    # Load the workspace row AND the domain override in one round-trip.
     from sqlalchemy import select
     from src.infra.db import get_session
     from src.infra.db_models import Workspace
@@ -51,15 +61,20 @@ async def require_workspace_id(
             select(Workspace).where(Workspace.id == uuid.UUID(x_workspace_id))
         )).scalar_one_or_none()
         if ws is None:
+            # 404 (not 403) even though the caller isn't the owner: leaking
+            # "exists but not yours" is strictly worse than leaking "doesn't
+            # exist". This matches how e.g. GitHub responds to foreign repo ids.
+            raise HTTPException(status_code=404, detail=f"Workspace {x_workspace_id} not found.")
+        if ws.user_id != user.id:
+            # Intentionally 404 to avoid existence leakage across tenants.
             raise HTTPException(status_code=404, detail=f"Workspace {x_workspace_id} not found.")
         domain_override = dict(ws.domain_config) if ws.domain_config else None
 
+    # Only AFTER ownership passes: install the context + prime the cache.
+    # Setting the contextvar before the ownership check would risk leaking
+    # the workspace id in log lines emitted by the 403 path.
     set_current_workspace(x_workspace_id)
 
-    # Prefetch the workspace's KBConfig into the per-workspace cache so sync
-    # consumers (get_active_kb_config() inside the request) don't deadlock
-    # trying to re-fetch from the same event-loop thread. Safe to always call
-    # — the function is idempotent and just populates _WORKSPACE_CACHE.
     from src.kb_config import prime_workspace_kb_config
     prime_workspace_kb_config(x_workspace_id, domain_override)
 
