@@ -27,6 +27,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand";
 import { UserMenu } from "@/components/user-menu";
 import { useGraphStatus } from "@/hooks/use-graph-status";
 import { useWizardStore, type WizardStep } from "@/store/wizard-store";
@@ -195,13 +196,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="grid grid-cols-[260px_1fr] min-h-screen">
       {/* Sidebar */}
       <aside className="border-r bg-card/50 flex flex-col">
-        <div className="h-14 border-b flex items-center gap-2 px-5">
-          <div className="h-7 w-7 rounded bg-gradient-to-br from-indigo-500 to-emerald-500 shadow-sm" />
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold leading-tight">KB Engine</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Knowledge graph</span>
+        <Link
+          href="/"
+          className="h-14 border-b flex items-center gap-2 px-5 hover:bg-accent/40 transition-colors"
+          title="OpenGraph"
+        >
+          <div className="h-8 w-8 rounded-md border bg-white flex items-center justify-center shadow-sm">
+            <BrandMark size={18} />
           </div>
-        </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold leading-tight">OpenGraph</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Knowledge graph platform
+            </span>
+          </div>
+        </Link>
         <div className="p-3 border-b">
           <WorkspaceSwitcher />
         </div>
@@ -287,7 +296,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="mt-auto p-4 border-t">
           <p className="text-[10px] text-muted-foreground">
-            Single-domain edition · v1.0
+            OpenGraph · multi-tenant edition
           </p>
         </div>
       </aside>

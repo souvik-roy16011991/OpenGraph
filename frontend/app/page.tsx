@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, LayoutGrid, LogIn, UserPlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand";
 import { useWorkspaceStore } from "@/store/workspace-store";
 
 const STEPS = [
@@ -24,18 +25,20 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-3">
+      <section className="space-y-4">
         <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Knowledge Graph Engine
+          <BrandMark size={14} />
+          OpenGraph · Knowledge graph platform
         </div>
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight max-w-3xl">
-          One workspace per domain. Many files per workspace. Isolated graph &amp; chat per workspace.
+          OpenGraph — one workspace per domain, a typed graph per workspace,
+          a chat for every graph.
         </h1>
         <p className="text-muted-foreground max-w-2xl">
-          Create a workspace, drop in any number of knowledge + tool JSONs, tune the graph parameters,
-          build, and query. Every workspace has its own Memgraph partition, its own Qdrant collection,
-          and its own chat history.
+          Pick a template or bring your own knowledge + tool JSONs, tune the
+          graph parameters, build, and query. Every workspace has its own
+          Memgraph partition, its own Qdrant collection, and its own chat
+          history — isolated end-to-end.
         </p>
         <div className="flex gap-3 pt-2 flex-wrap">
           <Button asChild size="lg">

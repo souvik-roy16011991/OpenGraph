@@ -6,8 +6,15 @@ import { StackProvider, StackTheme } from "@stackframe/stack";
 import { stackServerApp, stackAuthEnabled } from "@/stack";
 
 export const metadata: Metadata = {
-  title: "KB Knowledge Graph Engine",
-  description: "Enterprise knowledge graph builder for domain + tool KBs",
+  title: "OpenGraph",
+  description:
+    "OpenGraph — enterprise knowledge graph builder. Pick a template, upload " +
+    "your KB JSONs, and chat with a typed, per-workspace graph.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 // Every page is heavily client-state driven (zustand, react-query, localStorage,

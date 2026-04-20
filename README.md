@@ -1,11 +1,17 @@
-# KB Knowledge Graph Engine
+# OpenGraph
 
-A multi-tenant enterprise platform that turns pairs of structured
-JSON knowledge bases (domain **knowledge** + **tool** catalog) into a
-typed, workspace-scoped graph, then exposes a LangGraph agent that
-queries that graph in natural language. Every runtime artifact —
-uploads, vectors, graph, chat history, config — lives in managed cloud
-stores. No local disk. No per-tenant state in the container.
+<p align="left">
+  <picture>
+    <img src="./frontend/public/opengraph-mark.svg" alt="OpenGraph" width="56" />
+  </picture>
+</p>
+
+**OpenGraph** is a multi-tenant enterprise platform that turns pairs of
+structured JSON knowledge bases (domain **knowledge** + **tool** catalog)
+into a typed, workspace-scoped graph, then exposes a LangGraph agent that
+queries that graph in natural language. Every runtime artifact — uploads,
+vectors, graph, chat history, config — lives in managed cloud stores. No
+local disk. No per-tenant state in the container.
 
 ## What it does
 
