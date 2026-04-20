@@ -79,12 +79,20 @@ export type AuthResponse = { token: string; token_type: string; user: StoredUser
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
 
 async function authFetch(path: string, body: unknown): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error("Can't reach the server right now — please check your internet connection and try again.");
+    }
+    throw err;
+  }
   if (!res.ok) {
     let detail: unknown = res.statusText;
     try { detail = (await res.json()).detail ?? detail; } catch { /* ignore */ }

@@ -89,13 +89,27 @@ async function handle<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Wrap `fetch` so the browser's opaque "TypeError: Failed to fetch" becomes
+ *  a message users can actually act on. Triggered by: server unreachable,
+ *  DNS failure, CORS rejection, offline, request aborted. */
+async function safeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error("Can't reach the server right now — please check your internet connection and refresh the page.");
+    }
+    throw err;
+  }
+}
+
 async function get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
   const qs = query
     ? "?" + new URLSearchParams(
         Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       ).toString()
     : "";
-  const res = await fetch(`${BASE}${path}${qs}`, {
+  const res = await safeFetch(`${BASE}${path}${qs}`, {
     cache: "no-store",
     headers: withHeaders(),
   });
@@ -103,7 +117,7 @@ async function get<T>(path: string, query?: Record<string, string | number | und
 }
 
 async function json<T>(path: string, method: "POST" | "PUT" | "DELETE" | "PATCH", body?: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await safeFetch(`${BASE}${path}`, {
     method,
     headers: withHeaders({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -124,7 +138,7 @@ async function jsonWithWorkspace<T>(
   const base = withHeaders({ "Content-Type": "application/json" });
   const h = new Headers(base);
   h.set("X-Workspace-Id", workspaceIdOverride);
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await safeFetch(`${BASE}${path}`, {
     method,
     headers: h,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -148,7 +162,7 @@ async function getWithWorkspace<T>(
     : "";
   const h = new Headers(withHeaders());
   h.set("X-Workspace-Id", workspaceIdOverride);
-  const res = await fetch(`${BASE}${path}${qs}`, { cache: "no-store", headers: h });
+  const res = await safeFetch(`${BASE}${path}${qs}`, { cache: "no-store", headers: h });
   return handle<T>(res);
 }
 
@@ -160,7 +174,7 @@ export const api = {
 
   // upload — accepts multiple `knowledge_files` + multiple `tool_files`
   uploadKB: async (form: FormData): Promise<UploadResponse> => {
-    const res = await fetch(`${BASE}/api/v1/kb/upload`, {
+    const res = await safeFetch(`${BASE}/api/v1/kb/upload`, {
       method: "POST",
       body: form,
       cache: "no-store",

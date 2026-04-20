@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TemplateCard } from "@/components/templates/template-card";
@@ -97,7 +98,7 @@ export default function TemplatesPage() {
 
       {instantiate.isError && (
         <div className="text-sm text-destructive">
-          Failed to create workspace: {String(instantiate.error)}
+          Couldn&apos;t create workspace — {errorMessage(instantiate.error)}
         </div>
       )}
 

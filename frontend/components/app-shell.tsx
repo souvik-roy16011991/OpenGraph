@@ -180,7 +180,7 @@ function StatusPill() {
       </Badge>
     );
   if (status.state === "empty") return <Badge variant="warning">No graph built yet</Badge>;
-  return <Badge variant="destructive">Error: {status.message}</Badge>;
+  return <Badge variant="destructive">{status.message}</Badge>;
 }
 
 function BackendBadges() {

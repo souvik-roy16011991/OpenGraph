@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -157,7 +158,7 @@ function ProfileCard({ me }: { me: MeResponse }) {
               joined {new Date(me.created_at).toLocaleString()}
             </p>
             {save.isError && (
-              <p className="text-xs text-destructive mt-1">save failed: {String(save.error)}</p>
+              <p className="text-xs text-destructive mt-1">Couldn&apos;t save — {errorMessage(save.error)}</p>
             )}
           </div>
         </div>
@@ -255,7 +256,7 @@ export default function ProfilePage() {
     return <p className="text-sm text-muted-foreground">Loading profile…</p>;
   }
   if (!me) {
-    return <p className="text-sm text-destructive">{String(meQuery.error) || "No profile data."}</p>;
+    return <p className="text-sm text-destructive">{meQuery.error ? errorMessage(meQuery.error) : "No profile data."}</p>;
   }
 
   return (

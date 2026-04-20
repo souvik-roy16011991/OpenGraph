@@ -4,7 +4,7 @@ import * as React from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Send, Sparkles, User, Bot, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -142,7 +142,7 @@ export function Chat({ workspaceId }: ChatProps = {}) {
         <div className="flex items-center gap-2">
           {saveLlm.isPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
           {saveLlm.isError && (
-            <span className="text-[10px] text-destructive" title={String(saveLlm.error)}>
+            <span className="text-[10px] text-destructive" title={errorMessage(saveLlm.error)}>
               save failed
             </span>
           )}

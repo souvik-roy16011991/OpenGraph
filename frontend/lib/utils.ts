@@ -17,3 +17,11 @@ export function formatDuration(sec: number) {
   const s = Math.floor(sec % 60);
   return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
+
+/** Extract a clean user-facing message from an unknown thrown value.
+ *  `String(new Error("x"))` returns "Error: x" — we want just "x". */
+export function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return "Something went wrong. Please refresh the page and try again.";
+}

@@ -83,8 +83,8 @@ export default function WorkspacesPage() {
             <Briefcase className="h-5 w-5" /> Workspaces
           </h1>
           <p className="text-muted-foreground text-sm">
-            Each workspace holds its own knowledge + tool JSONs, its own graph in Memgraph &amp;
-            Qdrant, and its own chat history. Pick one to start, or create a new one.
+            Each workspace holds its own knowledge + tool understanding. Pick one to start,
+            or create a new one.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

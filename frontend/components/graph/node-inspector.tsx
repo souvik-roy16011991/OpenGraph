@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/utils";
 
 interface Props {
   nodeId: string | null;
@@ -32,7 +33,7 @@ export function NodeInspector({ nodeId, onClose, onNavigate }: Props) {
   }
 
   if (query.isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading node…</div>;
-  if (query.isError) return <div className="p-6 text-sm text-destructive">Error: {(query.error as Error).message}</div>;
+  if (query.isError) return <div className="p-6 text-sm text-destructive">{errorMessage(query.error)}</div>;
   const data = query.data;
   if (!data) return null;
 
