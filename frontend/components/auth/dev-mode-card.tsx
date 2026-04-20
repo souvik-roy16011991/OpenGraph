@@ -4,15 +4,22 @@ import Link from "next/link";
 import { ArrowRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { beginDevSession } from "@/lib/session-actions";
 
 /**
  * Shown on /sign-in and /sign-up when Stack Auth isn't configured.
  *
- * Explicit about the state (dev mode), explicit about how to turn real auth
- * on (three env vars, with links to where to get them), explicit about the
- * escape hatch (continue anyway as the shared dev user).
+ * The "Continue as dev user" submit triggers a server action that drops
+ * `og-session=dev` cookie, which the middleware accepts as a session
+ * marker. Without that cookie the user can't reach any other route.
  */
-export function DevModeAuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
+export function DevModeAuthCard({
+  mode,
+  returnTo,
+}: {
+  mode: "sign-in" | "sign-up";
+  returnTo?: string;
+}) {
   const title = mode === "sign-up" ? "Sign up" : "Sign in";
   return (
     <main className="mx-auto max-w-xl py-12 px-6 space-y-6">
@@ -33,8 +40,9 @@ export function DevModeAuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
               Neon Auth (Stack Auth)
             </a>
             . It's currently <strong>off</strong> because the environment
-            variables below aren't set, so the backend runs every request as
-            a shared anonymous user.
+            variables below aren't set. You can still use OpenGraph locally
+            as the shared dev user — click the button below to start a
+            dev-mode session.
           </p>
         </div>
       </div>
@@ -74,28 +82,31 @@ STACK_SECRET_SERVER_KEY={"{server secret}"}
             <li>Redeploy both services; real sign-in takes over.</li>
           </ol>
           <p className="text-[11px] text-muted-foreground">
-            See <a href="/DEPLOY.md" className="underline">DEPLOY.md §5</a> for
-            the production cutover checklist (includes wiping anonymous data).
+            See{" "}
+            <a href="https://github.com/" className="underline">
+              DEPLOY.md §5
+            </a>{" "}
+            for the production cutover checklist (includes wiping anonymous
+            data).
           </p>
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <Button asChild variant="default">
-          <Link href="/templates">
-            Continue as dev user <ArrowRight className="h-4 w-4" />
-          </Link>
+      <form action={beginDevSession} className="flex items-center gap-3 flex-wrap">
+        {returnTo ? <input type="hidden" name="return_to" value={returnTo} /> : null}
+        <Button type="submit" variant="default">
+          Continue as dev user <ArrowRight className="h-4 w-4" />
         </Button>
         {mode === "sign-in" ? (
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" type="button">
             <Link href="/sign-up">New here? Sign up instead</Link>
           </Button>
         ) : (
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" type="button">
             <Link href="/sign-in">Already have an account? Sign in</Link>
           </Button>
         )}
-      </div>
+      </form>
     </main>
   );
 }

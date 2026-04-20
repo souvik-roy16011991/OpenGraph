@@ -1,65 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Auth gate.
+ * Auth gate — always on.
  *
- * When Stack Auth env vars are configured (production), require an auth
- * cookie on every page except Stack's own /handler/* routes, public assets,
- * and API routes (the backend enforces its own auth). Unauthenticated
- * visitors bounce to Stack's sign-in handler at /handler/sign-in.
+ * Until the user has a session cookie they see **nothing** except the
+ * sign-in / sign-up pages and Stack Auth's own handler routes. The two
+ * accepted session markers are:
  *
- * When Stack Auth is NOT configured (dev / Phase 1b still in effect), this
- * middleware is a no-op so local development keeps working without
- * credentials. Flipping on enforcement is literally "add env vars +
- * redeploy" — no code change required.
+ *   - ``stack-refresh-*`` — Stack Auth's refresh cookie, set after a real
+ *     sign-in when the Stack Auth env vars are configured.
+ *   - ``og-session=dev``  — dev-mode cookie dropped by the "Continue as
+ *     dev user" server action on /sign-in. Only reachable when Stack Auth
+ *     is unconfigured; lets local dev work without Stack credentials, but
+ *     still requires an explicit sign-in gesture.
  *
- * Matcher below excludes static assets and Next internals; the runtime
- * checks inside this function do the rest.
+ * Anything else on the site is gated: request → redirect to /sign-in,
+ * preserving the original path via ?return_to=.
  */
 
 const PUBLIC_PREFIXES = [
-  "/handler",       // Stack Auth flows (sign-in, callback, reset)
-  "/sign-in",       // Convenience shortcut → redirects to /handler/sign-in
-  "/sign-up",       // Convenience shortcut → redirects to /handler/sign-up
-  "/_next",         // Next internals
-  "/favicon.ico",
+  "/handler",                 // Stack Auth flows (sign-in, OAuth, reset)
+  "/sign-in",                 // our smart sign-in page
+  "/sign-up",                 // our smart sign-up page
+  "/_next",                   // Next internals
+  "/favicon",                 // favicon.svg / .ico
+  "/opengraph-mark.svg",      // brand SVG (public)
 ];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
+function hasSession(req: NextRequest): boolean {
+  const cookies = req.cookies.getAll();
+  return cookies.some(
+    (c) => c.name.startsWith("stack-refresh") || c.name === "og-session",
+  );
+}
+
 export function middleware(req: NextRequest) {
-  const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
-  const publishable = process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY;
-  // Soft-rollout: no gate until Stack is actually configured.
-  if (!projectId || !publishable) {
-    return NextResponse.next();
-  }
+  const { pathname, search } = req.nextUrl;
 
-  const { pathname } = req.nextUrl;
-  if (isPublic(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Stack Auth cookies include `stack-access` and `stack-refresh`. Presence
-  // of stack-refresh is a good-enough proxy for "might be signed in" — the
-  // backend still validates the JWT on every API call, so a forged cookie
-  // grants nothing beyond the ability to see the UI shell.
-  const hasSession = req.cookies
-    .getAll()
-    .some((c) => c.name.startsWith("stack-refresh"));
-  if (hasSession) {
-    return NextResponse.next();
-  }
+  if (isPublic(pathname)) return NextResponse.next();
+  if (hasSession(req)) return NextResponse.next();
 
   const signIn = req.nextUrl.clone();
-  signIn.pathname = "/handler/sign-in";
-  signIn.searchParams.set("after_auth_return_to", pathname + req.nextUrl.search);
+  signIn.pathname = "/sign-in";
+  signIn.search = "";
+  // Preserve where the user was trying to go so the sign-in action can
+  // redirect them back after dev-mode login. Stack Auth's own sign-in
+  // already supports its own `after_auth_return_to` param, which we don't
+  // need to synthesize here.
+  signIn.searchParams.set("return_to", pathname + (search || ""));
   return NextResponse.redirect(signIn);
 }
 
 export const config = {
-  // Exclude static files so the middleware doesn't fire on every .js / .css request.
+  // Exclude static assets so the middleware doesn't fire on every .js / .css.
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

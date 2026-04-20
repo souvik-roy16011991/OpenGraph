@@ -2,22 +2,24 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { LogIn, LogOut, UserRound } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { endDevSession } from "@/lib/session-actions";
 
 /**
  * Header user menu.
  *
- * - Stack Auth ON  → lazy-load the Stack SDK and show signed-in user +
- *   sign-out (or a "Sign in" button when logged out).
- * - Stack Auth OFF → show a "dev mode" chip linking to /profile AND a
- *   prominent "Sign in" button that goes to /sign-in (a smart page that
- *   redirects to Stack's handler when configured, or explains the dev-mode
- *   state otherwise).
+ * Auth is always enforced (see middleware.ts), so by the time this
+ * component mounts the user has one of two valid sessions:
  *
- * The intent is that sign-in is always *visible* — never silently hidden
- * just because env vars are missing.
+ * - Stack Auth cookie → the lazy-loaded <StackUserMenu> shows their email +
+ *   a sign-out button backed by the Stack SDK.
+ * - Dev-mode cookie (`og-session=dev`) → "dev mode" chip + a sign-out
+ *   action that clears the cookie and bounces back to /sign-in.
+ *
+ * The component decides which branch to render by the presence of the
+ * NEXT_PUBLIC_* Stack env vars at build time.
  */
 
 const stackConfigured =
@@ -34,8 +36,7 @@ function DevModeBadge() {
   );
 }
 
-// Lazy chunk containing the Stack-dependent UI. Only loaded when Stack is
-// configured so unauth'd dev builds never import the Stack hooks module.
+// Lazy-load the Stack SDK chunk only when configured.
 const StackUserMenu = React.lazy(() => import("./user-menu-stack"));
 
 export function UserMenu() {
@@ -52,12 +53,12 @@ export function UserMenu() {
           <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
           <DevModeBadge />
         </Link>
-        <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-          <Link href="/sign-in">
-            <LogIn className="h-3.5 w-3.5" />
-            <span className="text-xs">Sign in</span>
-          </Link>
-        </Button>
+        <form action={endDevSession}>
+          <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1.5" title="End dev session">
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="text-xs">Sign out</span>
+          </Button>
+        </form>
       </div>
     );
   }
@@ -68,7 +69,7 @@ export function UserMenu() {
   );
 }
 
-// Re-export a tiny signed-out fallback the StackUserMenu can use.
+// Legacy export retained for callers still importing it.
 export function SignOutButton({ onClick }: { onClick: () => void }) {
   return (
     <Button variant="ghost" size="sm" onClick={onClick} className="h-8 gap-1.5">
