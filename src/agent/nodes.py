@@ -48,23 +48,35 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Shared LLM instance (lazy singleton)
+# Per-model LLM cache
 # ---------------------------------------------------------------------------
+# Each distinct model string gets its own ChatOpenAI client. Building a client
+# is cheap (no network call at construction), so this dict is effectively a
+# free amortization — callers still pay zero cost on the happy path, but we
+# don't rebuild a client on every request for the same model.
 
-_llm: ChatOpenAI | None = None
+_llm_cache: dict[str, ChatOpenAI] = {}
 
 
-def _get_llm() -> ChatOpenAI:
-    global _llm
-    if _llm is None:
-        _llm = ChatOpenAI(
-            model=LLM_MODEL,
+def _get_llm(model: str | None = None) -> ChatOpenAI:
+    """Return a ChatOpenAI client for *model* (falls back to env LLM_MODEL).
+
+    Clients are cached per resolved model name so a single workspace that
+    pins e.g. 'anthropic/claude-3-7-sonnet' doesn't construct a new client
+    per request.
+    """
+    resolved = (model or LLM_MODEL).strip() or LLM_MODEL
+    client = _llm_cache.get(resolved)
+    if client is None:
+        client = ChatOpenAI(
+            model=resolved,
             openai_api_base=OPENROUTER_BASE_URL,
             openai_api_key=OPENROUTER_API_KEY,
             temperature=LLM_TEMPERATURE,
             max_tokens=LLM_MAX_TOKENS,
         )
-    return _llm
+        _llm_cache[resolved] = client
+    return client
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +89,7 @@ def classify_intent(state: GraphAgentState, kg: KnowledgeGraph) -> dict[str, Any
     Uses Qwen LLM for classification.
     """
     query = state["query"]
-    llm = _get_llm()
+    llm = _get_llm(state.get("llm_model"))
 
     prompt = _p().intent_classification_template.format(query=query)
     messages = [
@@ -497,7 +509,7 @@ def synthesize_response(state: GraphAgentState, kg: KnowledgeGraph) -> dict[str,
     template = _p().get_synthesis_template(intent)
     user_prompt = template.format(query=query, context=context_text)
 
-    llm = _get_llm()
+    llm = _get_llm(state.get("llm_model"))
     messages = [
         {"role": "system", "content": _p().synthesize_system},
         {"role": "user", "content": user_prompt},

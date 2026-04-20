@@ -67,6 +67,10 @@ class QueryRequest(BaseModel):
     query: str
     stream: bool = False
     session_id: Optional[str] = None
+    # Optional per-request override for the LLM. When omitted, resolution
+    # falls through: workspace default (graph_config.llm_model) -> env
+    # LLM_MODEL. The frontend populates this from the model dropdown.
+    llm_model: Optional[str] = None
 
 
 class QueryResponse(BaseModel):
@@ -83,6 +87,12 @@ class QueryResponse(BaseModel):
     session_id: Optional[str] = None
     duration_ms: Optional[int] = None
     error: Optional[str] = None
+    # The resolved OpenRouter model id that actually answered (request
+    # override > workspace default > env LLM_MODEL). Surfaced so the UI can
+    # label each turn with the model that produced it — the answer to
+    # "which model said this?" must come from the server, not from whatever
+    # the user has selected in the dropdown right now.
+    llm_model: Optional[str] = None
 
 
 class TraverseRequest(BaseModel):
@@ -119,16 +129,27 @@ async def query_graph(
     import time
     import uuid
     from src.agent.graph import KBGraphAgent
-    from src.config import USE_NEON
+    from src.config import LLM_MODEL, USE_NEON
+    from src.infra.workspace_llm import get_workspace_llm_model
 
     kg = _get_kg(workspace_id)
     agent = KBGraphAgent.from_graph(kg)
 
     session_id = req.session_id or str(uuid.uuid4())
 
+    # Resolve the effective LLM model: request override > workspace default.
+    # (Env LLM_MODEL is the final fallback inside src.agent.nodes._get_llm.)
+    resolved_model = (req.llm_model or "").strip() or None
+    if resolved_model is None:
+        resolved_model = await get_workspace_llm_model(workspace_id)
+    # Effective model = what actually answers. If the chain above produced
+    # None, the agent nodes fall back to env LLM_MODEL — surface that so the
+    # response is self-describing.
+    effective_model = resolved_model or LLM_MODEL
+
     start = time.perf_counter()
     try:
-        state = agent.query(req.query)
+        state = agent.query(req.query, llm_model=resolved_model)
     except Exception as exc:
         logger.error(f"Agent query failed: {exc}", exc_info=True)
         # best-effort record the failure turn
@@ -160,6 +181,7 @@ async def query_graph(
         session_id=session_id,
         duration_ms=duration_ms,
         error=state.get("error"),
+        llm_model=effective_model,
     )
 
     if USE_NEON:
@@ -416,6 +438,7 @@ from src.api.build_routes import router as build_router          # noqa: E402
 from src.api.viz_routes import router as viz_router              # noqa: E402
 from src.api.history_routes import router as history_router      # noqa: E402
 from src.api.workspace_routes import router as workspace_router  # noqa: E402
+from src.api.llm_routes import router as llm_router              # noqa: E402
 
 router.include_router(workspace_router, tags=["workspace"])
 router.include_router(upload_router, tags=["kb"])
@@ -423,3 +446,4 @@ router.include_router(config_router, tags=["config"])
 router.include_router(build_router, tags=["build"])
 router.include_router(viz_router, tags=["graph"])
 router.include_router(history_router, tags=["history"])
+router.include_router(llm_router, tags=["llm"])

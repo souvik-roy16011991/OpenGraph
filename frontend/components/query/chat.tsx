@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Send, Sparkles, User, Bot, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ModelSelect } from "@/components/ui/model-select";
 import { api } from "@/lib/api";
-import type { QueryResponse } from "@/lib/schema";
+import type { LLMModel, QueryResponse } from "@/lib/schema";
 import { useWizardStore } from "@/store/wizard-store";
 import { useWorkspaceStore } from "@/store/workspace-store";
 
@@ -23,9 +24,41 @@ export function Chat() {
   const [turns, setTurns] = React.useState<Turn[]>([]);
   const [input, setInput] = React.useState("");
   const [sessionId, setSessionId] = React.useState<string | null>(null);
+  const [llmModel, setLlmModel] = React.useState<string | null>(null);
   const setHighlighted = useWizardStore((s) => s.setHighlightedNodeIds);
   const activeWs = useWorkspaceStore((s) => s.activeId);
   const scrollerRef = React.useRef<HTMLDivElement>(null);
+
+  // Catalog fetch — cached 1h on the backend (Upstash), 10 min on client.
+  const modelsQuery = useQuery({
+    queryKey: ["llm", "models"],
+    queryFn: () => api.listModels(),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Workspace's current LLM preference (re-fetched on workspace switch).
+  const wsLlmQuery = useQuery({
+    queryKey: ["workspace", activeWs, "llm"],
+    queryFn: () => (activeWs ? api.getWorkspaceLLM(activeWs) : Promise.resolve(null)),
+    enabled: !!activeWs,
+    staleTime: 30 * 1000,
+  });
+
+  React.useEffect(() => {
+    if (wsLlmQuery.data) setLlmModel(wsLlmQuery.data.llm_model);
+  }, [wsLlmQuery.data]);
+
+  // Persist model choice to the workspace. Fire-and-forget; the UI already
+  // reflects the new model locally so the PUT just makes it sticky.
+  const saveLlm = useMutation({
+    mutationFn: (model: string) =>
+      activeWs ? api.setWorkspaceLLM(activeWs, model) : Promise.reject(new Error("no workspace")),
+  });
+
+  function handleModelChange(id: string) {
+    setLlmModel(id);
+    saveLlm.mutate(id);
+  }
 
   // Restore or create a session id per workspace (so switching workspaces
   // gives a fresh conversation thread rather than leaking history across).
@@ -45,7 +78,12 @@ export function Chat() {
   }, [activeWs]);
 
   const mutation = useMutation({
-    mutationFn: (q: string) => api.query({ query: q, session_id: sessionId ?? undefined }),
+    mutationFn: (q: string) =>
+      api.query({
+        query: q,
+        session_id: sessionId ?? undefined,
+        llm_model: llmModel ?? undefined,
+      }),
     onSuccess: (resp) => {
       setTurns((t) => [...t, { role: "assistant", resp, id: Date.now() }]);
       setHighlighted(resp.traversal_path || []);
@@ -80,6 +118,28 @@ export function Chat() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-180px)] rounded-xl border bg-card">
+      <div className="flex items-center justify-between border-b px-3 h-11">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Bot className="h-3.5 w-3.5" />
+          <span>Model</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {saveLlm.isPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+          {saveLlm.isError && (
+            <span className="text-[10px] text-destructive" title={String(saveLlm.error)}>
+              save failed
+            </span>
+          )}
+          <ModelSelect
+            models={modelsQuery.data?.models ?? []}
+            value={llmModel}
+            onChange={handleModelChange}
+            defaultModel={modelsQuery.data?.default}
+            loading={modelsQuery.isLoading}
+            disabled={!activeWs}
+          />
+        </div>
+      </div>
       <ScrollArea ref={scrollerRef} className="flex-1">
         <div className="p-6 space-y-5">
           {turns.length === 0 && (
@@ -111,7 +171,11 @@ export function Chat() {
                   <Bot className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-3 max-w-[85%]">
-                  <AgentMessage resp={t.resp} onFollowUp={submit} />
+                  <AgentMessage
+                    resp={t.resp}
+                    onFollowUp={submit}
+                    modelLabel={labelForModel(t.resp.llm_model, modelsQuery.data?.models)}
+                  />
                 </div>
               </div>
             )
@@ -148,15 +212,39 @@ export function Chat() {
   );
 }
 
-function AgentMessage({ resp, onFollowUp }: { resp: QueryResponse; onFollowUp: (q: string) => void }) {
+/** Prefer the model's friendly name from the catalog; fall back to the raw id. */
+function labelForModel(id: string | null | undefined, catalog: LLMModel[] | undefined): string | null {
+  if (!id) return null;
+  const hit = catalog?.find((m) => m.id === id);
+  return hit?.name || id;
+}
+
+function AgentMessage({
+  resp,
+  onFollowUp,
+  modelLabel,
+}: {
+  resp: QueryResponse;
+  onFollowUp: (q: string) => void;
+  modelLabel: string | null;
+}) {
   return (
     <div className="space-y-3">
       <div className="rounded-2xl rounded-tl-sm bg-muted/60 px-4 py-3 text-sm prose prose-sm dark:prose-invert max-w-none">
         <ReactMarkdown>{resp.response || "_(empty response)_"}</ReactMarkdown>
       </div>
 
-      {(resp.intent || resp.kb_focus) && (
+      {(resp.intent || resp.kb_focus || modelLabel) && (
         <div className="flex flex-wrap gap-1.5 text-[10px]">
+          {modelLabel && (
+            <Badge
+              variant="outline"
+              className="text-[10px] font-mono max-w-[260px] truncate"
+              title={resp.llm_model ?? undefined}
+            >
+              model: {modelLabel}
+            </Badge>
+          )}
           {resp.intent && <Badge variant="outline" className="text-[10px] font-mono">intent: {resp.intent}</Badge>}
           {resp.kb_focus && <Badge variant="outline" className="text-[10px] font-mono">focus: {resp.kb_focus}</Badge>}
           {resp.extracted_topics.map((t) => (

@@ -127,6 +127,11 @@ DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
 UPSTASH_REDIS_REST_URL: str = os.environ.get("UPSTASH_REDIS_REST_URL", "")
 UPSTASH_REDIS_REST_TOKEN: str = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 
+# Optional allowlist of OpenRouter models exposed to end-users. Comma-separated
+# list of model ids (e.g. "anthropic/claude-3-7-sonnet,openai/gpt-4o-mini").
+# When unset/empty, the full OpenRouter catalog is exposed via /api/v1/llm/models.
+OPENROUTER_ALLOWED_MODELS: str = os.environ.get("OPENROUTER_ALLOWED_MODELS", "")
+
 # Feature flags — auto-detected from credential presence
 USE_PINECONE: bool = bool(PINECONE_API_KEY)
 USE_QDRANT: bool = bool(QDRANT_URL and QDRANT_API_KEY)

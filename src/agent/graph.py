@@ -110,57 +110,46 @@ class KBGraphAgent:
         runnable = build_agent_graph(kg)
         return cls(runnable, kg)
 
-    def query(self, query: str) -> GraphAgentState:
+    def _initial_state(self, query: str, llm_model: str | None) -> GraphAgentState:
+        return {
+            "query": query,
+            "intent": "",
+            "extracted_topics": [],
+            "kb_focus": "both",
+            "entry_nodes": [],
+            "traversal_path": [],
+            "visited_node_ids": [],
+            "gathered_context": [],
+            "steps": [],
+            "tools_referenced": [],
+            "knowledge_concepts": [],
+            "response": "",
+            "follow_up_suggestions": [],
+            "traversal_depth": 0,
+            "needs_more_context": False,
+            "error": None,
+            "llm_model": llm_model,
+        }
+
+    def query(self, query: str, llm_model: str | None = None) -> GraphAgentState:
         """
         Run the agent on a user query.
 
-        Returns the full final state, including:
-          - response (str): markdown response
-          - steps (list): structured steps
-          - tools_referenced (list): tool details
-          - follow_up_suggestions (list): suggested next questions
-        """
-        initial_state: GraphAgentState = {
-            "query": query,
-            "intent": "",
-            "extracted_topics": [],
-            "kb_focus": "both",
-            "entry_nodes": [],
-            "traversal_path": [],
-            "visited_node_ids": [],
-            "gathered_context": [],
-            "steps": [],
-            "tools_referenced": [],
-            "knowledge_concepts": [],
-            "response": "",
-            "follow_up_suggestions": [],
-            "traversal_depth": 0,
-            "needs_more_context": False,
-            "error": None,
-        }
+        Args:
+            query: The user's natural-language query.
+            llm_model: OpenRouter model id to use for this run (e.g.
+                ``"anthropic/claude-3-7-sonnet"``). When None, nodes fall
+                back to the env ``LLM_MODEL`` default.
 
-        logger.info(f"Running agent query: {query[:80]}")
-        final_state: GraphAgentState = self._runnable.invoke(initial_state)
+        Returns the full final state: response (markdown), steps, tools,
+        follow-ups.
+        """
+        logger.info(f"Running agent query: {query[:80]} (llm={llm_model or 'default'})")
+        final_state: GraphAgentState = self._runnable.invoke(
+            self._initial_state(query, llm_model)
+        )
         return final_state
 
-    def stream(self, query: str):
+    def stream(self, query: str, llm_model: str | None = None):
         """Stream intermediate states for progressive UI updates."""
-        initial_state: GraphAgentState = {
-            "query": query,
-            "intent": "",
-            "extracted_topics": [],
-            "kb_focus": "both",
-            "entry_nodes": [],
-            "traversal_path": [],
-            "visited_node_ids": [],
-            "gathered_context": [],
-            "steps": [],
-            "tools_referenced": [],
-            "knowledge_concepts": [],
-            "response": "",
-            "follow_up_suggestions": [],
-            "traversal_depth": 0,
-            "needs_more_context": False,
-            "error": None,
-        }
-        yield from self._runnable.stream(initial_state)
+        yield from self._runnable.stream(self._initial_state(query, llm_model))

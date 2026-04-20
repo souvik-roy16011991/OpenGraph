@@ -11,6 +11,7 @@ import type {
   GraphConfigPayload,
   GraphStats,
   GraphVizPayload,
+  LLMModelsResponse,
   NodeDetail,
   PutGraphConfigResponse,
   QueryRequest,
@@ -20,6 +21,7 @@ import type {
   UploadHistoryRow,
   UploadResponse,
   WorkspaceFileInfo,
+  WorkspaceLLMResponse,
   WorkspaceSummary,
 } from "./schema";
 
@@ -132,6 +134,14 @@ export const api = {
 
   // agent
   query: (r: QueryRequest) => json<QueryResponse>("/api/v1/query", "POST", r),
+
+  // LLM selection
+  listModels: (refresh = false) =>
+    get<LLMModelsResponse>("/api/v1/llm/models", refresh ? { refresh: "true" } : undefined),
+  getWorkspaceLLM: (ws_id: string) =>
+    get<WorkspaceLLMResponse>(`/api/v1/workspaces/${ws_id}/llm`),
+  setWorkspaceLLM: (ws_id: string, model: string | null) =>
+    json<WorkspaceLLMResponse>(`/api/v1/workspaces/${ws_id}/llm`, "PUT", { model }),
 
   // history (Neon-backed)
   historyBuilds: (limit = 50) =>

@@ -278,11 +278,34 @@ export interface SearchResponse {
   results: Array<Record<string, unknown> & { node_id: string; heading: string; search_score: number }>;
 }
 
+// ---------- LLM selection ----------
+export interface LLMModel {
+  id: string;
+  name: string;
+  description?: string | null;
+  context_length?: number | null;
+  pricing?: {
+    prompt?: string | number | null;
+    completion?: string | number | null;
+  };
+}
+export interface LLMModelsResponse {
+  default: string;
+  models: LLMModel[];
+  allowlist_active: boolean;
+}
+export interface WorkspaceLLMResponse {
+  workspace_id: string;
+  llm_model: string | null;
+  effective_model: string;
+}
+
 // ---------- Agent query ----------
 export interface QueryRequest {
   query: string;
   stream?: boolean;
   session_id?: string;
+  llm_model?: string | null;
 }
 export interface QueryResponse {
   query: string;
@@ -298,4 +321,5 @@ export interface QueryResponse {
   session_id?: string | null;
   duration_ms?: number | null;
   error?: string | null;
+  llm_model?: string | null;
 }

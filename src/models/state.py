@@ -46,3 +46,7 @@ class GraphAgentState(TypedDict):
     traversal_depth: int
     needs_more_context: bool
     error: Optional[str]
+
+    # LLM selection (resolved by the caller: request override > workspace
+    # default > env LLM_MODEL). When None, nodes fall back to env default.
+    llm_model: Optional[str]

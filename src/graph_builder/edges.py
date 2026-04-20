@@ -219,6 +219,14 @@ class EdgeBuilder:
         """
         from langchain_openai import ChatOpenAI
         from src.config import LLM_MODEL, LLM_TEMPERATURE, OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+        from src.infra.workspace_llm import get_workspace_llm_model_sync
+
+        # Honor the workspace's chosen LLM for cross-link refinement. The
+        # build job runs in a background thread with workspace context set,
+        # so a thread-safe sync read is used here. Falls back to env default.
+        ws_id = get_current_workspace()
+        workspace_model = get_workspace_llm_model_sync(ws_id) if ws_id else None
+        model_id = workspace_model or LLM_MODEL
 
         tool_headings = [
             node.heading
@@ -246,8 +254,9 @@ class EdgeBuilder:
             '{"Chapter N: Tool Chapter Name": ["Chapter M: Knowledge Chapter Name"]}'
         )
 
+        logger.info("Cross-link refinement using model=%s (ws=%s)", model_id, ws_id)
         llm = ChatOpenAI(
-            model=LLM_MODEL,
+            model=model_id,
             openai_api_base=OPENROUTER_BASE_URL,
             openai_api_key=OPENROUTER_API_KEY,
             temperature=LLM_TEMPERATURE,
