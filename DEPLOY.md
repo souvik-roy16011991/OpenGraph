@@ -23,15 +23,20 @@ Render in step 3.
 | Store                   | Used for                                          | Where to create            | Secrets you'll need |
 | ----------------------- | ------------------------------------------------- | -------------------------- | ------------------- |
 | **Neon** (Postgres)     | users, workspaces, builds, chats, configs, audit  | neon.tech                  | `DATABASE_URL` |
-| **Neon Auth**           | user sign-up / sign-in / OAuth                    | neon.tech → project → Auth | `NEON_AUTH_BASE_URL`, `NEON_AUTH_PROJECT_ID`, `NEON_AUTH_SECRET_SERVER_KEY`, `NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY` |
 | **Memgraph Cloud**      | knowledge graph nodes + edges                     | memgraph.com/cloud         | `MEMGRAPH_URI`, `_USERNAME`, `_PASSWORD` |
 | **Qdrant Cloud**        | embedding vectors (one collection per workspace)  | qdrant.tech                | `QDRANT_URL`, `QDRANT_API_KEY` |
 | **Vercel Blob**         | uploaded KB JSONs (authoritative file store)      | vercel.com/dashboard/stores | `BLOB_READ_WRITE_TOKEN` |
 | **OpenRouter**          | LLM + embedding API (any of 342 models)           | openrouter.ai              | `OPENROUTER_API_KEY` |
 | **Upstash Redis**       | JWKS cache, cross-link cache, model-catalog cache | upstash.com                | `UPSTASH_REDIS_REST_URL`, `_TOKEN` |
 
-**Neon Auth is required.** Protected routes return 503 until the
-`NEON_AUTH_*` vars are set. There is no unauthenticated fallback.
+**Auth is first-party JWT (HS256).** Generate a 48-byte secret and paste it
+into `JWT_SECRET` on the backend; users sign up via `POST /api/v1/auth/signup`
+and log in via `POST /api/v1/auth/login`. Protected routes return 503 until
+`JWT_SECRET` is set.
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
 
 ---
 
@@ -75,14 +80,12 @@ BLOB_READ_WRITE_TOKEN      = vercel_blob_rw_...
 UPSTASH_REDIS_REST_URL     = https://<name>.upstash.io
 UPSTASH_REDIS_REST_TOKEN   = <token>
 
-# Neon Auth — REQUIRED. Copy the four values from your Neon Auth tenant.
-NEON_AUTH_BASE_URL              = https://<ep-id>.neonauth.<region>.aws.neon.tech/neondb/auth
-NEON_AUTH_PROJECT_ID            =
-NEON_AUTH_SECRET_SERVER_KEY     =
-# Optional overrides — leave blank to derive from NEON_AUTH_BASE_URL:
-# NEON_AUTH_JWKS_URL            = $NEON_AUTH_BASE_URL/.well-known/jwks.json
-# NEON_AUTH_ISSUER              = $NEON_AUTH_BASE_URL
-# NEON_AUTH_AUDIENCE            = $NEON_AUTH_PROJECT_ID
+# Auth — REQUIRED. Generate with:
+#   python -c "import secrets; print(secrets.token_urlsafe(48))"
+JWT_SECRET                = <48-byte urlsafe string>
+JWT_EXPIRES_MINUTES       = 43200        # 30 days
+JWT_ISSUER                = kb-graph-engine
+PASSWORD_MIN_LENGTH       = 8
 ```
 
 Non-secrets (model names, `MAX_WORKSPACES_PER_USER`, CORS target, etc.)
@@ -90,18 +93,9 @@ are pre-populated by `render.yaml` and need no editing.
 
 ### Required secrets on `kb-frontend`
 
-Open `kb-frontend` → **Environment** tab → add (required — the app gates
-every route on these):
-
-```ini
-NEON_AUTH_BASE_URL                             = https://<ep-id>.neonauth.<region>.aws.neon.tech/neondb/auth
-NEXT_PUBLIC_NEON_AUTH_BASE_URL                 = same value as NEON_AUTH_BASE_URL
-NEXT_PUBLIC_NEON_AUTH_PROJECT_ID               =
-NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY   =
-NEON_AUTH_SECRET_SERVER_KEY                    =
-```
-
-The other frontend envs (`NEXT_PUBLIC_API_BASE`, `BACKEND_URL`) are
+None. The browser stores the JWT in localStorage + a non-HttpOnly
+`auth_token` cookie after signup/login — there are no third-party auth
+env vars on the frontend. `NEXT_PUBLIC_API_BASE` and `BACKEND_URL` are
 auto-wired via `fromService` and do not need manual entry.
 
 ### Trigger redeploy

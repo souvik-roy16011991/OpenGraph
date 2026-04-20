@@ -155,7 +155,6 @@ function ProfileCard({ me }: { me: MeResponse }) {
 
             <p className="text-[11px] text-muted-foreground mt-4 font-mono">
               joined {new Date(me.created_at).toLocaleString()}
-              {me.stack_user_id ? ` · stack: ${me.stack_user_id.slice(0, 12)}…` : ""}
             </p>
             {save.isError && (
               <p className="text-xs text-destructive mt-1">save failed: {String(save.error)}</p>

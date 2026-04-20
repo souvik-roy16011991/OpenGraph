@@ -12,7 +12,7 @@
 #
 # -- First-deploy secret checklist -------------------------------------------
 # In the Render dashboard set these with `sync: false` before the first deploy.
-# Each is tagged with which service needs it.
+# Auth is first-party JWT — no third-party provider.
 #
 #   Backend only:
 #     OPENROUTER_API_KEY
@@ -21,19 +21,11 @@
 #     QDRANT_URL / QDRANT_API_KEY
 #     BLOB_READ_WRITE_TOKEN
 #     UPSTASH_REDIS_REST_URL / _TOKEN
-#     NEON_AUTH_SECRET_SERVER_KEY
+#     JWT_SECRET                   (generate with `python -c "import secrets;
+#                                   print(secrets.token_urlsafe(48))"`).
+#                                   Rotating this invalidates every live token.
 #
-#   Frontend only:
-#     NEON_AUTH_SECRET_SERVER_KEY  (server-side Stack SDK)
-#
-#   Shared (set identical values on both services):
-#     NEON_AUTH_BASE_URL           (also exposed as NEXT_PUBLIC_NEON_AUTH_BASE_URL
-#                                   so the browser SDK reaches the tenant)
-#     NEON_AUTH_PROJECT_ID         (also exposed as NEXT_PUBLIC_NEON_AUTH_PROJECT_ID)
-#     NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY   (frontend only)
-#
-# Neon Auth is REQUIRED. Protected routes 503 until the env vars above are
-# wired. See DEPLOY.md for the per-environment setup.
+# Protected routes return 503 until JWT_SECRET is set. See DEPLOY.md.
 # ---------------------------------------------------------------------------
 
 services:
@@ -107,25 +99,18 @@ services:
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
 
-      # --- Neon Auth ---------------------------------------------------
-      # Protected routes 401 without a valid Bearer JWT and 503 if any of
-      # these are missing. Defaults for issuer / JWKS / audience derive from
-      # NEON_AUTH_BASE_URL + NEON_AUTH_PROJECT_ID, so you typically only set
-      # the four below.
-      - key: NEON_AUTH_BASE_URL
+      # --- Auth (JWT HS256) ---------------------------------------------
+      # Protected routes 401 without a valid Bearer JWT and 503 if JWT_SECRET
+      # is missing. The secret signs tokens minted by /auth/signup + /auth/login;
+      # rotating it invalidates every live session at once.
+      - key: JWT_SECRET
         sync: false
-      - key: NEON_AUTH_PROJECT_ID
-        sync: false
-      - key: NEON_AUTH_SECRET_SERVER_KEY
-        sync: false
-      # Optional overrides (default to NEON_AUTH_BASE_URL/.well-known/jwks.json,
-      # NEON_AUTH_BASE_URL as issuer, NEON_AUTH_PROJECT_ID as audience):
-      - key: NEON_AUTH_JWKS_URL
-        sync: false
-      - key: NEON_AUTH_ISSUER
-        sync: false
-      - key: NEON_AUTH_AUDIENCE
-        sync: false
+      - key: JWT_EXPIRES_MINUTES
+        value: "43200"           # 30 days
+      - key: JWT_ISSUER
+        value: kb-graph-engine
+      - key: PASSWORD_MIN_LENGTH
+        value: "8"
 
       # --- Guardrails ---------------------------------------------------
       # Caps each user at this many workspaces — prevents template-
@@ -177,18 +162,5 @@ services:
           property: host
       - key: NODE_ENV
         value: production
-
-      # --- Neon Auth client SDK ----------------------------------------
-      # NEXT_PUBLIC_* values freeze into the client bundle at build time and
-      # point the @stackframe/stack SDK at the Neon Auth tenant. Use the
-      # same project id / base URL on backend + frontend.
-      - key: NEON_AUTH_BASE_URL
-        sync: false
-      - key: NEXT_PUBLIC_NEON_AUTH_BASE_URL
-        sync: false
-      - key: NEXT_PUBLIC_NEON_AUTH_PROJECT_ID
-        sync: false
-      - key: NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY
-        sync: false
-      - key: NEON_AUTH_SECRET_SERVER_KEY
-        sync: false
+      # Auth is first-party JWT; the browser stores the token in localStorage
+      # + a non-HttpOnly `auth_token` cookie. No third-party env vars needed.
