@@ -23,16 +23,15 @@ Render in step 3.
 | Store                   | Used for                                          | Where to create            | Secrets you'll need |
 | ----------------------- | ------------------------------------------------- | -------------------------- | ------------------- |
 | **Neon** (Postgres)     | users, workspaces, builds, chats, configs, audit  | neon.tech                  | `DATABASE_URL` |
-| **Neon Auth** (Stack)   | user sign-up / sign-in / OAuth                    | neon.tech → project → Auth (or app.stack-auth.com direct) | `STACK_PROJECT_ID`, `STACK_SECRET_SERVER_KEY`, `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY` |
+| **Neon Auth**           | user sign-up / sign-in / OAuth                    | neon.tech → project → Auth | `NEON_AUTH_BASE_URL`, `NEON_AUTH_PROJECT_ID`, `NEON_AUTH_SECRET_SERVER_KEY`, `NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY` |
 | **Memgraph Cloud**      | knowledge graph nodes + edges                     | memgraph.com/cloud         | `MEMGRAPH_URI`, `_USERNAME`, `_PASSWORD` |
 | **Qdrant Cloud**        | embedding vectors (one collection per workspace)  | qdrant.tech                | `QDRANT_URL`, `QDRANT_API_KEY` |
 | **Vercel Blob**         | uploaded KB JSONs (authoritative file store)      | vercel.com/dashboard/stores | `BLOB_READ_WRITE_TOKEN` |
 | **OpenRouter**          | LLM + embedding API (any of 342 models)           | openrouter.ai              | `OPENROUTER_API_KEY` |
 | **Upstash Redis**       | JWKS cache, cross-link cache, model-catalog cache | upstash.com                | `UPSTASH_REDIS_REST_URL`, `_TOKEN` |
 
-**Stack Auth is optional** at first boot. When its vars are unset the
-backend runs every request as a shared anonymous dev user. Flip on
-enforcement later (step 5) once you've tested the plumbing.
+**Neon Auth is required.** Protected routes return 503 until the
+`NEON_AUTH_*` vars are set. There is no unauthenticated fallback.
 
 ---
 
@@ -76,10 +75,14 @@ BLOB_READ_WRITE_TOKEN      = vercel_blob_rw_...
 UPSTASH_REDIS_REST_URL     = https://<name>.upstash.io
 UPSTASH_REDIS_REST_TOKEN   = <token>
 
-# Stack Auth — optional on first deploy, leave blank to keep dev mode on
-STACK_PROJECT_ID           =
-STACK_SECRET_SERVER_KEY    =
-STACK_JWT_ISSUER           =   # only override if self-hosting Stack Auth
+# Neon Auth — REQUIRED. Copy the four values from your Neon Auth tenant.
+NEON_AUTH_BASE_URL              = https://<ep-id>.neonauth.<region>.aws.neon.tech/neondb/auth
+NEON_AUTH_PROJECT_ID            =
+NEON_AUTH_SECRET_SERVER_KEY     =
+# Optional overrides — leave blank to derive from NEON_AUTH_BASE_URL:
+# NEON_AUTH_JWKS_URL            = $NEON_AUTH_BASE_URL/.well-known/jwks.json
+# NEON_AUTH_ISSUER              = $NEON_AUTH_BASE_URL
+# NEON_AUTH_AUDIENCE            = $NEON_AUTH_PROJECT_ID
 ```
 
 Non-secrets (model names, `MAX_WORKSPACES_PER_USER`, CORS target, etc.)
@@ -87,13 +90,15 @@ are pre-populated by `render.yaml` and need no editing.
 
 ### Required secrets on `kb-frontend`
 
-Open `kb-frontend` → **Environment** tab → add (same rule: leave blank
-to skip Stack Auth on first deploy):
+Open `kb-frontend` → **Environment** tab → add (required — the app gates
+every route on these):
 
 ```ini
-NEXT_PUBLIC_STACK_PROJECT_ID               =
-NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY   =
-STACK_SECRET_SERVER_KEY                    =
+NEON_AUTH_BASE_URL                             = https://<ep-id>.neonauth.<region>.aws.neon.tech/neondb/auth
+NEXT_PUBLIC_NEON_AUTH_BASE_URL                 = same value as NEON_AUTH_BASE_URL
+NEXT_PUBLIC_NEON_AUTH_PROJECT_ID               =
+NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY   =
+NEON_AUTH_SECRET_SERVER_KEY                    =
 ```
 
 The other frontend envs (`NEXT_PUBLIC_API_BASE`, `BACKEND_URL`) are
@@ -119,9 +124,11 @@ curl https://<be>.onrender.com/health
 curl https://<be>.onrender.com/api/v1/templates | jq '.templates | length'
 # => 29
 
-# 3. With Stack Auth still OFF, the dev user can create workspaces anonymously.
-#    With Stack Auth ON, this call returns 401 — sign in through the frontend.
+# 3. Neon Auth is always on — this call returns 401 unauthenticated.
+#    Sign in through the frontend to get a session, then use the browser
+#    devtools to grab the Authorization: Bearer ... header and replay here.
 curl -X POST -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $NEON_AUTH_TOKEN" \
   -d '{"name":"production-test"}' \
   https://<be>.onrender.com/api/v1/workspaces
 WID=<uuid-returned>
@@ -140,20 +147,17 @@ open https://<fe>.onrender.com/
 
 ---
 
-## 5. Enabling Neon Auth (production cutover)
+## 5. Enabling Neon Auth
 
-Stack Auth is off until you set the 3 env vars. The switch-on procedure:
-
-### 5.1 Create a Stack Auth project
+### 5.1 Create the Neon Auth tenant
 
 1. In your Neon project dashboard → **Auth** tab → enable Neon Auth. Neon
-   provisions a Stack Auth project behind the scenes.
-   (Alternative: create one at https://app.stack-auth.com and note the
-   project id + keys.)
-2. Copy three values:
-   - `STACK_PROJECT_ID`
-   - `STACK_SECRET_SERVER_KEY`       (server-only, keep secret)
-   - `STACK_PUBLISHABLE_CLIENT_KEY`  (baked into the client bundle, OK to expose)
+   provisions a Stack-Auth-compatible tenant and shows you:
+   - `NEON_AUTH_BASE_URL` — the tenant endpoint, e.g.
+     `https://ep-<id>.neonauth.<region>.aws.neon.tech/neondb/auth`
+   - `NEON_AUTH_PROJECT_ID` — the tenant project id
+   - `NEON_AUTH_SECRET_SERVER_KEY` — server-only, keep secret
+   - `NEON_AUTH_PUBLISHABLE_CLIENT_KEY` — baked into the client bundle
 
 ### 5.2 Pre-flight: sanity-check the `workspaces.domain_config` column
 

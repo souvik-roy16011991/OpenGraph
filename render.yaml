@@ -21,20 +21,19 @@
 #     QDRANT_URL / QDRANT_API_KEY
 #     BLOB_READ_WRITE_TOKEN
 #     UPSTASH_REDIS_REST_URL / _TOKEN
-#     STACK_SECRET_SERVER_KEY      (only when enabling Stack Auth)
+#     NEON_AUTH_SECRET_SERVER_KEY
 #
 #   Frontend only:
-#     STACK_SECRET_SERVER_KEY      (only when enabling Stack Auth; the
-#                                   server-side Stack SDK needs it too)
+#     NEON_AUTH_SECRET_SERVER_KEY  (server-side Stack SDK)
 #
 #   Shared (set identical values on both services):
-#     STACK_PROJECT_ID             (also exposed to frontend as
-#                                   NEXT_PUBLIC_STACK_PROJECT_ID)
-#     NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY   (frontend only)
+#     NEON_AUTH_BASE_URL           (also exposed as NEXT_PUBLIC_NEON_AUTH_BASE_URL
+#                                   so the browser SDK reaches the tenant)
+#     NEON_AUTH_PROJECT_ID         (also exposed as NEXT_PUBLIC_NEON_AUTH_PROJECT_ID)
+#     NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY   (frontend only)
 #
-# Stack Auth is OPTIONAL on first deploy — the app boots with a shared dev
-# "anonymous" user until STACK_PROJECT_ID is set. See DEPLOY.md for the
-# enforcement-flip procedure.
+# Neon Auth is REQUIRED. Protected routes 503 until the env vars above are
+# wired. See DEPLOY.md for the per-environment setup.
 # ---------------------------------------------------------------------------
 
 services:
@@ -108,15 +107,24 @@ services:
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
 
-      # --- Neon Auth (Stack Auth) --------------------------------------
-      # When STACK_PROJECT_ID is set, /api/v1/auth becomes enforced; unauth'd
-      # requests 401. When unset, the dev anonymous-user fallback stays on.
-      - key: STACK_PROJECT_ID
+      # --- Neon Auth ---------------------------------------------------
+      # Protected routes 401 without a valid Bearer JWT and 503 if any of
+      # these are missing. Defaults for issuer / JWKS / audience derive from
+      # NEON_AUTH_BASE_URL + NEON_AUTH_PROJECT_ID, so you typically only set
+      # the four below.
+      - key: NEON_AUTH_BASE_URL
         sync: false
-      - key: STACK_SECRET_SERVER_KEY
+      - key: NEON_AUTH_PROJECT_ID
         sync: false
-      # Override only if you self-host Stack Auth; default issuer is derived.
-      - key: STACK_JWT_ISSUER
+      - key: NEON_AUTH_SECRET_SERVER_KEY
+        sync: false
+      # Optional overrides (default to NEON_AUTH_BASE_URL/.well-known/jwks.json,
+      # NEON_AUTH_BASE_URL as issuer, NEON_AUTH_PROJECT_ID as audience):
+      - key: NEON_AUTH_JWKS_URL
+        sync: false
+      - key: NEON_AUTH_ISSUER
+        sync: false
+      - key: NEON_AUTH_AUDIENCE
         sync: false
 
       # --- Guardrails ---------------------------------------------------
@@ -171,12 +179,16 @@ services:
         value: production
 
       # --- Neon Auth client SDK ----------------------------------------
-      # The NEXT_PUBLIC_* values are frozen into the client bundle at build.
-      # Set identical STACK_PROJECT_ID on backend + frontend so the backend's
-      # JWKS lookups agree with the SDK's token-issuer claim.
-      - key: NEXT_PUBLIC_STACK_PROJECT_ID
+      # NEXT_PUBLIC_* values freeze into the client bundle at build time and
+      # point the @stackframe/stack SDK at the Neon Auth tenant. Use the
+      # same project id / base URL on backend + frontend.
+      - key: NEON_AUTH_BASE_URL
         sync: false
-      - key: NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY
+      - key: NEXT_PUBLIC_NEON_AUTH_BASE_URL
         sync: false
-      - key: STACK_SECRET_SERVER_KEY
+      - key: NEXT_PUBLIC_NEON_AUTH_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY
+        sync: false
+      - key: NEON_AUTH_SECRET_SERVER_KEY
         sync: false
