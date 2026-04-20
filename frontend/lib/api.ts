@@ -48,65 +48,35 @@ function activeWorkspaceId(): string | null {
   }
 }
 
-/** Best-effort read of the Neon Auth access token from the client SDK cookie.
+/** Read the JWT issued by /api/v1/auth/{signup,login} from localStorage.
  *
- * The @stackframe/stack client SDK (pointed at the Neon Auth tenant via
- * baseUrl) stores auth state in the `nextjs-cookie` token store. If env
- * vars are missing or the user isn't signed in the Authorization header is
- * omitted and the backend will return 401.
+ * Written by ``lib/auth.ts::setSession``. If absent, the Authorization header
+ * is omitted and the backend returns 401 — middleware will have redirected
+ * the user to /sign-in already in that case.
  */
-async function activeAuthToken(): Promise<string | null> {
+function activeAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const mod = await import("@stackframe/stack");
-    const clientApp = (mod as unknown as {
-      StackClientApp?: new (opts: {
-        tokenStore: string;
-        baseUrl?: string;
-        projectId: string;
-        publishableClientKey: string;
-      }) => {
-        getUser: () => Promise<{ getAuthJson: () => Promise<{ accessToken?: string }> } | null>;
-      };
-    }).StackClientApp;
-    const baseUrl = process.env.NEXT_PUBLIC_NEON_AUTH_BASE_URL;
-    const projectId = process.env.NEXT_PUBLIC_NEON_AUTH_PROJECT_ID;
-    const publishableClientKey = process.env.NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY;
-    if (!clientApp || !projectId || !publishableClientKey) return null;
-    const app = new clientApp({
-      tokenStore: "nextjs-cookie",
-      baseUrl,
-      projectId,
-      publishableClientKey,
-    });
-    const user = await app.getUser();
-    if (!user) return null;
-    const auth = await user.getAuthJson();
-    return auth.accessToken ?? null;
+    return window.localStorage.getItem("auth_token");
   } catch {
     return null;
   }
 }
 
-async function withHeaders(headers: HeadersInit = {}): Promise<HeadersInit> {
+function withHeaders(headers: HeadersInit = {}): HeadersInit {
   const h = new Headers(headers);
   const wid = activeWorkspaceId();
   if (wid) h.set("X-Workspace-Id", wid);
-  const token = await activeAuthToken();
+  const token = activeAuthToken();
   if (token) h.set("Authorization", `Bearer ${token}`);
   return h;
 }
 
-// Legacy name kept for any callers still using the old helper synchronously
-// (multipart upload path). Synchronous — no Authorization header in this
-// code path; the backend tolerates that today. Once Phase 1d enforces auth,
-// the upload path will be migrated to the async helper.
-function withWorkspaceHeader(headers: HeadersInit = {}): HeadersInit {
-  const wid = activeWorkspaceId();
-  if (!wid) return headers;
-  const h = new Headers(headers);
-  h.set("X-Workspace-Id", wid);
-  return h;
+// Multipart helper: same as withHeaders but never sets Content-Type so the
+// browser can fill in the multipart boundary. Still sends Authorization +
+// X-Workspace-Id so the upload endpoint is authenticated + scoped.
+function withMultipartHeaders(headers: HeadersInit = {}): HeadersInit {
+  return withHeaders(headers);
 }
 
 async function handle<T>(res: Response): Promise<T> {
@@ -126,7 +96,7 @@ async function get<T>(path: string, query?: Record<string, string | number | und
     : "";
   const res = await fetch(`${BASE}${path}${qs}`, {
     cache: "no-store",
-    headers: await withHeaders(),
+    headers: withHeaders(),
   });
   return handle<T>(res);
 }
@@ -134,7 +104,7 @@ async function get<T>(path: string, query?: Record<string, string | number | und
 async function json<T>(path: string, method: "POST" | "PUT" | "DELETE" | "PATCH", body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: await withHeaders({ "Content-Type": "application/json" }),
+    headers: withHeaders({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
@@ -150,7 +120,7 @@ async function jsonWithWorkspace<T>(
   body: unknown,
   workspaceIdOverride: string,
 ): Promise<T> {
-  const base = await withHeaders({ "Content-Type": "application/json" });
+  const base = withHeaders({ "Content-Type": "application/json" });
   const h = new Headers(base);
   h.set("X-Workspace-Id", workspaceIdOverride);
   const res = await fetch(`${BASE}${path}`, {
@@ -173,7 +143,7 @@ export const api = {
       method: "POST",
       body: form,
       cache: "no-store",
-      headers: withWorkspaceHeader(), // don't set Content-Type on multipart
+      headers: withMultipartHeaders(), // don't set Content-Type on multipart
     });
     return handle<UploadResponse>(res);
   },

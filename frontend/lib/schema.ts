@@ -281,11 +281,10 @@ export interface SearchResponse {
 // ---------- Current user / audit ----------
 export interface MeResponse {
   id: string;
-  stack_user_id: string | null;
   email: string | null;
   display_name: string | null;
   created_at: string;
-  auth_mode: "stack" | "dev";
+  auth_mode: "jwt";
   workspace_count: number;
   build_count: number;
   chat_count: number;
