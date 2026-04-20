@@ -1,893 +1,494 @@
-# Loan Knowledge Graph Engine
+# KB Knowledge Graph Engine
 
-A production-grade, tree-based knowledge graph engine for loan underwriting and eligibility assessment. Parses structured knowledge bases — loan policy manuals and technology stacks — into a typed graph, then exposes a LangGraph + Qwen-powered agent that navigates the graph to deliver step-by-step responses with tool schemas, process workflows, and related concepts.
+A multi-tenant enterprise platform that turns pairs of structured
+JSON knowledge bases (domain **knowledge** + **tool** catalog) into a
+typed, workspace-scoped graph, then exposes a LangGraph agent that
+queries that graph in natural language. Every runtime artifact —
+uploads, vectors, graph, chat history, config — lives in managed cloud
+stores. No local disk. No per-tenant state in the container.
 
----
+## What it does
 
-## Table of Contents
-
-1. [High-Level Architecture](#1-high-level-architecture)
-2. [Data Sources](#2-data-sources)
-3. [Graph Data Model](#3-graph-data-model)
-4. [Ingestion Pipeline](#4-ingestion-pipeline)
-5. [LangGraph Agent](#5-langgraph-agent)
-6. [Embedding & Search](#6-embedding--search)
-7. [API Layer](#7-api-layer)
-8. [Cross-KB Linking](#8-cross-kb-linking)
-9. [Project Structure](#9-project-structure)
-10. [Graph Statistics](#10-graph-statistics)
-11. [Quick Start](#11-quick-start)
-12. [API Reference](#12-api-reference)
-13. [Intent Types & Query Examples](#13-intent-types--query-examples)
-14. [Configuration](#14-configuration)
-15. [Cloud Infrastructure](#15-cloud-infrastructure)
+1. **Pick a template** (or start blank) from a 29-template catalog
+   spanning healthcare, finance, legal, engineering, people, ops,
+   sales, marketing, customer success.
+2. **Upload** your knowledge + tool JSONs.
+3. **Tune** the domain profile and graph-construction knobs.
+4. **Build** — the pipeline parses, extracts nodes, computes embeddings
+   (OpenRouter), writes the graph to Memgraph, writes vectors to
+   Qdrant, caches cross-KB links in Upstash.
+5. **Explore** the graph visually (Cytoscape), or **chat** with it
+   from the standalone Playground using any OpenRouter model.
 
 ---
 
-## 1. High-Level Architecture
-
-The engine is **domain-agnostic**. A user points `--kb-config` at any self-describing folder (with `knowledge/*.json` + `tool/*.json` inside), names a domain in free text with `--domain`, and the pipeline auto-builds a knowledge graph and LLM-ready agent — no code changes per domain (works for loan underwriting, wealth management, pharma, automotive, medical records, education, etc.).
-
-### 1.1 End-to-End Architecture
-
-```mermaid
-graph TB
-    subgraph inputs [User Inputs]
-        KBFolder["kb-config/ folder<br/>knowledge/*.json + tool/*.json<br/>optional: domain.yaml, prompts/, extractor/"]
-        DomainFlag["--domain &quot;free text&quot;<br/>(or KB_CONFIG_PATH env var)"]
-    end
-
-    subgraph config [Runtime Configuration · src/kb_config.py · src/domain_profiler.py]
-        Loader["load_kb_config()<br/>reads manifest, picks KB JSONs,<br/>loads per-slot prompt overrides"]
-        Profiler["profile_domain()<br/>5-tier override resolution:<br/>manifest → cache → LLM polish → KB scan → hint"]
-        KBConfig["KBConfig (frozen)<br/>paths · DomainProfile · prompt_overrides<br/>· tool/process column keywords"]
-    end
-
-    subgraph sources [KB JSON Documents]
-        KnowledgeKB["knowledge/*.json<br/>chapters · sections · tables"]
-        ToolKB["tool/*.json<br/>chapters · tool tables · process tables"]
-    end
-
-    subgraph ingestion [Build Pipeline · scripts/build_graph.py]
-        Parser["parser.py<br/>recursive JSON walker<br/>→ ParsedKB"]
-        Extractor["extractor.py<br/>node factory<br/>Chapter/Section/Tool/Process/Glossary<br/>uses kb-config column keywords"]
-        EdgeBuilder["edges.py<br/>CONTAINS · HAS_CONTENT · NEXT_STEP<br/>INTEGRATES_WITH · IMPLEMENTS · USES_TOOL"]
-        EmbedEngine["embeddings.py<br/>OpenRouter qwen3-embedding-8b<br/>or sentence-transformers / TF-IDF"]
-    end
-
-    subgraph prompts [Prompt Layer · src/agent/prompts/]
-        Base["base.py · BASE_* templates<br/>{domain_display_name} {organization_name}<br/>{knowledge_focus_examples} {tool_focus_examples}"]
-        PromptLoader["loader.py<br/>build_domain_prompts(profile)<br/>per-slot prompts/*.md override"]
-        Prompts["DomainPrompts<br/>intent_classification + 4 synthesis templates"]
-    end
-
-    subgraph store [Persisted Artifacts]
-        NXGraph["knowledge_graph.pkl<br/>NetworkX DiGraph cache"]
-        FAISSIdx["faiss_index.bin<br/>local vector index"]
-        NodeReg["node_registry.json"]
-        CrossLinks["cross_links.json<br/>Tool KB ↔ Knowledge KB"]
-        Memgraph[("Memgraph / Neo4j<br/>optional cloud graph")]
-        Qdrant[("Qdrant / Pinecone<br/>optional cloud vectors")]
-    end
-
-    subgraph agent [LangGraph Agent · src/agent/]
-        Classify["classify_intent<br/>Qwen via OpenRouter"]
-        Locate["locate_entry_nodes<br/>hybrid (semantic + keyword)"]
-        Traverse["traverse_graph<br/>BFS, edge-type filter by intent"]
-        BuildSteps["build_steps<br/>outline or ordered steps"]
-        ResolveTools["resolve_tools<br/>enrich with tool schemas"]
-        Synthesize["synthesize_response<br/>Qwen → markdown + follow-ups"]
-    end
-
-    subgraph api [FastAPI · src/api/]
-        Server["create_app()<br/>title/description templated<br/>from active DomainProfile"]
-        QueryEP["POST /api/v1/query"]
-        GraphEP["GET /api/v1/graph/*"]
-    end
-
-    inputs --> Loader
-    Loader --> Profiler
-    Profiler --> KBConfig
-    KBConfig -.->|tool/process keywords| Extractor
-    KBConfig -.->|DomainProfile| PromptLoader
-    KBConfig -.->|prompt_overrides| PromptLoader
-    Base --> PromptLoader
-    PromptLoader --> Prompts
-
-    KBFolder --> KnowledgeKB & ToolKB
-    KnowledgeKB & ToolKB --> Parser
-    Parser --> Extractor
-    Extractor --> EdgeBuilder
-    EdgeBuilder --> EmbedEngine
-    EmbedEngine --> store
-
-    store --> agent
-    Prompts --> Classify & Synthesize
-    agent --> api
-```
-
-### 1.2 Build-Time Sequence
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant CLI as scripts/build_graph.py
-    participant Cfg as kb_config.load_kb_config
-    participant Prof as domain_profiler.profile_domain
-    participant LLM as OpenRouter (optional)
-    participant Pipe as build_graph()
-    participant Store as data/ + Memgraph/Qdrant
-
-    User->>CLI: --kb-config /data/pharma --domain "pharmaceutical products"
-    CLI->>Cfg: load_kb_config(path, domain_hint)
-    Cfg->>Cfg: read domain.yaml, pick KB JSONs,<br/>load prompts/*.md + extractor/keywords.yaml
-    Cfg->>Prof: profile_domain(manifest, cache, hint)
-    Prof->>Prof: scan KB → chapter headings + tool names
-    alt LLM polish enabled & first build
-        Prof->>LLM: one-shot polish prompt
-        LLM-->>Prof: crisp profile JSON
-        Prof->>Cfg: write .generated/profile.yaml
-    end
-    Prof-->>Cfg: DomainProfile
-    Cfg-->>CLI: KBConfig (cached as active)
-    CLI->>Pipe: build_graph(use_llm_cross_links, skip_embeddings)
-    Pipe->>Pipe: parse → extract nodes → build edges
-    Pipe->>LLM: qwen3-embedding-8b (batch)
-    LLM-->>Pipe: vectors
-    Pipe->>Store: pickle + FAISS + optional Memgraph + Qdrant
-    Store-->>User: knowledge_graph.pkl ready
-```
-
-### 1.3 Query-Time Sequence
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant API as FastAPI /api/v1/query
-    participant Agent as KBGraphAgent (LangGraph)
-    participant KG as KnowledgeGraph
-    participant Prompts as get_domain_prompts()
-    participant LLM as Qwen via OpenRouter
-    participant Vec as Qdrant or FAISS
-
-    User->>API: { "query": "How is FOIR computed?" }
-    API->>Agent: agent.query(q)
-    Agent->>Prompts: DomainPrompts for active kb-config
-    Agent->>LLM: classify_intent(system + template)
-    LLM-->>Agent: {intent, topics, kb_focus}
-    Agent->>Vec: semantic_search(augmented_q)
-    Vec-->>Agent: top-K candidate node IDs
-    Agent->>KG: keyword_search (boost by intent)
-    KG-->>Agent: merged entry nodes
-    Agent->>KG: bfs_traverse(entry, edge_types by intent)
-    KG-->>Agent: traversal path + gathered context
-    Agent->>KG: build_steps + resolve_tools
-    Agent->>LLM: synthesize_response(system + template + context)
-    LLM-->>Agent: markdown response
-    Agent-->>API: {response, steps, tools, follow_ups}
-    API-->>User: 200 OK
-```
-
-### 1.4 Domain-Switching Flow
-
-Switching domains at runtime requires **zero code changes** — only the active `KBConfig` changes. All domain-specific state (profile fields, prompt templates, column-keyword sets, KB paths) routes through `get_active_kb_config()`, which other modules call lazily.
-
-```mermaid
-flowchart LR
-    A["User provides<br/>--kb-config /path/X<br/>--domain &quot;free text&quot;"] --> B[load_kb_config]
-    B --> C[profile_domain<br/>scan + polish]
-    C --> D[set_active_kb_config]
-    D --> E1[extractor keywords<br/>swap]
-    D --> E2[prompts cache<br/>invalidate]
-    D --> E3[parser KB paths<br/>swap]
-    D --> E4[server title/desc<br/>re-templated]
-    E1 & E2 & E3 & E4 --> F[Fully-swapped pipeline,<br/>no restart required]
-```
-
-**What stays the same when you switch domains:** BASE_* prompt templates, extractor logic, edge-builder logic, agent StateGraph, FastAPI routes, storage backends.
-
-**What changes automatically:** `domain_display_name`, `organization_name`, `knowledge_focus_examples`, `tool_focus_examples` (all injected into prompts); per-slot `prompts/*.md` overrides; per-kb extractor column keywords; KB file paths; server title/description.
-
----
-
-## 2. Data Sources
-
-Both source files share the same parsed-document JSON schema produced by the KB parser pipeline:
+## Architecture
 
 ```
-{
-  "title": "...",
-  "subtitle": "...",
-  "metadata": { "total_chapters": N, "total_tables": M, ... },
-  "chapters": [
-    {
-      "heading": "Chapter N: ...",
-      "level": 1,
-      "content": [ { "type": "paragraph|table|list_bullet|callout", ... } ],
-      "sections": [
-        {
-          "heading": "N.M ...",
-          "level": 2,
-          "content": [...],
-          "subsections": [ ... ]   ← recursive, unlimited depth
-        }
-      ]
-    }
-  ]
-}
+          ┌──────────────── Users ────────────────┐
+          │                                       │
+          │  Next.js 15 / Tailwind / Radix UI     │
+          │  ┌─────────────────────────────────┐  │
+          │  │ /templates  (OpenRouter-style)  │  │
+          │  │ /upload → /domain → /graph-     │  │
+          │  │   config → /build → /explore    │  │
+          │  │ /chat    (standalone playground)│  │
+          │  │ /history (audit)                │  │
+          │  └─────────────────────────────────┘  │
+          │   @stackframe/stack  (Neon Auth JWT)  │
+          └────────────────┬──────────────────────┘
+                           │ Authorization: Bearer <jwt>
+                           │ X-Workspace-Id: <uuid>
+                           ▼
+          ┌─────────── FastAPI  :8000 ────────────┐
+          │                                       │
+          │   src/api/auth.py      JWKS-verified  │
+          │   src/api/deps.py      ownership      │
+          │   src/api/routes.py    + sub-routers  │
+          │       workspace │ kb │ config │ build │
+          │       history   │ llm│ graph  │ tmpl  │
+          │                                       │
+          │   src/graph_builder/   pipeline       │
+          │   src/agent/           LangGraph      │
+          └───┬─────┬──────┬──────┬──────┬────────┘
+              │     │      │      │      │
+              ▼     ▼      ▼      ▼      ▼
+          ┌──────┐┌─────┐┌──────┐┌─────┐┌────────┐
+          │ Neon ││Mem- ││Qdrant││Blob ││Upstash │
+          │ PG   ││graph││      ││     ││ Redis  │
+          └──────┘└─────┘└──────┘└─────┘└────────┘
+           users   nodes  vectors files  JWKS,
+           ws      edges         (JSON)  cross-
+           builds                        links,
+           chat                          LLM
+           config                        catalog
 ```
 
-| File | Domain | Chapters | Tables | Size |
-|------|--------|----------|--------|------|
-| `Loan_Eligibility_Knowledge_Base.json` | Loan policy: applicant classification, age eligibility, residency/KYC, income assessment (salaried/self-employed), and documentation requirements | 19 | 15 | ~97 KB |
-| `Loan_Assessment_Tools_KB.json` | Technology stack: credit bureaus, KYC/fraud systems, income analyzers, LOS/Decisioning engines, and collections platforms | 5 | 5 | ~16 KB |
+### Cloud backends (single source of truth for each concern)
 
-There are **no explicit cross-references** between the two files. All relationships are either hierarchical (JSON nesting) or inferred semantically.
-
----
-
-## 3. Graph Data Model
-
-### 3.1 Node Types
-
-```mermaid
-graph LR
-    DomainNode["DomainNode\nRoot per KB"]
-    ChapterNode["ChapterNode\nheading · chapter_num"]
-    SectionNode["SectionNode\noutline_path · paragraphs · table_ids"]
-    TableNode["TableNode\ncaption · headers · row_count"]
-    ToolNode["ToolNode\ntool_name · provider · purpose\nconnected_systems · sla · raw_row"]
-    ProcessNode["ProcessNode\nstep_name · step_number\nsystem_used · compliance_checks"]
-    GlossaryNode["GlossaryNode\nterm · definition"]
-
-    DomainNode --> ChapterNode
-    ChapterNode --> SectionNode
-    SectionNode --> SectionNode
-    SectionNode --> TableNode
-    TableNode --> ToolNode
-    TableNode --> ProcessNode
-    TableNode --> GlossaryNode
-```
-
-| Node Type | Source | Count | Key Fields |
-|-----------|--------|-------|------------|
-| `DomainNode` | Derived | 2 | heading, kb_source |
-| `ChapterNode` | Both KBs | 24 | heading, chapter_num, level |
-| `SectionNode` | Both KBs | 40 | heading, outline_path, paragraphs, table_ids |
-| `TableNode` | Both KBs | 15 | caption, headers, row_count |
-| `ToolNode` | Tool KB tables | 18 | tool_name, provider, purpose, connected_systems, sla, raw_row |
-| `ProcessNode` | Process tables | 0 | step_name, step_number, system_used, required_actions, compliance_checks |
-| `GlossaryNode` | Knowledge KB | 0 | term, definition |
-
-**Node ID convention:**
-```
-knowledge:root                                      ← DomainNode
-knowledge:ch3                                       ← ChapterNode
-knowledge:ch3:s3.2-3-2-capital-market-theory        ← SectionNode
-knowledge:ch3:s3.2-3-2-capital-market-theory:tbl0   ← TableNode
-tool:ch10:s10.3-digital-onboarding-workflow:tbl0:step2  ← ProcessNode
-knowledge:glossary:fiduciary                        ← GlossaryNode
-```
-
-### 3.2 Edge Types
-
-```mermaid
-graph LR
-    A["ChapterNode\nTool KB Ch.5\nCompliance Tools"] -->|IMPLEMENTS| B["ChapterNode\nKnowledge KB Ch.10\nRegulatory Framework"]
-    C["SectionNode\nKnowledge KB\nEstate Planning"] -->|USES_TOOL| D["ToolNode\neMoney Advisor"]
-    D -->|INTEGRATES_WITH| E["ToolNode\nSalesforce FSC"]
-    F["ProcessNode\nStep 1: Lead Reg"] -->|NEXT_STEP| G["ProcessNode\nStep 2: Account Opening"]
-    H["SectionNode"] -->|HAS_CONTENT| I["TableNode"]
-    I -->|CONTAINS| D
-    J["SectionNode\nInvestment Policy"] -->|RELATED_TO| K["SectionNode\nPortfolio Theory"]
-```
-
-| Edge Type | Direction | Source | Count | Meaning |
-|-----------|-----------|--------|-------|---------|
-| `CONTAINS` | parent → child | JSON nesting | 82 | Hierarchical ownership (chapter owns section, table owns row) |
-| `USES_TOOL` | knowledge section → tool | Name mention in text | 19 | A knowledge KB section's text mentions a tool by name |
-| `HAS_CONTENT` | section → table | Section.table_ids | 15 | Section directly contains a table |
-| `NEXT_STEP` | step N → step N+1 | Process tables | 0 | Sequential workflow ordering |
-| `INTEGRATES_WITH` | tool → tool | "Connected Systems" column | 15 | Tool integration topology |
-| `IMPLEMENTS` | tool chapter → knowledge chapter | Seed + LLM mapping | 0 | Tool KB domain implements a knowledge domain |
-| `RELATED_TO` | node ↔ node | FAISS cosine > 0.80 | 0 | Semantic similarity |
-
----
-
-## 4. Ingestion Pipeline
-
-The build pipeline runs once and persists all artifacts to `data/`. Subsequent API starts load from disk in ~2 seconds.
-
-```mermaid
-flowchart TD
-    A["Load JSON files\nparse_kb_file()"] --> B["Walk chapter→section→subsection tree\nparser.py  ·  ParsedKB"]
-    B --> C["Extract nodes by content type\nextractor.py  ·  NodeExtractor"]
-    C --> D{"Content block type?"}
-    D -->|paragraph / callout| E["Attach to SectionNode\n.paragraphs list"]
-    D -->|table with Tool columns\nService/System/Product| F["ToolNode per row\n+ TableNode parent"]
-    D -->|table with Step columns\nStep/Phase/Onboarding| G["ProcessNode per row\n+ TableNode parent"]
-    D -->|table with Term+Definition| H["GlossaryNode per row"]
-    E & F & G & H --> I["Build structural edges\nedges.py"]
-    I --> J["CONTAINS from JSON nesting\nHAS_CONTENT from section.table_ids\nNEXT_STEP from step_number order"]
-    J --> K["Build cross-KB edges"]
-    K --> L["INTEGRATES_WITH: parse Connected Systems column\nUSES_TOOL: text scan for tool names in knowledge sections\nIMPLEMENTS: seed mappings + optional Qwen LLM"]
-    L --> M["Generate embeddings\nembeddings.py"]
-    M --> N{"KB_FORCE_TFIDF?"}
-    N -->|No| O["qwen/qwen3-embedding-8b via OpenRouter\n4096-dim normalised vectors"]
-    N -->|Yes| P["HashingVectorizer\nn_features=4096\nno fitting needed  ·  instant"]
-    O & P --> Q["Build FAISS Flat IP index\n866 eligible nodes indexed"]
-    Q --> R["RELATED_TO edges\ncosine similarity > 0.80"]
-    R --> S["Populate NetworkX DiGraph\nG.add_node() / G.add_edge()"]
-    S --> T["Serialize to disk\nknowledge_graph.pkl\nnode_registry.json\nfaiss_index.bin"]
-```
-
-**Column detection heuristics** used by `extractor.py`:
-
-| Detection Target | Matched Column Keywords |
-|-----------------|------------------------|
-| ToolNode | `Tool`, `Service`, `System`, `Product`, `Application`, `Platform`, `Software`, `Vendor`, `Provider` |
-| ProcessNode | `Step`, `Phase`, `Stage`, `Workflow`, `Onboarding Step`, `Process Step`, `Action`, `Task` |
-| GlossaryNode | columns named exactly `Term` + `Definition` |
-
----
-
-## 5. LangGraph Agent
-
-The agent is a compiled `StateGraph` with six sequential nodes, one conditional re-traversal edge, and a typed shared state.
-
-### 5.1 Agent Graph
-
-```mermaid
-graph LR
-    START --> classify_intent
-    classify_intent --> locate_entry_nodes
-    locate_entry_nodes --> traverse_graph
-    traverse_graph -->|"needs_more_context\n(max 2 retries)"| traverse_graph
-    traverse_graph -->|done| build_steps
-    build_steps --> resolve_tools
-    resolve_tools --> synthesize_response
-    synthesize_response --> END
-```
-
-### 5.2 Agent State
-
-```python
-class GraphAgentState(TypedDict):
-    # Input
-    query: str
-
-    # After classify_intent
-    intent: str                    # "explore" | "process" | "tool_lookup" | "compare"
-    extracted_topics: list[str]    # key entities extracted by LLM
-    kb_focus: str                  # "knowledge" | "tool" | "both"
-
-    # After locate_entry_nodes
-    entry_nodes: list[str]         # top-K node IDs from hybrid search
-
-    # After traverse_graph
-    traversal_path: list[str]      # BFS-ordered visited node IDs
-    gathered_context: list[dict]   # content from each visited node
-
-    # After build_steps
-    steps: list[StepDetail]        # structured step-by-step data
-    tools_referenced: list[dict]   # full ToolNode.to_dict() for each tool
-    knowledge_concepts: list[dict] # glossary terms encountered
-
-    # Final
-    response: str                  # synthesized markdown
-    follow_up_suggestions: list[str]
-```
-
-### 5.3 Node Descriptions
-
-#### `classify_intent`
-Calls Qwen with the raw query and a structured JSON prompt. Outputs `intent`, `extracted_topics`, and `kb_focus`. Falls back to keyword heuristics if the LLM fails.
-
-```
-Input:  query = "How do I onboard a new client at Meridian?"
-Output: intent="process", kb_focus="tool",
-        extracted_topics=["client onboarding", "Meridian system procedures"]
-```
-
-#### `locate_entry_nodes`
-Runs **hybrid search**: 60% FAISS cosine similarity + 40% keyword token match, then applies intent-specific score boosts:
-
-| Intent | Boosted Node Types |
-|--------|--------------------|
-| `process` | +0.25 for ProcessNode, +0.15 for SectionNode |
-| `tool_lookup` | +0.20 for ToolNode |
-| `explore` | +0.15 for ChapterNode, SectionNode |
-| `compare` | no extra boost |
-
-#### `traverse_graph`
-BFS from entry nodes with intent-specific edge filters and depth limits:
-
-| Intent | Edge Types Followed | Max Depth | Max Nodes |
-|--------|--------------------|-----------|----|
-| `process` | CONTAINS, HAS_CONTENT, NEXT_STEP, USES_TOOL | 4 | 50 |
-| `tool_lookup` | CONTAINS, INTEGRATES_WITH, IMPLEMENTS | 3 | 40 |
-| `compare` | CONTAINS, RELATED_TO, IMPLEMENTS | 3 | 40 |
-| `explore` | CONTAINS, HAS_CONTENT, RELATED_TO | 3 | 35 |
-
-#### `build_steps`
-- **process intent**: collects all `ProcessNode`s in the traversal, sorts by `step_number`, links each step to its system via keyword search
-- **other intents**: builds an outline from chapters and sections in traversal order
-
-#### `resolve_tools`
-For each entry node, follows `USES_TOOL` and `IMPLEMENTS` edges to collect `ToolNode`s. Enriches each step's `tools` field with full `raw_row` data (the original table row = the tool "schema").
-
-#### `synthesize_response`
-Calls Qwen with a template selected by intent. Each template produces structured markdown with overview, step-by-step guide, tool details, and follow-up suggestions.
-
----
-
-## 6. Embedding & Search
-
-### 6.1 Embedding Strategies
-
-| Mode | Model | Dim | Speed | Quality |
-|------|-------|-----|-------|---------|
-| Default | `qwen/qwen3-embedding-8b` (OpenRouter API) | 4096 | ~60s build | SOTA multilingual, #1 MTEB |
-| `KB_FORCE_TFIDF=1` | `HashingVectorizer` (sklearn) | 4096 | ~2s build | Keyword-level, fully offline |
-
-866 of the 953 nodes are embedded (GlossaryNodes excluded to reduce noise).
-
-### 6.2 Hybrid Search
-
-```
-hybrid_score(node) = 0.6 × FAISS_cosine_score + 0.4 × keyword_token_score
-```
-
-**Keyword scoring**: counts how many query tokens (length ≥ 4) appear in `heading + content_summary`, divided by total token count.
-
-**FAISS index**: `IndexFlatIP` (inner product on L2-normalised vectors = cosine similarity). No approximate search — exact retrieval over 866 nodes is fast enough.
-
-### 6.3 RELATED_TO Edge Generation
-
-After indexing, each node queries its k+1 nearest neighbours. A `RELATED_TO` edge is added when:
-- cosine similarity > 0.80
-- source and target do not share the same `parent_id` (avoids trivial siblings)
-- the pair has not already been connected
-
----
-
-## 7. API Layer
-
-```mermaid
-graph LR
-    Client -->|"POST /api/v1/query"| QueryRoute
-    Client -->|"GET /api/v1/graph/search?q=..."| SearchRoute
-    Client -->|"GET /api/v1/graph/node/{id}"| NodeRoute
-    Client -->|"GET /api/v1/graph/tree"| TreeRoute
-    Client -->|"GET /api/v1/graph/tools"| ToolsRoute
-    Client -->|"POST /api/v1/graph/traverse"| TraverseRoute
-    Client -->|"GET /api/v1/graph/stats"| StatsRoute
-    Client -->|"GET /api/v1/graph/chapters"| ChaptersRoute
-
-    QueryRoute -->|"builds agent per request"| KBGraphAgent
-    KBGraphAgent -->|"runs StateGraph"| LangGraphRuntime
-    SearchRoute --> KnowledgeGraph
-    NodeRoute --> KnowledgeGraph
-    TreeRoute --> KnowledgeGraph
-```
-
-The `KnowledgeGraph` singleton is loaded once at server startup via FastAPI's `lifespan` context. All read routes hit the in-memory NetworkX graph directly (no DB round-trips). The `POST /query` route instantiates a `KBGraphAgent` per request and invokes the compiled LangGraph.
-
----
-
-## 8. Cross-KB Linking
-
-The two KBs have no shared IDs. Cross-KB links are created in two layers:
-
-### Layer 1 — USES_TOOL (text scan)
-Every `SectionNode` in the **Knowledge KB** is scanned for tool names. If a tool name (≥5 chars) appears in the section's raw text, a `USES_TOOL` edge is added from that section to the `ToolNode`.
-
-### Layer 2 — IMPLEMENTS (auto-generated chapter-level mapping)
-
-Tool KB chapters are mapped to Knowledge KB chapters they implement via `src/graph_builder/cross_kb_mapper.py`. The mapping is **fully automatic** — no hardcoded seeds — and adapts whenever the KB JSON files change.
-
-#### How auto-mapping works
-
-Two complementary signals are combined and thresholded at build time:
-
-**Signal 1 — Embedding similarity (weight 0.6)**
-Each chapter's `heading + content_summary + raw_text[:500]` is embedded using the same model as the main pipeline (`qwen/qwen3-embedding-8b` via OpenRouter, or TF-IDF under `KB_FORCE_TFIDF=1`). Pairwise cosine similarity is computed between every Tool × Knowledge chapter pair.
-
-**Signal 2 — Keyword co-occurrence (weight 0.4)**
-For each Tool chapter, all `ToolNode.tool_name` values in its subtree are collected. For each Knowledge chapter, descendant `SectionNode` texts are concatenated. The fraction of tool names that appear in the Knowledge chapter text is computed and normalised to [0, 1]. This directly measures "which Knowledge chapters discuss the tools that live in this Tool chapter".
-
-**Combined score**
-```
-score(tool_ch, know_ch) = 0.6 × cosine_sim + 0.4 × cooccur_norm
-```
-
-Pairs above `CROSS_KB_AUTO_THRESHOLD` (default 0.35) are kept, capped at `CROSS_KB_MAX_LINKS_PER_CHAPTER` (default 5) per Tool chapter. An optional LLM refinement pass (`_refine_with_llm`) can then augment the auto-generated set when `use_llm=True`.
-
-#### Tuning knobs (in `config.py`)
-
-| Constant | Default | Effect |
+| Store | Purpose | Per-workspace isolation |
 |---|---|---|
-| `CROSS_KB_AUTO_THRESHOLD` | `0.35` | Raise to require stronger signal; lower to map more chapters |
-| `CROSS_KB_EMBED_WEIGHT` | `0.6` | Weight for embedding cosine similarity |
-| `CROSS_KB_COOCCUR_WEIGHT` | `0.4` | Weight for keyword co-occurrence |
-| `CROSS_KB_MAX_LINKS_PER_CHAPTER` | `5` | Max Knowledge chapters per Tool chapter |
+| **Neon Postgres** | users, workspaces, build jobs, chat history, config versions, upload metadata | row-level via FK + owner check |
+| **Memgraph Cloud** | graph nodes + edges (labels, types, properties) | `workspace_id` property on every node + edge |
+| **Qdrant Cloud** | embedding vectors | 1 collection per workspace (`kb-{wid-short}`) |
+| **Vercel Blob** | uploaded KB JSON files (authoritative) | path prefix `{BLOB_STORE_PATH}/{ws_id}/…` |
+| **Upstash Redis** | JWKS cache, LLM cross-link cache, OpenRouter model catalog cache | keyed by `{wid}` / `{project_id}` |
 
-#### Caching
+### Auth & tenancy model
 
-The generated mapping is written to `data/cross_links.json` on first build and reused on subsequent builds. Delete the file to force regeneration (e.g. after adding new chapters to either KB).
+- **Identity**: [Neon Auth](https://neon.tech/docs/guides/neon-auth) (Stack
+  Auth). Frontend uses `@stackframe/stack`; backend validates JWTs against
+  the project's JWKS endpoint (cached 24h in Upstash).
+- **`Authorization: Bearer <jwt>`** carries the caller's identity; the
+  `sub` claim is matched against `users.stack_user_id`, auto-creating
+  the row on first sight.
+- **`X-Workspace-Id: <uuid>`** is a claim that must match the workspace's
+  `user_id`. Ownership is verified in [src/api/deps.py](src/api/deps.py)
+  before any work runs; mismatch returns **404** (not 403) to avoid
+  leaking workspace existence across tenants.
+- **Dev fallback**: when `STACK_PROJECT_ID` is unset, `require_user`
+  auto-returns a single shared `__anonymous__` user so local development
+  works without Stack credentials. Ownership checks still fire — fine
+  locally because everything belongs to that one user.
 
----
+### In-memory caches (per process)
 
-## 9. Project Structure
-
-```
-kb-index/
-│
-├── kb-config/                          ← source data (read-only)
-│   ├── knowledge/
-│   │   └── Wealth_Management_Knowledge_Base.json
-│   └── tool/
-│       └── Meridian_WM_Tools_Database_Document_KB.json
-│
-├── src/
-│   ├── config.py                       ← all constants: paths, LLM, thresholds
-│   │
-│   ├── models/
-│   │   ├── nodes.py                    ← Pydantic node models + Edge + enums
-│   │   └── state.py                    ← LangGraph GraphAgentState TypedDict
-│   │
-│   ├── graph_builder/
-│   │   ├── parser.py                   ← ParsedKB / ParsedChapter / ParsedSection / ContentBlock
-│   │   ├── extractor.py                ← NodeExtractor  (node factory per KB)
-│   │   ├── edges.py                    ← EdgeBuilder  (7 edge constructors)
-│   │   ├── embeddings.py               ← EmbeddingPipeline + FAISS + _TFIDFEmbedder fallback
-│   │   ├── cross_kb_mapper.py          ← auto-generate Tool→Knowledge chapter mappings
-│   │   └── builder.py                  ← build_graph() + KnowledgeGraph runtime class
-│   │
-│   ├── agent/
-│   │   ├── prompts.py                  ← LLM prompt templates (4 intent × 2 roles)
-│   │   ├── nodes.py                    ← 6 agent node functions
-│   │   └── graph.py                    ← build_agent_graph() + KBGraphAgent wrapper
-│   │
-│   └── api/
-│       ├── routes.py                   ← 8 FastAPI route handlers
-│       └── server.py                   ← FastAPI app + lifespan + CORS
-│
-├── scripts/
-│   ├── build_graph.py                  ← Typer CLI: build / rebuild the graph
-│   └── query_cli.py                    ← Typer CLI: query / search / stats / node inspect
-│
-├── data/                               ← generated artifacts (git-ignored)
-│   ├── knowledge_graph.pkl             ← serialised NetworkX DiGraph
-│   ├── node_registry.json              ← all node metadata as JSON
-│   ├── faiss_index.bin                 ← FAISS flat inner-product index
-│   ├── faiss_index.ids.pkl             ← ordered node_id list matching FAISS positions
-│   ├── faiss_index.model_type.txt      ← "sentence_transformers" or "tfidf"
-│   ├── faiss_index.tfidf.pkl           ← saved HashingVectorizer (if tfidf mode)
-│   └── cross_links.json                ← Tool KB ↔ Knowledge KB chapter mappings
-│
-├── requirements.txt
-└── README.md
-```
+- `src/kb_config._WORKSPACE_CACHE` — per-workspace `KBConfig` built by
+  overlaying `Workspace.domain_config` (JSONB) on the disk seed.
+  Primed in [src/api/deps.py](src/api/deps.py) so sync consumers
+  (build thread, extractor, prompt loader) never deadlock re-fetching
+  from an already-running event loop. Invalidated per workspace by
+  `PUT /config/domain`.
+- `src/agent/nodes._llm_cache` — one `ChatOpenAI` client per resolved
+  model id; queries with different `llm_model` overrides don't rebuild
+  the client each time.
 
 ---
 
-## 10. Graph Statistics
+## Quick start (local)
 
-| Metric | Count |
-|--------|-------|
-| **Total nodes** | **99** |
-| **Total edges** | **131** |
-| — domain | 2 |
-| — chapter | 24 |
-| — section | 40 |
-| — table | 15 |
-| — tool | 18 |
-| — process step | 0 |
-| — glossary | 0 |
-| **CONTAINS** | 82 |
-| **USES_TOOL** | 19 |
-| **HAS_CONTENT** | 15 |
-| **NEXT_STEP** | 0 |
-| **INTEGRATES_WITH** | 15 |
-| **IMPLEMENTS** | 0 |
-| **RELATED_TO** | 0 |
-| Build time (hash embeddings) | ~4s |
-| Build time (qwen3-embedding-8b via OpenRouter) | ~30s |
-| Graph load time from disk | ~1s |
+### Prerequisites
 
----
+- Python 3.12
+- Node 20
+- Credentials for: Neon (required), OpenRouter (required),
+  Memgraph + Qdrant + Vercel Blob + Upstash (required for production
+  behaviour; the app degrades to partial functionality if any are
+  missing). Stack Auth is optional — dev fallback kicks in.
 
-## 11. Quick Start
-
-### Step 1 — Install & configure
+### Backend
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+# in repo root
 pip install -r requirements.txt
 
-# Copy the example env file and add your OpenRouter API key
-cp .env.example .env
-# then edit .env and set OPENROUTER_API_KEY
-```
+# minimum .env
+cat > .env <<EOF
+DATABASE_URL=postgresql://...@ep-xxx.neon.tech/neondb
+OPENROUTER_API_KEY=sk-or-v1-...
+MEMGRAPH_URI=bolt+ssc://...
+MEMGRAPH_USERNAME=...
+MEMGRAPH_PASSWORD=...
+QDRANT_URL=https://...qdrant.cloud
+QDRANT_API_KEY=...
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
+BLOB_STORE_PATH=your-store-id/kb-config
+UPSTASH_REDIS_REST_URL=https://...upstash.io
+UPSTASH_REDIS_REST_TOKEN=...
+EOF
 
-### Step 2 — Build the graph
-
-```bash
-# Full build: qwen3-embedding-8b via OpenRouter + LLM cross-linking (needs network)
-python3 scripts/build_graph.py
-
-# Fast build: seed cross-links only, no LLM call
-python3 scripts/build_graph.py --no-llm
-
-# Offline build: hash embeddings, no network needed at all
-KB_FORCE_TFIDF=1 python3 scripts/build_graph.py --no-llm
-
-# Verbose output
-KB_FORCE_TFIDF=1 python3 scripts/build_graph.py --no-llm --verbose
-```
-
-### Step 3 — Start the API server
-
-```bash
-# With OpenRouter embeddings (default)
 python3 -m uvicorn src.api.server:app --port 8000 --reload
-
-# Offline / hash embeddings
-KB_FORCE_TFIDF=1 python3 -m uvicorn src.api.server:app --port 8000 --reload
+# health: http://localhost:8000/health
+# Swagger: http://localhost:8000/docs
 ```
 
-Swagger UI: `http://localhost:8000/docs`
-
-### Step 4 — Query via CLI
+### Frontend
 
 ```bash
-# Single query
-KB_FORCE_TFIDF=1 python3 scripts/query_cli.py query \
-  --query "What are the age eligibility rules for salaried applicants?"
+cd frontend
+npm install
 
-# Interactive REPL
-KB_FORCE_TFIDF=1 python3 scripts/query_cli.py query --interactive
+# frontend/.env.local
+NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000
+# optional — add these to light up Stack Auth sign-in
+NEXT_PUBLIC_STACK_PROJECT_ID=...
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=...
+STACK_SECRET_SERVER_KEY=...
 
-# Graph stats
-KB_FORCE_TFIDF=1 python3 scripts/query_cli.py stats
-
-# Semantic/keyword search
-KB_FORCE_TFIDF=1 python3 scripts/query_cli.py search "portfolio rebalancing"
-
-# Inspect a node and its edges
-KB_FORCE_TFIDF=1 python3 scripts/query_cli.py node "tool:ch2:s2.1-2-1-primary-crm-salesforce"
+npm run dev
+# open http://localhost:3000
 ```
 
 ---
 
-## 12. API Reference
+## Environment variables
 
-### POST `/api/v1/query`
+### Required
 
-Main query endpoint. Runs the full LangGraph agent pipeline.
+| Var | Purpose |
+|---|---|
+| `DATABASE_URL` | Neon Postgres pooled connection string |
+| `OPENROUTER_API_KEY` | OpenRouter chat + embedding calls |
 
-**Request:**
-```json
-{
-  "query": "How do I onboard a new client at Meridian?"
-}
-```
+### Cloud backends (all required for production)
 
-**Response:**
-```json
-{
-  "query": "How do I onboard a new client at Meridian?",
-  "intent": "process",
-  "kb_focus": "tool",
-  "extracted_topics": ["client onboarding", "Meridian system procedures"],
-  "response": "## Overview\nClient onboarding at Meridian...\n\n## Step-by-Step Guide\n...",
-  "steps": [
-    {
-      "step_number": 1,
-      "title": "Lead Registration",
-      "description": "Capture client contact and financial details in Salesforce CRM...",
-      "system_used": "Salesforce CRM",
-      "time_to_complete": "5 minutes",
-      "compliance_checks": "None (lead stage)",
-      "tools": [ { "tool_name": "Salesforce Financial Services Cloud", ... } ]
-    }
-  ],
-  "tools_referenced": [
-    {
-      "tool_name": "Salesforce Financial Services Cloud",
-      "provider": "Salesforce",
-      "purpose": "CRM: client management, pipeline, workflows, Einstein Analytics",
-      "connected_systems": ["Orion Connect", "eMoney", "Tamarac"],
-      "sla": "99.9%+",
-      "raw_row": { "Service": "...", "Provider": "...", ... }
-    }
-  ],
-  "knowledge_concepts": [],
-  "follow_up_suggestions": [
-    "What compliance checks are required in this process?",
-    "How do the systems integrate in this workflow?",
-    "What are the exception handling procedures for this process?"
-  ],
-  "traversal_path": ["tool:ch10:s10.3-...", "tool:ch2:s2.1-..."]
-}
-```
+| Var | Purpose |
+|---|---|
+| `MEMGRAPH_URI` / `MEMGRAPH_USERNAME` / `MEMGRAPH_PASSWORD` / `MEMGRAPH_DATABASE` | Graph store |
+| `QDRANT_URL` / `QDRANT_API_KEY` / `QDRANT_COLLECTION_NAME` | Vector store |
+| `BLOB_READ_WRITE_TOKEN` / `BLOB_STORE_PATH` | Vercel Blob (file store) |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Redis REST (caches) |
 
-### GET `/api/v1/graph/stats`
+### Auth (Neon Auth / Stack Auth)
 
-Returns node and edge counts by type.
+| Var | Purpose |
+|---|---|
+| `STACK_PROJECT_ID` | Stack Auth project id — presence flips on JWT enforcement |
+| `STACK_SECRET_SERVER_KEY` | Server-side Stack SDK (reserved for future admin calls) |
+| `STACK_JWT_ISSUER` | Override the default `https://api.stack-auth.com/api/v1/projects/{id}` issuer |
 
-### GET `/api/v1/graph/tree?max_depth=2`
+### LLM tuning
 
-Returns the two root nodes (Knowledge KB root + Tool KB root) with subtrees. Used by a front-end tree navigator. `max_depth` controls how many levels are expanded (1–4).
+| Var | Default | Purpose |
+|---|---|---|
+| `LLM_MODEL` | `qwen/qwen3-235b-a22b` | Env fallback model when neither request-override nor workspace-pref is set |
+| `LLM_TEMPERATURE` | `0.1` | |
+| `LLM_MAX_TOKENS` | `4096` | |
+| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | |
+| `OPENROUTER_ALLOWED_MODELS` | (empty) | Comma-separated allowlist; empty = expose full catalog |
 
-### GET `/api/v1/graph/tools?search=CIBIL&provider=TransUnion&limit=50`
+### Alternate backends (optional — used as fallbacks if cloud primary is unset)
 
-Lists all 18 extracted `ToolNode`s. Optional filters:
-- `search`: substring match on tool_name or purpose
-- `provider`: substring match on provider name
-- `category`: substring match on category
-- `limit`: max results (default 50, max 200)
+| Var | Purpose |
+|---|---|
+| `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` / `NEO4J_DATABASE` | Neo4j instead of Memgraph |
+| `PINECONE_API_KEY` / `PINECONE_INDEX_NAME` / `PINECONE_NAMESPACE` | Pinecone instead of Qdrant |
 
-### GET `/api/v1/graph/search?q=portfolio+management&top_k=10&node_type=section`
+### Workspace caps
 
-Hybrid semantic+keyword search. Optional `node_type` filter: `chapter`, `section`, `tool`, `process`, `glossary`, `table`.
-
-### GET `/api/v1/graph/node/{node_id}`
-
-Returns a node's full data plus its incoming and outgoing edges.
-
-### POST `/api/v1/graph/traverse`
-
-BFS from a starting node with optional edge-type filter.
-
-```json
-{
-  "node_id": "tool:ch10:s10.3-digital-onboarding-workflow",
-  "max_depth": 3,
-  "edge_types": ["CONTAINS", "NEXT_STEP"]
-}
-```
-
-### GET `/api/v1/graph/chapters`
-
-Lists all 42 `ChapterNode`s from both KBs sorted by source and chapter number.
+| Var | Default | Purpose |
+|---|---|---|
+| `MAX_WORKSPACES_PER_USER` | `25` | Guardrail against template-instantiation abuse |
 
 ---
 
-## 13. Intent Types & Query Examples
+## Data model (Neon)
 
-| Intent | When Used | Edge Priority | Example Queries |
-|--------|-----------|---------------|-----------------|
-| `process` | Step-by-step workflows, procedures | NEXT_STEP → CONTAINS → USES_TOOL | "How do I onboard a new client?" · "What are the steps for account opening?" · "Walk me through the trade execution workflow" |
-| `explore` | Understanding concepts, domains | CONTAINS → HAS_CONTENT → RELATED_TO | "What is wealth management?" · "Explain tax-loss harvesting" · "What is the fiduciary standard?" |
-| `tool_lookup` | Finding specific tools/systems | CONTAINS → INTEGRATES_WITH → IMPLEMENTS | "What CRM does Meridian use?" · "What tools support compliance surveillance?" · "Which systems handle trading?" |
-| `compare` | Comparing options or strategies | CONTAINS → RELATED_TO → IMPLEMENTS | "Orion vs Tamarac for portfolio management" · "Active vs passive investing" · "SMA vs UMA structures" |
+| Table | Key columns |
+|---|---|
+| `users` | `id`, `stack_user_id` (unique), `email`, `display_name` |
+| `workspaces` | `id`, `user_id` (FK), `name`, `description`, `domain_config` (JSONB), `graph_config` (JSONB — also holds `llm_model`) |
+| `workspace_files` | `id`, `workspace_id`, `kb_source`, `filename`, `sha256` (unique within ws + source), `blob_url`, `active` |
+| `build_jobs` | `job_id`, `workspace_id`, `status`, `stage`, `percent`, `log_tail`, `domain_snapshot`, `graph_snapshot`, `stats`, `backends` |
+| `chat_sessions` | `session_id`, `workspace_id`, `title`, timestamps |
+| `chat_messages` | `id`, `session_id`, `role`, `query`, `response` (JSONB), intent/focus/topics, `duration_ms` |
+| `config_versions` | `id`, `workspace_id`, `kind` (`domain`/`graph`), `yaml_snapshot`, `parsed_snapshot`, `changed_sections`, `requires_rebuild` |
+| `kb_uploads` | audit row on every upload event |
 
----
-
-## 14. Configuration
-
-### `.env` file
-
-Sensitive values live in `.env` at the project root (gitignored). Copy `.env.example` to get started:
-
-```bash
-cp .env.example .env
-```
-
-#### OpenRouter (required)
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENROUTER_API_KEY` | **Yes** | Your OpenRouter API key |
-| `OPENROUTER_BASE_URL` | No | Defaults to `https://openrouter.ai/api/v1` |
-| `LLM_MODEL` | No | Defaults to `qwen/qwen3-235b-a22b` |
-| `LLM_TEMPERATURE` | No | Defaults to `0.1` |
-| `LLM_MAX_TOKENS` | No | Defaults to `4096` |
-
-#### Cloud Infrastructure (optional — local fallback if omitted)
-
-| Variable | Description | Local Fallback |
-|----------|-------------|----------------|
-| `PINECONE_API_KEY` | Pinecone API key | Local FAISS index |
-| `PINECONE_INDEX_NAME` | Pinecone index name (default: `kb-index`) | — |
-| `PINECONE_NAMESPACE` | Namespace / "folder" inside the index (default: `kb-knowledge-graph`) | — |
-| `NEO4J_URI` | Neo4j Aura bolt URI (`neo4j+s://...`) | NetworkX pickle |
-| `NEO4J_USERNAME` | Neo4j username | — |
-| `NEO4J_PASSWORD` | Neo4j password | — |
-| `NEO4J_DATABASE` | Neo4j database name (default: `neo4j`) | — |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read-write token | Local `kb-config/` files |
-| `BLOB_STORE_PATH` | Blob prefix path (default: `v0-it-support-automation-blob/kb-config`) | — |
-
-**Cloud-default, local-fallback**: each cloud service is automatically enabled when its credentials are present. All three can be mixed independently (e.g. Neo4j cloud + FAISS local).
-
-### Shell / Environment Variables
-
-| Variable | Values | Description |
-|----------|--------|-------------|
-| `KB_FORCE_TFIDF` | `1` / `0` | Force hash-based embeddings (no network, no PyTorch) |
-
-### `src/config.py` Constants
-
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `LLM_MODEL` | `qwen/qwen3-235b-a22b` | OpenRouter model ID |
-| `EMBEDDING_MODEL` | `qwen/qwen3-embedding-8b` | Embedding model — remote (contains "/") uses OpenRouter API; local name uses sentence-transformers |
-| `EMBEDDING_DIM` | `4096` | TF-IDF fallback dimension (real FAISS dim comes from model output) |
-| `EMBEDDING_DIMENSIONS` | _(unset)_ | Matryoshka override (32–4096); unset = model native 4096 |
-| `SIMILARITY_THRESHOLD` | `0.80` | Min cosine score for RELATED_TO edges |
-| `MAX_RELATED_EDGES_PER_NODE` | `8` | Max fan-out from semantic edges |
-| `MAX_TRAVERSAL_DEPTH` | `5` | Max BFS depth in the agent |
-| `TOP_K_ENTRY_NODES` | `6` | Number of entry nodes from hybrid search |
-| `USE_PINECONE` | auto | `True` when `PINECONE_API_KEY` is set |
-| `USE_NEO4J` | auto | `True` when `NEO4J_URI` is set |
-| `USE_BLOB_STORAGE` | auto | `True` when `BLOB_READ_WRITE_TOKEN` is set |
+All foreign keys cascade on workspace delete; `DELETE /workspaces/{id}`
+additionally purges Memgraph, Qdrant and Blob artifacts for that
+workspace.
 
 ---
 
-## 15. Cloud Infrastructure
+## API reference
 
-The engine supports three optional cloud backends alongside the existing local defaults.
+**Base URL**: `{host}/api/v1`
+**Common headers**:
+- `Authorization: Bearer <jwt>` — always required in production. Soft-
+  fallback in dev (no env) resolves to the shared anonymous user.
+- `X-Workspace-Id: <uuid>` — required on every workspace-scoped route.
+
+OpenAPI spec: `GET /openapi.json`; Swagger UI at `GET /docs`.
+
+### Health
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `GET` | `/health` | public | `{status, service, backends: {neon, memgraph, qdrant, vercel_blob, upstash}}` |
+
+### Templates (public catalog)
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `GET` | `/api/v1/templates` | public | Query params: `q` (substring), `category`. Returns 29 code-shipped templates. |
+| `GET` | `/api/v1/templates/{slug}` | public | Template detail incl. `domain` pre-seed dict |
+| `POST` | `/api/v1/templates/{slug}/instantiate` | user | Body: `{name?, description?}`. Creates a workspace with `domain_config` = template's domain. Enforces `MAX_WORKSPACES_PER_USER`. 201 on success. |
+
+### Workspaces
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/v1/workspaces` | List workspaces owned by caller |
+| `POST` | `/api/v1/workspaces` | Body: `{name, description?}` → 201 |
+| `GET` | `/api/v1/workspaces/{id}` | Ownership-checked detail |
+| `PATCH` | `/api/v1/workspaces/{id}` | Body: `{name?, description?}` |
+| `DELETE` | `/api/v1/workspaces/{id}` | Cascades Memgraph + Qdrant + Blob + Neon |
+| `GET` | `/api/v1/workspaces/{id}/files` | Query: `kb_source` filter |
+| `DELETE` | `/api/v1/workspaces/{id}/files/{file_id}` | Also deletes the blob |
+| `GET` | `/api/v1/workspaces/{id}/llm` | Returns `{llm_model, effective_model}` |
+| `PUT` | `/api/v1/workspaces/{id}/llm` | Body: `{model}` (null/empty clears). Validates against the OpenRouter catalog. |
+
+### KB upload
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/v1/kb/upload` | Multipart: any number of `knowledge_files` + `tool_files`. Uploads go to Vercel Blob first; no local disk. Dedup by sha256 within (workspace, kb_source). |
+
+### Config
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/v1/config/domain` | Returns 5 DomainProfile fields for the workspace |
+| `PUT` | `/api/v1/config/domain` | Writes `Workspace.domain_config` + audits to `config_versions`. Invalidates **only this workspace's** cache. |
+| `GET` | `/api/v1/config/graph` | Full GraphConfig JSON (6 sections, ~25 knobs) |
+| `PUT` | `/api/v1/config/graph` | Returns `{status: 'applied'/'requires_rebuild', changed_sections, requires_rebuild}` |
+
+### Build
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/v1/build` | Body: `{skip_embeddings?, skip_llm_cross_links?}`. 409 if a build is already running for this workspace. |
+| `GET` | `/api/v1/build` | Current running job id for this workspace |
+| `GET` | `/api/v1/build/{job_id}` | Live status + `log_tail` (last 50 lines). Ownership-checked. |
+
+### Agent query
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/v1/query` | Body: `{query, session_id?, llm_model?}`. Returns the full agent state: `response` markdown, `steps`, `tools_referenced`, `knowledge_concepts`, `follow_up_suggestions`, `traversal_path`, plus the resolved `llm_model`. Persists the turn to `chat_messages` when Neon is on. |
+
+### LLM catalog
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/v1/llm/models` | Lists OpenRouter models (342 at last count). Cached 1h in Upstash. `?refresh=true` busts. Filtered by `OPENROUTER_ALLOWED_MODELS` if set. Returns `{default, models[], allowlist_active}`. |
+
+### Graph read routes
+
+All ownership-checked via `X-Workspace-Id`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/v1/graph/stats` | Node + edge counts by type, backends in use |
+| `GET` | `/api/v1/graph/tree` | `?max_depth=N` — hierarchical tree from roots |
+| `GET` | `/api/v1/graph/chapters` | Flat list of chapter nodes per KB |
+| `GET` | `/api/v1/graph/tools` | All extracted `ToolNode`s |
+| `GET` | `/api/v1/graph/node/{node_id}` | Node + incident edges + parent/children |
+| `POST` | `/api/v1/graph/traverse` | BFS from a node with depth + edge-type filters |
+| `GET` | `/api/v1/graph/search` | Hybrid keyword + semantic, `?q=…&top_k=&node_type=` |
+| `GET` | `/api/v1/graph/visualization` | Flat nodes + edges payload for Cytoscape. Filters: `max_nodes`, `kb_source`, `node_types`, `edge_types` |
+
+### History (Neon-backed audit)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/v1/history/builds` | Workspace-scoped |
+| `GET` | `/api/v1/history/builds/{job_id}` | Detail (log tail, snapshots, stats). Ownership-checked. |
+| `GET` | `/api/v1/history/chats` | Sessions for this workspace |
+| `GET` | `/api/v1/history/chats/{session_id}` | Full message thread. Ownership-checked. |
+| `GET` | `/api/v1/history/configs` | Config snapshots, `?kind=domain|graph` |
+| `GET` | `/api/v1/history/configs/{config_id}` | Full YAML + parsed snapshot. Ownership-checked. |
+| `GET` | `/api/v1/history/uploads` | Upload audit trail |
+
+---
+
+## Template catalog (29 entries across 10 categories)
+
+| Category | Slugs |
+|---|---|
+| **healthcare** (6) | `healthcare-protocols`, `medicine-product-kb`, `quality-control-lab`, `hospital-management`, `clinical-trials`, `medical-device-compliance` |
+| **finance** (8) | `finance-compliance`, `procurement-vendor`, `wealth-management`, `tax-planning`, `lending-operations`, `credit-analysis`, `insurance-operations`, `risk-management` |
+| **engineering** (4) | `product-docs`, `devops-sre`, `security-infosec`, `data-engineering` |
+| **legal** (3) | `legal-contracts`, `ip-patents`, `privacy-gdpr` |
+| **operations** (3) | `it-support`, `customer-support`, `manufacturing-sops` |
+| customer (1) | `customer-onboarding` |
+| people (1) | `hr-policies` |
+| sales (1) | `sales-enablement` |
+| marketing (1) | `marketing-brand` |
+| general (1) | `blank` |
+
+Add a template: drop a new `templates/<slug>.yaml` with the standard
+fields (`slug, name, description, category, icon, domain{...}`), then
+touch `src/templates.py` to bust the `lru_cache`.
+
+---
+
+## Graph build pipeline
+
+Full flow of `POST /api/v1/build`:
+
+1. **Collect sources** — `src/api/build_jobs._collect_workspace_sources`
+   fetches every `WorkspaceFile`'s bytes from Vercel Blob. No local
+   disk is touched.
+2. **Parse** — `src/graph_builder/parser.parse_kb_files` accepts
+   `(filename, bytes)` tuples and produces a `ParsedKB` per kb_source.
+3. **Extract nodes** — `src/graph_builder/extractor.extract_all_nodes`
+   walks the ParsedKB into typed nodes (Chapter / Section / Concept /
+   Tool / Process / Table / Glossary).
+4. **Edges** — `src/graph_builder/edges.EdgeBuilder` builds CONTAINS,
+   HAS_CONTENT, NEXT_STEP, INTEGRATES_WITH, IMPLEMENTS, USES_TOOL.
+   Cross-KB IMPLEMENTS edges are refined by an LLM call that honors
+   the workspace's chosen model; the result is cached in Upstash
+   keyed by `{wid, content-hash}`.
+5. **Embeddings** — `src/graph_builder/embeddings` generates per-node
+   vectors via OpenRouter, upserts to Qdrant (one collection per
+   workspace). RELATED_TO edges are built from cosine neighbours.
+6. **Persist graph** — `src/graph_builder/builder` writes every node +
+   edge into Memgraph tagged with `workspace_id`. A NetworkX view is
+   kept in memory for fast traversal; on cold start,
+   `KnowledgeGraph.load` rehydrates it directly from Memgraph (no
+   pickle on disk).
+
+Build progress is persisted to `build_jobs` and streamed via
+`log_tail` on `GET /build/{job_id}`.
+
+---
+
+## LLM model selection
+
+The chat pipeline resolves the model per request:
 
 ```
-Cloud-default, local-fallback — any combination works independently.
+request.llm_model  >  workspace.graph_config["llm_model"]  >  env LLM_MODEL
 ```
 
-### Pinecone (Vector Database)
+- `GET /llm/models` — browse the 342-model OpenRouter catalog (cached
+  1h in Upstash, optional allowlist env).
+- `PUT /workspaces/{id}/llm` — set the workspace default (validated
+  against the catalog before write).
+- `POST /query` — pass `llm_model` for a one-shot override.
 
-Replaces the local FAISS index. All vectors are stored in namespace `kb-knowledge-graph` inside index `kb-index`.
+The assistant reply carries `llm_model` — the truthful resolved model
+that answered this turn, so the UI can label past turns correctly even
+after the user switches models.
 
-- **Index creation**: auto-created on first build if absent (dimension 4096, cosine metric, serverless on AWS us-east-1).
-- **Rebuild**: `delete_namespace()` clears the namespace before re-upserting — clean separation from any other data in the Pinecone project.
-- **Runtime**: `KnowledgeGraph.semantic_search()` queries Pinecone directly when connected.
-- **Fallback**: if Pinecone auth fails, the local FAISS index is used transparently.
+---
 
-### Neo4j Aura (Graph Database)
+## Frontend routes (Next.js 15 app router)
 
-Replaces NetworkX + pickle. Every node gets labels `:KBNode` + its type label (e.g. `:Chapter`, `:Tool`). A uniqueness constraint on `(:KBNode {node_id})` is auto-created.
+| Route | Purpose |
+|---|---|
+| `/` | Landing; redirects unauth'd users to `/handler/sign-in` (when Stack is configured) or to `/templates` (when workspace is empty) |
+| `/templates` | KB template catalog (OpenRouter-style search + category filter). Click → instantiate → `/upload` |
+| `/workspaces` | Existing workspace picker |
+| `/upload` → `/domain` → `/graph-config` → `/build` → `/explore` | Build wizard, step-locked |
+| `/chat` | Standalone Playground. Independent workspace selector (`chat-store`). Model dropdown. |
+| `/query` | Legacy redirect → `/chat` |
+| `/history` | Audit trail (builds, chats, configs, uploads) |
+| `/handler/[...stack]` | Stack Auth: sign-in / sign-up / OAuth callback / password reset |
 
-- **Node schema**: all `BaseNode.to_dict()` fields stored as properties; nested dicts/lists are JSON-serialised for Neo4j compatibility.
-- **Relationship types**: match `EdgeType` enum exactly — `CONTAINS`, `USES_TOOL`, `IMPLEMENTS`, `INTEGRATES_WITH`, `HAS_CONTENT`, `NEXT_STEP`, `RELATED_TO`, `DEFINED_IN`.
-- **Runtime**: a local NetworkX cache is always maintained for fast BFS traversal (avoids Neo4j round-trips for every hop).
-- **Fallback**: if Neo4j connection fails, the local NetworkX graph is used transparently.
+Auth gate: [frontend/middleware.ts](frontend/middleware.ts) bounces
+unauthenticated requests to `/handler/sign-in` when
+`NEXT_PUBLIC_STACK_PROJECT_ID` + `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY`
+are set; otherwise it's a no-op (dev mode).
 
-### Vercel Blob Storage (KB File Storage)
+---
 
-Replaces local `kb-config/` JSON files. KB files are fetched once at the start of `build_graph()`.
+## Operations
 
-- **Upload**: run `python scripts/upload_kb.py` to push local files to blob storage.
-- **Download**: `parse_kb_file()` automatically fetches from blob when `USE_BLOB_STORAGE=True`.
-- **Build-time only**: no blob access at runtime (parsed data flows into Neo4j/FAISS and the local cache).
+### Render.com deploy
 
-### Setup: First-Time Cloud Onboarding
+`render.yaml` provisions two stateless Docker services:
 
-```bash
-# 1. Add credentials to .env (copy from .env.example)
-cp .env.example .env
-# Fill in PINECONE_API_KEY, NEO4J_*, BLOB_READ_WRITE_TOKEN
+- `kb-backend` — FastAPI on uvicorn, 1 worker (build-job state is
+  in-memory; horizontal scale requires moving `_jobs` to Neon — future
+  work).
+- `kb-frontend` — Next.js 15 prod build with `NEXT_PUBLIC_API_BASE`
+  baked in.
 
-# 2. Upload KB files to Vercel Blob
-python scripts/upload_kb.py
+See [DEPLOY.md](DEPLOY.md).
 
-# 3. Build the graph — automatically uses cloud backends
-KMP_DUPLICATE_LIB_OK=TRUE python scripts/build_graph.py --no-llm
+### Admin scripts
 
-# 4. Verify
-python scripts/query_cli.py stats
-```
+| Script | Purpose |
+|---|---|
+| `scripts/upload_kb.py` | CLI upload of KB JSONs to Vercel Blob (outside the HTTP flow) |
+| `scripts/wipe_all.py` | Clear every backing store (Memgraph, Qdrant, Blob, Neon). Idempotent. |
+| `scripts/migrate_anon_workspaces.py` | `--dry-run` / `--delete-all` / `--assign-to <stack_user_id>`. Run once when flipping Stack Auth enforcement from dev → prod. |
 
-### Design Decisions
+### Rollout order for enabling Stack Auth
 
-**NetworkX as a local cache alongside Neo4j** — all BFS traversal in the agent uses the in-process NetworkX graph (zero network latency). Neo4j is written to during build for persistence and can be queried for live stats.
+1. Verify `workspaces.domain_config` column exists on live Neon
+   (pre-check; `create_all` doesn't ALTER).
+2. Take a Neon snapshot.
+3. `python3 scripts/migrate_anon_workspaces.py --delete-all`
+   (or `--assign-to <your stack_user_id>`).
+4. Set `STACK_PROJECT_ID`, `STACK_SECRET_SERVER_KEY`,
+   `NEXT_PUBLIC_STACK_PROJECT_ID`, `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY`
+   in prod env.
+5. Redeploy backend + frontend in the same window — enforcement goes
+   live together on both sides.
 
-**FAISS saved even when Pinecone is active** — a local FAISS index is always persisted as a warm cache for offline development and as a fallback if Pinecone credentials expire.
+---
 
-**Vercel Blob is build-time only** — KB files are large JSON blobs. Fetching them once at build start, then flowing the parsed data into Neo4j and the local cache, avoids any blob dependency at runtime query time.
+## Tech stack
 
-**Stable node IDs** — the `{kb}:ch{N}:s{outline_path}-{slug}` format is deterministic across rebuilds, so Pinecone vector IDs match Neo4j `node_id` properties without a secondary mapping table.
+| Layer | Tech |
+|---|---|
+| Frontend | Next.js 15.1, React 19, Tailwind 3, Radix UI, Zustand, TanStack Query, `@stackframe/stack`, Cytoscape, react-markdown |
+| Backend | FastAPI, LangGraph, langchain-openai (→ OpenRouter), SQLAlchemy 2.0 async + asyncpg, python-jose (JWT) |
+| Graph | Memgraph Cloud (Bolt) via `neo4j` driver; NetworkX as in-memory runtime view |
+| Vectors | Qdrant Cloud (REST + gRPC) via `qdrant-client` |
+| Files | Vercel Blob REST |
+| DB | Neon Postgres (pooled async) |
+| Cache | Upstash Redis REST |
+| LLM | OpenRouter (any of 342 models — user-selectable per workspace or per request) |
+| Auth | Neon Auth (Stack Auth) |
 
-**Tool "schema" = table row** — each tool's `raw_row` dict (Provider, Purpose, Connected Systems, Security Controls, SLA, Data Classification, etc.) serves as the operational specification surfaced in responses.
+---
+
+## Roadmap
+
+Planned follow-ups (not shipped):
+
+- **Per-workspace API keys** (`api_keys` table, `/api/v1/ext/*` public
+  API namespace, Upstash-backed rate limiting, `/api-docs` frontend
+  page with pre-filled curl / JS / Python examples).
+- **Team sharing / invites** — move beyond the "one user owns a
+  workspace" model.
+- **Horizontal build-job scaling** — move the in-memory `_jobs` dict to
+  Neon so multiple backend workers can serve the same workspace.
+- **Per-message LLM tracking** — add `llm_model` column to
+  `chat_messages` so the history page can show which model answered
+  each historical turn.
