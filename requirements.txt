@@ -22,4 +22,6 @@ qdrant-client>=1.7.0
 neo4j>=5.0
 sqlalchemy[asyncio]>=2.0.36
 asyncpg>=0.30.0
-python-jose[cryptography]>=3.3.0
+PyJWT>=2.8.0
+bcrypt>=4.1.0
+email-validator>=2.1.0

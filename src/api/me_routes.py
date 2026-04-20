@@ -2,11 +2,11 @@
 Current-user endpoints.
 
     GET    /api/v1/me          Profile + rolled-up counts
-    PATCH  /api/v1/me          Update display_name (email/password → Stack Auth flows)
+    PATCH  /api/v1/me          Update display_name
     GET    /api/v1/me/audit    Paginated user audit trail
 
-Email and password changes are owned by Neon Auth; this module only
-manages the app-level user row + exposes the audit feed.
+Auth (signup / login / logout) lives in ``auth_routes``. This module reads
+the authenticated user via ``require_user`` and only touches profile fields.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
-from src.api.auth import require_user
+from src.api.auth import invalidate_user_cache, require_user
 from src.config import USE_NEON
 from src.infra.audit import record_audit
 from src.infra.db import get_session
@@ -42,11 +42,10 @@ router = APIRouter()
 
 class MeResponse(BaseModel):
     id: str
-    stack_user_id: Optional[str]
     email: Optional[str]
     display_name: Optional[str]
     created_at: str
-    auth_mode: str  # always 'neon' — retained for API compatibility
+    auth_mode: str  # always 'jwt' — retained for API-client compatibility
     workspace_count: int
     build_count: int
     chat_count: int
@@ -114,11 +113,10 @@ async def get_me(user: User = Depends(require_user)):
     counts = await _rollup_counts(user.id)
     return MeResponse(
         id=str(user.id),
-        stack_user_id=user.stack_user_id,
         email=user.email,
         display_name=user.display_name,
         created_at=user.created_at.isoformat(),
-        auth_mode="neon",
+        auth_mode="jwt",
         workspace_count=counts["workspaces"],
         build_count=counts["builds"],
         chat_count=counts["chats"],
@@ -137,6 +135,7 @@ async def update_me(body: UpdateMeRequest, user: User = Depends(require_user)):
         row.display_name = body.display_name
         await s.commit()
 
+    invalidate_user_cache(str(user.id))
     record_audit(
         user.id, "user.profile.update",
         target_type="user", target_id=str(user.id),

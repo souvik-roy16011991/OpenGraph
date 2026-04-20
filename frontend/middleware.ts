@@ -3,22 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Auth gate — always on.
  *
- * Until the user has a Neon Auth session cookie (``stack-refresh-*``, set
- * after sign-in; the cookie name stays the same because the SDK is
- * @stackframe/stack pointed at the Neon Auth tenant) they see nothing
- * except the sign-in / sign-up pages and Neon Auth's own handler routes.
+ * Until the ``auth_token`` cookie is present (written by ``lib/auth.ts`` on
+ * signup/login) the visitor only sees the sign-in / sign-up pages.
  *
- * Anything else on the site is gated: request → redirect to /sign-in,
- * preserving the original path via ?return_to=.
+ * We intentionally do NOT verify the JWT here — the middleware runs on the
+ * edge without access to the signing secret. Presence is sufficient for a
+ * redirect; the backend verifies the signature on every protected request,
+ * which is where auth actually lives.
  */
 
 const PUBLIC_PREFIXES = [
-  "/handler",                 // Neon Auth flows (sign-in, OAuth, reset)
-  "/sign-in",                 // our smart sign-in page
-  "/sign-up",                 // our smart sign-up page
-  "/_next",                   // Next internals
-  "/favicon",                 // favicon.svg / .ico
-  "/opengraph-mark.svg",      // brand SVG (public)
+  "/sign-in",
+  "/sign-up",
+  "/_next",
+  "/favicon",
+  "/opengraph-mark.svg",
 ];
 
 function isPublic(pathname: string): boolean {
@@ -26,8 +25,7 @@ function isPublic(pathname: string): boolean {
 }
 
 function hasSession(req: NextRequest): boolean {
-  const cookies = req.cookies.getAll();
-  return cookies.some((c) => c.name.startsWith("stack-refresh"));
+  return Boolean(req.cookies.get("auth_token")?.value);
 }
 
 export function middleware(req: NextRequest) {
@@ -39,13 +37,10 @@ export function middleware(req: NextRequest) {
   const signIn = req.nextUrl.clone();
   signIn.pathname = "/sign-in";
   signIn.search = "";
-  // Preserve where the user was trying to go so the sign-in page can
-  // forward it as Neon Auth's `after_auth_return_to` query param.
   signIn.searchParams.set("return_to", pathname + (search || ""));
   return NextResponse.redirect(signIn);
 }
 
 export const config = {
-  // Exclude static assets so the middleware doesn't fire on every .js / .css.
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

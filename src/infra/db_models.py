@@ -49,11 +49,16 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    # Subject ("sub") claim from Neon Auth JWT — unique per human.
-    # Phase A uses a single shared "anonymous" user; Phase B fills this in.
-    stack_user_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, unique=True)
-    email: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    # Email is the human-facing tenant key. Unique + case-normalised (stored
+    # lowercase by signup). Nullable only for historical rows predating auth
+    # — new signups always fill it.
+    email: Mapped[Optional[str]] = mapped_column(String(256), nullable=True, unique=True)
+    # bcrypt hash — NULL for any legacy rows; login requires non-null.
+    password_hash: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     display_name: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    # Retained for historical rows from the Neon Auth era. New signups leave
+    # this NULL. Kept nullable to avoid a destructive migration on upgrade.
+    stack_user_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, unique=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

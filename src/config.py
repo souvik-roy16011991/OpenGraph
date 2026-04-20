@@ -127,19 +127,26 @@ DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
 UPSTASH_REDIS_REST_URL: str = os.environ.get("UPSTASH_REDIS_REST_URL", "")
 UPSTASH_REDIS_REST_TOKEN: str = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 
-# Neon Auth — JWT-authenticated users, served from a Neon-hosted Stack Auth
-# tenant. Typical deploys only need NEON_AUTH_BASE_URL + the three keys;
-# JWKS/issuer/audience default off the base URL.
-NEON_AUTH_PROJECT_ID: str = os.environ.get("NEON_AUTH_PROJECT_ID", "")
-NEON_AUTH_SECRET_SERVER_KEY: str = os.environ.get("NEON_AUTH_SECRET_SERVER_KEY", "")
-NEON_AUTH_BASE_URL: str = os.environ.get("NEON_AUTH_BASE_URL", "").rstrip("/")
-NEON_AUTH_JWKS_URL: str = os.environ.get(
-    "NEON_AUTH_JWKS_URL",
-    f"{NEON_AUTH_BASE_URL}/.well-known/jwks.json" if NEON_AUTH_BASE_URL else "",
-)
-NEON_AUTH_ISSUER: str = os.environ.get("NEON_AUTH_ISSUER", NEON_AUTH_BASE_URL)
-NEON_AUTH_AUDIENCE: str = os.environ.get("NEON_AUTH_AUDIENCE", NEON_AUTH_PROJECT_ID)
-NEON_AUTH_JWT_LEEWAY_SECONDS: int = int(os.environ.get("NEON_AUTH_JWT_LEEWAY_SECONDS", "30"))
+# ---------------------------------------------------------------------------
+# Auth — first-party JWT (HS256). Each user is identified by email; tenant
+# isolation is enforced by scoping every query to ``User.id`` in Neon.
+#
+# JWT_SECRET           Shared secret used to sign and verify tokens. Generate
+#                      with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+#                      REQUIRED: the app refuses to start auth if empty.
+# JWT_ALGORITHM        HMAC algorithm for PyJWT; HS256 is the default.
+# JWT_EXPIRES_MINUTES  Access-token lifetime. 30 days keeps sessions long
+#                      enough that re-login isn't annoying; rotate the secret
+#                      to invalidate all live tokens at once.
+# JWT_ISSUER           Stamped into `iss`; defaults to the app name so a
+#                      leaked token from another deployment can't replay here.
+# PASSWORD_MIN_LENGTH  Enforced server-side at signup.
+# ---------------------------------------------------------------------------
+JWT_SECRET: str = os.environ.get("JWT_SECRET", "")
+JWT_ALGORITHM: str = os.environ.get("JWT_ALGORITHM", "HS256")
+JWT_EXPIRES_MINUTES: int = int(os.environ.get("JWT_EXPIRES_MINUTES", "43200"))  # 30 days
+JWT_ISSUER: str = os.environ.get("JWT_ISSUER", "kb-graph-engine")
+PASSWORD_MIN_LENGTH: int = int(os.environ.get("PASSWORD_MIN_LENGTH", "8"))
 
 # Optional allowlist of OpenRouter models exposed to end-users. Comma-separated
 # list of model ids (e.g. "anthropic/claude-3-7-sonnet,openai/gpt-4o-mini").
@@ -154,4 +161,4 @@ USE_MEMGRAPH: bool = bool(MEMGRAPH_URI)
 USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
 USE_NEON: bool = bool(DATABASE_URL)
 USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
-USE_NEON_AUTH: bool = bool(NEON_AUTH_PROJECT_ID and NEON_AUTH_JWKS_URL)
+USE_AUTH: bool = bool(JWT_SECRET)

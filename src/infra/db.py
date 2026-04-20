@@ -117,7 +117,17 @@ async def init_db() -> None:
     assert _engine is not None
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    logger.info("Neon tables ensured (build_jobs, chat_sessions, chat_messages, config_versions, kb_uploads).")
+        # --- Additive migrations for pre-auth DBs ---------------------------
+        # create_all never alters an existing table, so add the JWT-auth
+        # columns/indexes defensively on every startup. These are idempotent.
+        from sqlalchemy import text
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(256)"
+        ))
+        await conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"
+        ))
+    logger.info("Neon tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit).")
 
 
 # ---------------------------------------------------------------------------
