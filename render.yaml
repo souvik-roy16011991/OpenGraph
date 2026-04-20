@@ -1,22 +1,40 @@
 # ---------------------------------------------------------------------------
-# Render Blueprint
+# Render Blueprint — KB Knowledge Graph Engine
 # ---------------------------------------------------------------------------
-# Two services:
-#   1. kb-backend   — FastAPI (uvicorn) on a Docker runtime. Stateless: all
-#                     per-workspace state lives in Memgraph, Qdrant, Vercel
-#                     Blob, Neon, and Upstash.
-#   2. kb-frontend  — Next.js production server on a Docker runtime. The
-#                     NEXT_PUBLIC_API_BASE build-arg freezes the backend URL
-#                     into the client bundle.
+# Two stateless Docker services:
 #
-# Before the first deploy, in the Render dashboard set the following secrets
-# for EACH service where they apply (marked with `sync: false` below):
-#   - OPENROUTER_API_KEY
-#   - QDRANT_URL, QDRANT_API_KEY
-#   - MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD
-#   - DATABASE_URL  (Neon pooled connection string)
-#   - BLOB_READ_WRITE_TOKEN
-#   - UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+#   1. kb-backend   FastAPI (uvicorn, 1 worker — build jobs keep in-memory
+#                   state, scaling workers would split that state). All
+#                   runtime artefacts live in cloud stores (Memgraph,
+#                   Qdrant, Vercel Blob, Neon, Upstash) — no Render disk.
+#   2. kb-frontend  Next.js 15 production server. NEXT_PUBLIC_* values are
+#                   baked into the client bundle at build time via --build-arg.
+#
+# -- First-deploy secret checklist -------------------------------------------
+# In the Render dashboard set these with `sync: false` before the first deploy.
+# Each is tagged with which service needs it.
+#
+#   Backend only:
+#     OPENROUTER_API_KEY
+#     DATABASE_URL                 (Neon pooled connection string)
+#     MEMGRAPH_URI / _USERNAME / _PASSWORD
+#     QDRANT_URL / QDRANT_API_KEY
+#     BLOB_READ_WRITE_TOKEN
+#     UPSTASH_REDIS_REST_URL / _TOKEN
+#     STACK_SECRET_SERVER_KEY      (only when enabling Stack Auth)
+#
+#   Frontend only:
+#     STACK_SECRET_SERVER_KEY      (only when enabling Stack Auth; the
+#                                   server-side Stack SDK needs it too)
+#
+#   Shared (set identical values on both services):
+#     STACK_PROJECT_ID             (also exposed to frontend as
+#                                   NEXT_PUBLIC_STACK_PROJECT_ID)
+#     NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY   (frontend only)
+#
+# Stack Auth is OPTIONAL on first deploy — the app boots with a shared dev
+# "anonymous" user until STACK_PROJECT_ID is set. See DEPLOY.md for the
+# enforcement-flip procedure.
 # ---------------------------------------------------------------------------
 
 services:
@@ -30,10 +48,8 @@ services:
     dockerContext: .
     healthCheckPath: /health
     autoDeploy: true
-    plan: starter           # Free tier is 512 MB RAM; starter is 1 GB — needed
-                            # when faiss + sentence-transformers are loaded.
-    # No Render Disk: the container is stateless. All state lives in cloud
-    # stores (Memgraph, Qdrant, Vercel Blob, Neon, Upstash).
+    plan: starter           # Free is 512 MB; starter (1 GB) is needed when
+                            # sentence-transformers loads alongside the graph.
 
     envVars:
       # --- OpenRouter (LLM + remote embeddings) -------------------------
@@ -49,10 +65,13 @@ services:
         value: "4096"
       - key: EMBEDDING_MODEL
         value: qwen/qwen3-embedding-8b
-      # Flip to "1" to force offline TF-IDF embeddings (useful when OpenRouter
-      # quota is exhausted — avoids the PermissionDeniedError 403 seen before).
       - key: KB_FORCE_TFIDF
         value: "0"
+      # Optional comma-separated allowlist. Empty = expose full OpenRouter
+      # catalog via /api/v1/llm/models. Set to e.g.
+      # "anthropic/claude-3-7-sonnet,openai/gpt-4o-mini" to cap cost/quality.
+      - key: OPENROUTER_ALLOWED_MODELS
+        value: ""
 
       # --- Memgraph (primary graph store) -------------------------------
       - key: MEMGRAPH_URI
@@ -69,11 +88,11 @@ services:
         sync: false
       - key: QDRANT_API_KEY
         sync: false
-      # Legacy singleton collection name; per-workspace code uses kb-{ws_id}.
+      # Legacy singleton name; per-workspace code uses kb-{ws_id_short}.
       - key: QDRANT_COLLECTION_NAME
         value: kb-knowledge-graph
 
-      # --- Neon Postgres (workspaces + users + history) ----------------
+      # --- Neon Postgres (users + workspaces + history + audit log) -----
       - key: DATABASE_URL
         sync: false
 
@@ -83,17 +102,38 @@ services:
       - key: BLOB_STORE_PATH
         value: v0-it-support-automation-blob/kb-config
 
-      # --- Upstash Redis (cross-link + session cache) -------------------
+      # --- Upstash Redis (JWKS cache, cross-link cache, catalog cache) --
       - key: UPSTASH_REDIS_REST_URL
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
 
+      # --- Neon Auth (Stack Auth) --------------------------------------
+      # When STACK_PROJECT_ID is set, /api/v1/auth becomes enforced; unauth'd
+      # requests 401. When unset, the dev anonymous-user fallback stays on.
+      - key: STACK_PROJECT_ID
+        sync: false
+      - key: STACK_SECRET_SERVER_KEY
+        sync: false
+      # Override only if you self-host Stack Auth; default issuer is derived.
+      - key: STACK_JWT_ISSUER
+        sync: false
+
+      # --- Guardrails ---------------------------------------------------
+      # Caps each user at this many workspaces — prevents template-
+      # instantiation abuse.
+      - key: MAX_WORKSPACES_PER_USER
+        value: "25"
+
       # --- CORS --------------------------------------------------------
-      # Comma-separated list of allowed origins. The frontend URL goes here
-      # once Render issues it. Wildcard is the Phase-A default.
+      # Point this at the frontend host once Render issues it. fromService
+      # resolves to the live frontend URL so the backend exact-matches the
+      # origin (required for Authorization headers + cookies).
       - key: CORS_ALLOW_ORIGINS
-        value: "*"
+        fromService:
+          type: web
+          name: kb-frontend
+          property: host
 
       # --- Misc --------------------------------------------------------
       - key: KMP_DUPLICATE_LIB_OK
@@ -113,15 +153,15 @@ services:
     autoDeploy: true
     plan: starter
 
-    # Build-time args get baked into the client bundle (NEXT_PUBLIC_*).
-    # `fromService.property: host` resolves to "kb-backend.onrender.com" at
-    # build time so the browser hits the backend directly.
+    # Next's `--build-arg` path — these bake into the client bundle at
+    # `npm run build`. Render passes envVars as build args automatically
+    # when dockerContext is set.
     envVars:
       - key: NEXT_PUBLIC_API_BASE
         fromService:
           type: web
           name: kb-backend
-          property: host     # becomes https://kb-backend-xxxx.onrender.com
+          property: host     # e.g. https://kb-backend-xxxx.onrender.com
       - key: BACKEND_URL
         fromService:
           type: web
@@ -129,3 +169,14 @@ services:
           property: host
       - key: NODE_ENV
         value: production
+
+      # --- Neon Auth client SDK ----------------------------------------
+      # The NEXT_PUBLIC_* values are frozen into the client bundle at build.
+      # Set identical STACK_PROJECT_ID on backend + frontend so the backend's
+      # JWKS lookups agree with the SDK's token-issuer claim.
+      - key: NEXT_PUBLIC_STACK_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY
+        sync: false
+      - key: STACK_SECRET_SERVER_KEY
+        sync: false
