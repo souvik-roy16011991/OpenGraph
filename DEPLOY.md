@@ -188,21 +188,24 @@ python3 scripts/migrate_anon_workspaces.py --delete-all  # nuclear
 python3 scripts/migrate_anon_workspaces.py --assign-to <your-new-stack-sub>
 ```
 
-### 5.5 Set the three env vars on BOTH services and redeploy
+### 5.5 Set the env vars on BOTH services and redeploy
 
 On `kb-backend`:
 
 ```ini
-STACK_PROJECT_ID          = <from 5.1>
-STACK_SECRET_SERVER_KEY   = <from 5.1>
+NEON_AUTH_BASE_URL             = <from 5.1>
+NEON_AUTH_PROJECT_ID           = <from 5.1>
+NEON_AUTH_SECRET_SERVER_KEY    = <from 5.1>
 ```
 
 On `kb-frontend`:
 
 ```ini
-NEXT_PUBLIC_STACK_PROJECT_ID              = <from 5.1>
-NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY  = <from 5.1>
-STACK_SECRET_SERVER_KEY                   = <from 5.1>
+NEON_AUTH_BASE_URL                             = <from 5.1>
+NEXT_PUBLIC_NEON_AUTH_BASE_URL                 = <from 5.1>
+NEXT_PUBLIC_NEON_AUTH_PROJECT_ID               = <from 5.1>
+NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY   = <from 5.1>
+NEON_AUTH_SECRET_SERVER_KEY                    = <from 5.1>
 ```
 
 Redeploy **both services in the same window**. A backend-only deploy
@@ -227,7 +230,7 @@ open https://<fe>.onrender.com/
 
 1. Open `https://<fe>.onrender.com/` → redirects to `/handler/sign-in`.
 2. Click **Sign up**, create an account (email/password or an OAuth
-   provider that Stack Auth supports).
+   provider that Neon Auth supports).
 3. On first JWT the backend auto-creates a `users` row and emits an
    `auth.signup` audit event — confirm via `/profile`.
 
