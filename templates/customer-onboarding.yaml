@@ -1,0 +1,18 @@
+slug: customer-onboarding
+name: Customer Onboarding
+description: >
+  Implementation playbooks, kickoff checklists, adoption milestones and
+  QBR templates — for customer success teams driving activation and
+  retention.
+category: customer
+icon: Rocket
+domain:
+  domain_name: Customer Onboarding
+  domain_display_name: Customer Onboarding
+  organization_name: Customer Success Team
+  knowledge_focus_examples: |
+    kickoff playbooks, implementation checklists, activation milestones,
+    QBR templates, adoption scorecards, renewal risk signals
+  tool_focus_examples: |
+    customer success platforms, product analytics, e-signature tools,
+    project management, survey / NPS tooling, CRM renewal workflows

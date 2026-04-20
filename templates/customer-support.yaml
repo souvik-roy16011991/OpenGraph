@@ -1,0 +1,17 @@
+slug: customer-support
+name: Customer Support Desk
+description: >
+  L1 / L2 support knowledge base — macro responses, escalation ladders,
+  product FAQs, SLA commitments — linked to ticketing and chat systems.
+category: operations
+icon: Headphones
+domain:
+  domain_name: Customer Support
+  domain_display_name: Customer Support
+  organization_name: Support Team
+  knowledge_focus_examples: |
+    product FAQs, triage checklists, canned macro responses, escalation
+    ladders, SLA commitments, refund / credit policies
+  tool_focus_examples: |
+    ticketing platforms, live chat, knowledge-base portals, CSAT survey
+    tools, call-recording and quality-assurance systems

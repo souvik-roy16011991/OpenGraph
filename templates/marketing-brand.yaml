@@ -1,0 +1,18 @@
+slug: marketing-brand
+name: Marketing & Brand
+description: >
+  Brand guidelines, messaging frameworks, campaign SOPs and launch
+  playbooks — integrated with marketing automation and analytics.
+category: marketing
+icon: Megaphone
+domain:
+  domain_name: Marketing Brand
+  domain_display_name: Marketing & Brand
+  organization_name: Marketing Team
+  knowledge_focus_examples: |
+    brand voice / tone guidelines, messaging frameworks, campaign
+    playbooks, launch checklists, persona definitions, positioning
+    statements
+  tool_focus_examples: |
+    marketing automation, CMS platforms, analytics / attribution tools,
+    asset management, social scheduling, SEO tooling

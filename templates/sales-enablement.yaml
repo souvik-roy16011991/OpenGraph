@@ -1,0 +1,18 @@
+slug: sales-enablement
+name: Sales Enablement
+description: >
+  Playbooks, competitive intelligence, objection handling, deal-desk
+  workflows and discovery questions — backed by CRM, CPQ and
+  revenue-intelligence tooling.
+category: sales
+icon: Target
+domain:
+  domain_name: Sales Enablement
+  domain_display_name: Sales Enablement
+  organization_name: Revenue Team
+  knowledge_focus_examples: |
+    sales playbooks, discovery question banks, objection-handling guides,
+    competitive battle cards, deal-desk pricing rules, win / loss analyses
+  tool_focus_examples: |
+    CRM platforms, CPQ systems, revenue intelligence tools, call
+    intelligence / conversation analytics, enablement / LMS platforms

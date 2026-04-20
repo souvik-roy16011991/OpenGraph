@@ -1,0 +1,18 @@
+slug: devops-sre
+name: DevOps & SRE
+description: >
+  On-call runbooks, incident postmortems, deployment procedures and
+  capacity-planning playbooks — tied to your monitoring, CI/CD and
+  infrastructure tooling.
+category: engineering
+icon: Server
+domain:
+  domain_name: DevOps SRE
+  domain_display_name: DevOps & SRE
+  organization_name: Platform Team
+  knowledge_focus_examples: |
+    incident runbooks, postmortem templates, deployment procedures,
+    rollback playbooks, SLO / error-budget policies, on-call rotations
+  tool_focus_examples: |
+    monitoring dashboards, alert routing, CI/CD pipelines, infrastructure
+    as code, log aggregation, incident management tooling

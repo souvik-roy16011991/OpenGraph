@@ -1,0 +1,18 @@
+slug: procurement-vendor
+name: Procurement & Vendor Management
+description: >
+  RFP templates, vendor evaluation scorecards, renewal workflows and
+  purchase approval matrices — integrated with spend management and
+  contract tooling.
+category: finance
+icon: Package
+domain:
+  domain_name: Procurement Vendor
+  domain_display_name: Procurement & Vendor Management
+  organization_name: Procurement Team
+  knowledge_focus_examples: |
+    RFP / RFI templates, vendor evaluation scorecards, approval matrices,
+    renewal playbooks, spend policies, contract clause preferences
+  tool_focus_examples: |
+    procurement / spend management platforms, contract lifecycle
+    systems, vendor risk platforms, AP automation, e-signature tools

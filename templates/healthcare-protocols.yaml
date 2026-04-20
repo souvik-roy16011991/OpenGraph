@@ -1,0 +1,18 @@
+slug: healthcare-protocols
+name: Healthcare Clinical Protocols
+description: >
+  Clinical guidelines, patient pathways, triage protocols and documentation
+  standards — aligned with EHR / ePrescribing / telehealth systems.
+category: healthcare
+icon: HeartPulse
+domain:
+  domain_name: Healthcare Protocols
+  domain_display_name: Clinical Protocols
+  organization_name: Clinical Operations
+  knowledge_focus_examples: |
+    clinical guidelines, triage protocols, patient care pathways,
+    charting / documentation standards, medication reconciliation,
+    discharge planning
+  tool_focus_examples: |
+    electronic health records, ePrescribing platforms, lab integrations,
+    telehealth portals, clinical decision support, scheduling systems
