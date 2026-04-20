@@ -13,6 +13,14 @@ import { AuthAnimation } from "@/components/auth/auth-animation";
 import { BrandMark } from "@/components/brand";
 
 export default function SignInPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen grid place-items-center bg-background text-muted-foreground text-sm">Loading sign-in...</div>}>
+      <SignInPageInner />
+    </React.Suspense>
+  );
+}
+
+function SignInPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const rawReturn = params.get("return_to");

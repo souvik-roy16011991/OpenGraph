@@ -15,6 +15,14 @@ import { BrandMark } from "@/components/brand";
 const MIN_PASSWORD = 8;
 
 export default function SignUpPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen grid place-items-center bg-background text-muted-foreground text-sm">Loading sign-up...</div>}>
+      <SignUpPageInner />
+    </React.Suspense>
+  );
+}
+
+function SignUpPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const rawReturn = params.get("return_to");
