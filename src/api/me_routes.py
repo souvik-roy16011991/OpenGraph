@@ -5,10 +5,8 @@ Current-user endpoints.
     PATCH  /api/v1/me          Update display_name (email/password → Stack Auth flows)
     GET    /api/v1/me/audit    Paginated user audit trail
 
-Email and password changes are owned by Stack Auth; this module only
-manages the app-level user row + exposes the audit feed. When Stack Auth
-isn't configured the endpoints still work — they operate on the shared
-dev anon user so local development shows a realistic profile.
+Email and password changes are owned by Neon Auth; this module only
+manages the app-level user row + exposes the audit feed.
 """
 
 from __future__ import annotations
@@ -21,7 +19,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
 from src.api.auth import require_user
-from src.config import USE_NEON, USE_STACK_AUTH
+from src.config import USE_NEON
 from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import (
@@ -48,7 +46,7 @@ class MeResponse(BaseModel):
     email: Optional[str]
     display_name: Optional[str]
     created_at: str
-    auth_mode: str  # 'stack' | 'dev'
+    auth_mode: str  # always 'neon' — retained for API compatibility
     workspace_count: int
     build_count: int
     chat_count: int
@@ -120,7 +118,7 @@ async def get_me(user: User = Depends(require_user)):
         email=user.email,
         display_name=user.display_name,
         created_at=user.created_at.isoformat(),
-        auth_mode="stack" if USE_STACK_AUTH else "dev",
+        auth_mode="neon",
         workspace_count=counts["workspaces"],
         build_count=counts["builds"],
         chat_count=counts["chats"],

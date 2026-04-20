@@ -346,7 +346,12 @@ class UserAuditLog(Base):
 
 
 # ---------------------------------------------------------------------------
-# Phase A: anonymous user + default workspace bootstrap helpers
+# Legacy anonymous user marker
+#
+# The dev-mode fallback that wrote rows with this sentinel is gone; Neon Auth
+# is now required in all environments. The constant is retained only because
+# ``scripts/migrate_anon_workspaces.py`` still uses it to clean up historical
+# anon rows. Do NOT reintroduce into the request path.
 # ---------------------------------------------------------------------------
 
 ANONYMOUS_STACK_ID = "__anonymous__"

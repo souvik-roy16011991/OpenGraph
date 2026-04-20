@@ -1,8 +1,8 @@
 """
 Shared FastAPI dependencies.
 
-- ``require_user`` resolves the caller's Stack Auth identity (soft-fallbacks
-  to a shared dev user when Stack is not configured). Re-exported from
+- ``require_user`` resolves the caller's Neon Auth identity (raises 401 if
+  no/invalid token, 503 if auth isn't configured). Re-exported from
   ``src.api.auth`` for convenience so route modules have a single import.
 - ``require_workspace_id`` extracts X-Workspace-Id, validates it, **verifies
   ownership against the caller's User row**, loads the workspace's

@@ -127,17 +127,19 @@ DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
 UPSTASH_REDIS_REST_URL: str = os.environ.get("UPSTASH_REDIS_REST_URL", "")
 UPSTASH_REDIS_REST_TOKEN: str = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 
-# Neon Auth (Stack Auth) — JWT-authenticated users. When STACK_PROJECT_ID is
-# absent, auth is parsed-only and never enforced; the app continues to work
-# for unauthenticated traffic (Phase 1b, the "soft" rollout).
-STACK_PROJECT_ID: str = os.environ.get("STACK_PROJECT_ID", "")
-STACK_SECRET_SERVER_KEY: str = os.environ.get("STACK_SECRET_SERVER_KEY", "")
-STACK_JWT_ISSUER: str = os.environ.get(
-    "STACK_JWT_ISSUER",
-    # Default issuer format used by Stack Auth — override only if your project
-    # is hosted on a custom domain.
-    f"https://api.stack-auth.com/api/v1/projects/{STACK_PROJECT_ID}" if STACK_PROJECT_ID else "",
+# Neon Auth — JWT-authenticated users, served from a Neon-hosted Stack Auth
+# tenant. Typical deploys only need NEON_AUTH_BASE_URL + the three keys;
+# JWKS/issuer/audience default off the base URL.
+NEON_AUTH_PROJECT_ID: str = os.environ.get("NEON_AUTH_PROJECT_ID", "")
+NEON_AUTH_SECRET_SERVER_KEY: str = os.environ.get("NEON_AUTH_SECRET_SERVER_KEY", "")
+NEON_AUTH_BASE_URL: str = os.environ.get("NEON_AUTH_BASE_URL", "").rstrip("/")
+NEON_AUTH_JWKS_URL: str = os.environ.get(
+    "NEON_AUTH_JWKS_URL",
+    f"{NEON_AUTH_BASE_URL}/.well-known/jwks.json" if NEON_AUTH_BASE_URL else "",
 )
+NEON_AUTH_ISSUER: str = os.environ.get("NEON_AUTH_ISSUER", NEON_AUTH_BASE_URL)
+NEON_AUTH_AUDIENCE: str = os.environ.get("NEON_AUTH_AUDIENCE", NEON_AUTH_PROJECT_ID)
+NEON_AUTH_JWT_LEEWAY_SECONDS: int = int(os.environ.get("NEON_AUTH_JWT_LEEWAY_SECONDS", "30"))
 
 # Optional allowlist of OpenRouter models exposed to end-users. Comma-separated
 # list of model ids (e.g. "anthropic/claude-3-7-sonnet,openai/gpt-4o-mini").
@@ -152,4 +154,4 @@ USE_MEMGRAPH: bool = bool(MEMGRAPH_URI)
 USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
 USE_NEON: bool = bool(DATABASE_URL)
 USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
-USE_STACK_AUTH: bool = bool(STACK_PROJECT_ID)
+USE_NEON_AUTH: bool = bool(NEON_AUTH_PROJECT_ID and NEON_AUTH_JWKS_URL)

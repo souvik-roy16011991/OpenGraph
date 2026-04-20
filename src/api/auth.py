@@ -1,30 +1,36 @@
 """
-Neon Auth (Stack Auth) JWT verification.
+Neon Auth JWT verification.
 
 Responsibilities:
-  - Fetch the Stack Auth JWKS once (cached 24h in Upstash, in-proc fallback).
-  - Validate incoming ``Authorization: Bearer <jwt>`` tokens.
-  - Upsert the matching ``User`` row in Neon (populating ``stack_user_id``,
-    ``email``, ``display_name`` on first sight).
+  - Fetch the Neon Auth JWKS (cached 24h in Upstash, in-proc fallback) and
+    refetch on-demand when a JWT's ``kid`` is absent (key rotation).
+  - Validate incoming ``Authorization: Bearer <jwt>`` tokens with issuer,
+    audience, algorithm, and signature checks.
+  - Upsert the matching ``User`` row in Neon (``stack_user_id`` column stores
+    Neon Auth's ``sub``). A small in-proc LRU keeps the steady-state hot path
+    SELECT-free so workers scale horizontally.
   - Expose two FastAPI deps:
       * ``current_user()`` — optional; returns ``None`` when no token is
-        present OR when auth isn't configured (Phase 1b: parsed, not enforced).
-      * ``require_user()`` — strict; raises 401 if the caller is not
-        authenticated. Used by Phase 1d and beyond.
+        present OR when auth isn't configured.
+      * ``require_user()`` — strict; 401 if not authenticated, 503 if auth
+        is not configured on this deployment.
 
 Design notes:
   - JWKS fetch is best-effort; a failure returns None so the app continues
-    to serve unauth traffic during outages. We never 500 because the Stack
-    JWKS endpoint is unreachable.
-  - Verification uses the JWKS 'kid' header claim to pick the right key.
-  - We deliberately DO NOT trust any claims beyond what python-jose verified
+    to serve unauth traffic during outages. We never 500 because the Neon
+    Auth JWKS endpoint is unreachable.
+  - Verification uses the JWKS 'kid' header claim to pick the right key. If
+    the kid isn't in the cached JWKS we invalidate the cache and refetch
+    once — this makes a key rotation recover in the time of one httpx.get
+    rather than waiting out the 24h TTL.
+  - We never trust any claims beyond what python-jose verifies
     cryptographically (iss/aud/exp/signature).
 """
 
 from __future__ import annotations
 
 import logging
-import uuid
+import time
 from functools import lru_cache
 from typing import Any, Optional
 
@@ -33,23 +39,30 @@ from fastapi import Header, HTTPException
 from sqlalchemy import select
 
 from src.config import (
-    STACK_JWT_ISSUER,
-    STACK_PROJECT_ID,
+    NEON_AUTH_AUDIENCE,
+    NEON_AUTH_ISSUER,
+    NEON_AUTH_JWKS_URL,
+    NEON_AUTH_JWT_LEEWAY_SECONDS,
+    NEON_AUTH_PROJECT_ID,
     USE_NEON,
-    USE_STACK_AUTH,
+    USE_NEON_AUTH,
 )
-
-# NOTE: We deliberately import `ANONYMOUS_STACK_ID` lazily inside the dev
-# fallback so this module stays importable in environments where db_models
-# is stripped of the constant (e.g. a future Phase 2 migration).
 from src.infra import upstash
 from src.infra.db import get_session
 from src.infra.db_models import User
 
 logger = logging.getLogger(__name__)
 
-_JWKS_CACHE_KEY = lambda: f"jwks:stack:{STACK_PROJECT_ID}"  # noqa: E731
+_JWKS_CACHE_KEY = lambda: f"jwks:neon-auth:{NEON_AUTH_PROJECT_ID}"  # noqa: E731
 _JWKS_TTL_SECONDS = 24 * 3600
+
+# In-proc LRU for sub -> User row. Verified JWTs still decode every request;
+# this only skips the SELECT/UPDATE when we've already upserted this user
+# recently. 5-minute TTL is well under the typical JWT expiry, so staleness
+# is bounded by the token refresh cycle rather than this cache.
+_USER_CACHE_TTL_SECONDS = 300
+_USER_CACHE_MAX = 1024
+_user_cache: dict[str, tuple[float, User]] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -57,9 +70,7 @@ _JWKS_TTL_SECONDS = 24 * 3600
 # ---------------------------------------------------------------------------
 
 def _jwks_url() -> str:
-    if not STACK_PROJECT_ID:
-        return ""
-    return f"https://api.stack-auth.com/api/v1/projects/{STACK_PROJECT_ID}/.well-known/jwks.json"
+    return NEON_AUTH_JWKS_URL or ""
 
 
 @lru_cache(maxsize=1)
@@ -69,7 +80,7 @@ def _fallback_jwks() -> dict[str, Any] | None:
 
 
 def _fetch_jwks_remote() -> Optional[dict[str, Any]]:
-    """Fetch the JWKS JSON from Stack Auth. Returns None on any error."""
+    """Fetch the JWKS JSON from Neon Auth. Returns None on any error."""
     url = _jwks_url()
     if not url:
         return None
@@ -78,18 +89,21 @@ def _fetch_jwks_remote() -> Optional[dict[str, Any]]:
         resp.raise_for_status()
         return resp.json()
     except Exception as exc:
-        logger.warning("Stack JWKS fetch failed: %s", exc)
+        logger.warning("Neon Auth JWKS fetch failed: %s", exc)
         return None
 
 
-def get_jwks() -> Optional[dict[str, Any]]:
-    """Return the current JWKS, Upstash-cached."""
-    if not USE_STACK_AUTH:
+def get_jwks(force_refresh: bool = False) -> Optional[dict[str, Any]]:
+    """Return the current JWKS. Upstash-cached; on ``force_refresh`` skip the
+    cache and repopulate it. Used by ``_verify_jwt`` when a token's ``kid`` is
+    missing from the cached keys (i.e. after a key rotation).
+    """
+    if not USE_NEON_AUTH:
         return None
-    # Upstash first
-    cached = upstash.get_json(_JWKS_CACHE_KEY())
-    if isinstance(cached, dict) and cached.get("keys"):
-        return cached
+    if not force_refresh:
+        cached = upstash.get_json(_JWKS_CACHE_KEY())
+        if isinstance(cached, dict) and cached.get("keys"):
+            return cached
     fresh = _fetch_jwks_remote()
     if fresh:
         upstash.set_json(_JWKS_CACHE_KEY(), fresh, ttl_seconds=_JWKS_TTL_SECONDS)
@@ -106,54 +120,96 @@ def _verify_jwt(token: str) -> Optional[dict[str, Any]]:
     """Return the decoded+verified JWT claims, or None on any error.
 
     A failure here must never crash a request — we log and return None so the
-    caller (current_user) treats it the same as "no header sent" during the
-    Phase 1b soft-rollout window.
+    caller (current_user) treats it the same as "no header sent".
     """
-    if not token or not USE_STACK_AUTH:
+    if not token or not USE_NEON_AUTH:
         return None
     try:
-        # Lazy import: python-jose isn't required when USE_STACK_AUTH is off.
         from jose import jwt
         from jose.exceptions import JWTError
     except ImportError:
-        logger.error("python-jose is not installed; cannot verify Stack JWTs.")
-        return None
-
-    jwks = get_jwks()
-    if not jwks:
+        logger.error("python-jose is not installed; cannot verify Neon Auth JWTs.")
         return None
 
     try:
         header = jwt.get_unverified_header(token)
-        kid = header.get("kid")
-        keys = jwks.get("keys", [])
-        key = next((k for k in keys if k.get("kid") == kid), None) if kid else (keys[0] if keys else None)
-        if key is None:
-            logger.warning("JWT kid=%r not found in JWKS.", kid)
-            return None
+    except Exception as exc:
+        logger.info("Neon Auth JWT header parse failed: %s", exc)
+        return None
+    kid = header.get("kid")
+
+    jwks = get_jwks()
+    key = _pick_key(jwks, kid) if jwks else None
+    # If the token advertises a kid we don't know about, the key set probably
+    # rotated since we last cached it. Drop the cache and refetch once.
+    if key is None and kid:
+        jwks = get_jwks(force_refresh=True)
+        key = _pick_key(jwks, kid) if jwks else None
+    if key is None:
+        logger.warning("Neon Auth JWT kid=%r not found in JWKS (post-refresh).", kid)
+        return None
+
+    alg = key.get("alg")
+    if not alg or alg.lower() == "none":
+        logger.warning("Neon Auth JWKS key %r has unusable alg=%r.", kid, alg)
+        return None
+
+    try:
         claims = jwt.decode(
             token,
             key,
-            algorithms=[key.get("alg", "RS256")],
-            # Stack Auth JWTs carry an `iss` that matches the project endpoint.
-            issuer=STACK_JWT_ISSUER or None,
-            # We don't verify audience here — Stack uses the project_id as aud
-            # in some flows; this can be tightened once we standardise the
-            # client SDK call that produces the tokens we accept.
-            options={"verify_aud": False},
+            algorithms=[alg],
+            issuer=NEON_AUTH_ISSUER or None,
+            audience=NEON_AUTH_AUDIENCE or None,
+            options={
+                "verify_aud": bool(NEON_AUTH_AUDIENCE),
+                "leeway": NEON_AUTH_JWT_LEEWAY_SECONDS,
+            },
         )
         return claims
     except JWTError as exc:
-        logger.info("Stack JWT verification failed: %s", exc)
+        logger.info("Neon Auth JWT verification failed: %s", exc)
         return None
     except Exception as exc:
-        logger.warning("Stack JWT decode raised: %s", exc)
+        logger.warning("Neon Auth JWT decode raised: %s", exc)
         return None
 
 
+def _pick_key(jwks: Optional[dict[str, Any]], kid: Optional[str]) -> Optional[dict[str, Any]]:
+    if not jwks:
+        return None
+    keys = jwks.get("keys") or []
+    if kid:
+        for k in keys:
+            if k.get("kid") == kid:
+                return k
+        return None
+    return keys[0] if keys else None
+
+
 # ---------------------------------------------------------------------------
-# User upsert
+# User upsert (+ in-proc cache)
 # ---------------------------------------------------------------------------
+
+def _cache_get(sub: str) -> Optional[User]:
+    entry = _user_cache.get(sub)
+    if not entry:
+        return None
+    ts, user = entry
+    if time.monotonic() - ts > _USER_CACHE_TTL_SECONDS:
+        _user_cache.pop(sub, None)
+        return None
+    return user
+
+
+def _cache_put(sub: str, user: User) -> None:
+    if len(_user_cache) >= _USER_CACHE_MAX:
+        # Cheap eviction: drop the oldest entry. A proper LRU is overkill for
+        # a per-process cache with O(max=1024) entries.
+        oldest = min(_user_cache.items(), key=lambda kv: kv[1][0])[0]
+        _user_cache.pop(oldest, None)
+    _user_cache[sub] = (time.monotonic(), user)
+
 
 async def _upsert_user(claims: dict[str, Any]) -> Optional[User]:
     """Given verified JWT claims, return the matching User row (creating on
@@ -164,6 +220,10 @@ async def _upsert_user(claims: dict[str, Any]) -> Optional[User]:
     sub = claims.get("sub")
     if not sub:
         return None
+    cached = _cache_get(sub)
+    if cached is not None:
+        return cached
+
     email = claims.get("email")
     display = claims.get("name") or claims.get("display_name") or email
     async with get_session() as s:
@@ -171,7 +231,6 @@ async def _upsert_user(claims: dict[str, Any]) -> Optional[User]:
             select(User).where(User.stack_user_id == sub)
         )).scalar_one_or_none()
         if existing is not None:
-            # Keep email / display_name fresh — cheap no-op if unchanged.
             changed = False
             if email and existing.email != email:
                 existing.email = email
@@ -181,13 +240,12 @@ async def _upsert_user(claims: dict[str, Any]) -> Optional[User]:
                 changed = True
             if changed:
                 await s.commit()
+            _cache_put(sub, existing)
             return existing
         user = User(stack_user_id=sub, email=email, display_name=display)
         s.add(user)
         await s.commit()
         await s.refresh(user)
-        # First-sight signup audit event. Only fires once per user-row creation;
-        # subsequent JWT arrivals hit the update branch above and don't re-record.
         try:
             from src.infra.audit import record_audit
             record_audit(
@@ -197,6 +255,7 @@ async def _upsert_user(claims: dict[str, Any]) -> Optional[User]:
             )
         except Exception:
             pass
+        _cache_put(sub, user)
         return user
 
 
@@ -207,12 +266,7 @@ async def _upsert_user(claims: dict[str, Any]) -> Optional[User]:
 async def current_user(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> Optional[User]:
-    """Return the caller's ``User`` row if a valid Bearer JWT is sent.
-
-    Phase 1b: never raises on missing / invalid tokens — returns None instead.
-    This lets auth ride alongside the existing unauthenticated traffic until
-    enforcement is turned on in Phase 1d via ``require_user``.
-    """
+    """Return the caller's ``User`` row if a valid Bearer JWT is sent."""
     if not authorization or not authorization.lower().startswith("bearer "):
         return None
     token = authorization.split(" ", 1)[1].strip()
@@ -229,49 +283,18 @@ async def current_user(
 async def require_user(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> User:
-    """Return the caller's User row, 401 if not authenticated.
+    """Return the caller's User row. 401 if no/invalid token; 503 if auth
+    isn't configured on this deployment.
 
-    Behaviour depends on ``USE_STACK_AUTH``:
-      * **Enabled (production)**: a valid Bearer JWT is required. Missing
-        / invalid → 401. Every workspace route eventually checks ownership
-        against the ``User.id`` returned here.
-      * **Disabled (dev / early staging)**: falls back to a single shared
-        dev user (``stack_user_id = '__anonymous__'``) so local workflow
-        keeps working without a Stack project. The dev fallback is
-        **never** used when Stack Auth is configured — once env vars are
-        set, only real JWTs grant access.
+    There is no dev-mode / anonymous fallback: Neon Auth must be wired up
+    for protected routes to respond at all.
     """
-    user = await current_user(authorization)
-    if user is not None:
-        return user
-    if USE_STACK_AUTH:
-        raise HTTPException(status_code=401, detail="Authentication required.")
-    # Dev fallback — preserves existing unauthenticated workflow until the
-    # operator sets STACK_PROJECT_ID in env. Not reachable in production.
-    return await _get_or_create_dev_user()
-
-
-async def _get_or_create_dev_user() -> User:
-    """Fetch-or-create the single shared dev fallback user.
-
-    Uses ``ANONYMOUS_STACK_ID`` so this is idempotent with the existing
-    `_get_anonymous_user_id()` helper; once Phase 1c wipes anon-owned data
-    and STACK_PROJECT_ID is set, this path stops being reached entirely.
-    """
-    from src.infra.db_models import ANONYMOUS_STACK_ID
-    if not USE_NEON:
+    if not USE_NEON_AUTH:
         raise HTTPException(
             status_code=503,
-            detail="DATABASE_URL (Neon) is required for workspace-scoped operations.",
+            detail="Authentication is not configured on this deployment.",
         )
-    async with get_session() as s:
-        existing = (await s.execute(
-            select(User).where(User.stack_user_id == ANONYMOUS_STACK_ID)
-        )).scalar_one_or_none()
-        if existing is not None:
-            return existing
-        u = User(stack_user_id=ANONYMOUS_STACK_ID, display_name="Anonymous (dev)")
-        s.add(u)
-        await s.commit()
-        await s.refresh(u)
-        return u
+    user = await current_user(authorization)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    return user
