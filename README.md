@@ -82,20 +82,20 @@ local disk. No per-tenant state in the container.
 
 ### Auth & tenancy model
 
-- **Identity**: [Neon Auth](https://neon.tech/docs/guides/neon-auth) (Stack
-  Auth). Frontend uses `@stackframe/stack`; backend validates JWTs against
-  the project's JWKS endpoint (cached 24h in Upstash).
+- **Identity**: [Neon Auth](https://neon.tech/docs/guides/neon-auth) — a
+  Neon-hosted Stack Auth tenant. Frontend uses `@stackframe/stack` with a
+  custom `baseUrl`; backend validates JWTs against the tenant's JWKS
+  endpoint (cached 24h in Upstash with on-rotation refetch).
 - **`Authorization: Bearer <jwt>`** carries the caller's identity; the
   `sub` claim is matched against `users.stack_user_id`, auto-creating
-  the row on first sight.
+  the row on first sight. A per-process LRU caches the `sub → User.id`
+  mapping for 5 min so the hot path skips the SELECT/UPDATE.
 - **`X-Workspace-Id: <uuid>`** is a claim that must match the workspace's
   `user_id`. Ownership is verified in [src/api/deps.py](src/api/deps.py)
   before any work runs; mismatch returns **404** (not 403) to avoid
   leaking workspace existence across tenants.
-- **Dev fallback**: when `STACK_PROJECT_ID` is unset, `require_user`
-  auto-returns a single shared `__anonymous__` user so local development
-  works without Stack credentials. Ownership checks still fire — fine
-  locally because everything belongs to that one user.
+- **No dev fallback.** Protected routes return 401 without a valid JWT
+  and 503 if Neon Auth env vars are unset.
 
 ### In-memory caches (per process)
 
@@ -117,10 +117,10 @@ local disk. No per-tenant state in the container.
 
 - Python 3.12
 - Node 20
-- Credentials for: Neon (required), OpenRouter (required),
-  Memgraph + Qdrant + Vercel Blob + Upstash (required for production
-  behaviour; the app degrades to partial functionality if any are
-  missing). Stack Auth is optional — dev fallback kicks in.
+- Credentials for: Neon (required), Neon Auth (required), OpenRouter
+  (required), Memgraph + Qdrant + Vercel Blob + Upstash (required for
+  production behaviour; the app degrades to partial functionality if any
+  are missing).
 
 ### Backend
 
@@ -156,10 +156,12 @@ npm install
 
 # frontend/.env.local
 NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000
-# optional — add these to light up Stack Auth sign-in
-NEXT_PUBLIC_STACK_PROJECT_ID=...
-NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=...
-STACK_SECRET_SERVER_KEY=...
+# Neon Auth — required for sign-in
+NEON_AUTH_BASE_URL=https://ep-<id>.neonauth.<region>.aws.neon.tech/neondb/auth
+NEXT_PUBLIC_NEON_AUTH_BASE_URL=$NEON_AUTH_BASE_URL
+NEXT_PUBLIC_NEON_AUTH_PROJECT_ID=...
+NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY=...
+NEON_AUTH_SECRET_SERVER_KEY=...
 
 npm run dev
 # open http://localhost:3000
@@ -185,13 +187,17 @@ npm run dev
 | `BLOB_READ_WRITE_TOKEN` / `BLOB_STORE_PATH` | Vercel Blob (file store) |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Redis REST (caches) |
 
-### Auth (Neon Auth / Stack Auth)
+### Auth (Neon Auth)
 
 | Var | Purpose |
 |---|---|
-| `STACK_PROJECT_ID` | Stack Auth project id — presence flips on JWT enforcement |
-| `STACK_SECRET_SERVER_KEY` | Server-side Stack SDK (reserved for future admin calls) |
-| `STACK_JWT_ISSUER` | Override the default `https://api.stack-auth.com/api/v1/projects/{id}` issuer |
+| `NEON_AUTH_BASE_URL` | Tenant endpoint, e.g. `https://ep-<id>.neonauth.<region>.aws.neon.tech/neondb/auth` |
+| `NEON_AUTH_PROJECT_ID` | Tenant project id |
+| `NEON_AUTH_SECRET_SERVER_KEY` | Server-side Stack SDK (admin calls + SSR) |
+| `NEON_AUTH_JWKS_URL` | Optional — defaults to `$NEON_AUTH_BASE_URL/.well-known/jwks.json` |
+| `NEON_AUTH_ISSUER` | Optional — defaults to `$NEON_AUTH_BASE_URL` |
+| `NEON_AUTH_AUDIENCE` | Optional — defaults to `$NEON_AUTH_PROJECT_ID` |
+| `NEON_AUTH_JWT_LEEWAY_SECONDS` | Clock-skew tolerance on exp/nbf (default 30) |
 
 ### LLM tuning
 
@@ -422,12 +428,12 @@ after the user switches models.
 | `/chat` | Standalone Playground. Independent workspace selector (`chat-store`). Model dropdown. |
 | `/query` | Legacy redirect → `/chat` |
 | `/history` | Audit trail (builds, chats, configs, uploads) |
-| `/handler/[...stack]` | Stack Auth: sign-in / sign-up / OAuth callback / password reset |
+| `/handler/[...stack]` | Neon Auth: sign-in / sign-up / OAuth callback / password reset |
 
-Auth gate: [frontend/middleware.ts](frontend/middleware.ts) bounces
-unauthenticated requests to `/handler/sign-in` when
-`NEXT_PUBLIC_STACK_PROJECT_ID` + `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY`
-are set; otherwise it's a no-op (dev mode).
+Auth gate: [frontend/middleware.ts](frontend/middleware.ts) bounces every
+unauthenticated request to `/sign-in` (which forwards to `/handler/sign-in`);
+the `stack-refresh-*` cookie set by the Neon Auth SDK is the single
+session marker.
 
 ---
 
@@ -451,18 +457,20 @@ See [DEPLOY.md](DEPLOY.md).
 |---|---|
 | `scripts/upload_kb.py` | CLI upload of KB JSONs to Vercel Blob (outside the HTTP flow) |
 | `scripts/wipe_all.py` | Clear every backing store (Memgraph, Qdrant, Blob, Neon). Idempotent. |
-| `scripts/migrate_anon_workspaces.py` | `--dry-run` / `--delete-all` / `--assign-to <stack_user_id>`. Run once when flipping Stack Auth enforcement from dev → prod. |
+| `scripts/migrate_anon_workspaces.py` | `--dry-run` / `--delete-all` / `--assign-to <stack_user_id>`. Historical one-off to clean up rows from the pre-Neon-Auth dev-mode era. |
 
-### Rollout order for enabling Stack Auth
+### Rollout order for enabling Neon Auth
 
 1. Verify `workspaces.domain_config` column exists on live Neon
    (pre-check; `create_all` doesn't ALTER).
 2. Take a Neon snapshot.
-3. `python3 scripts/migrate_anon_workspaces.py --delete-all`
-   (or `--assign-to <your stack_user_id>`).
-4. Set `STACK_PROJECT_ID`, `STACK_SECRET_SERVER_KEY`,
-   `NEXT_PUBLIC_STACK_PROJECT_ID`, `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY`
-   in prod env.
+3. If migrating from the old dev-mode deployment, run
+   `python3 scripts/migrate_anon_workspaces.py --delete-all`
+   (or `--assign-to <your neon-auth sub>`).
+4. Set `NEON_AUTH_BASE_URL`, `NEON_AUTH_PROJECT_ID`,
+   `NEON_AUTH_SECRET_SERVER_KEY`, `NEXT_PUBLIC_NEON_AUTH_BASE_URL`,
+   `NEXT_PUBLIC_NEON_AUTH_PROJECT_ID`,
+   `NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY` in prod env.
 5. Redeploy backend + frontend in the same window — enforcement goes
    live together on both sides.
 

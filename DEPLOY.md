@@ -260,19 +260,21 @@ docker run --rm -p 8000:8000 \
   -e QDRANT_URL=https://... -e QDRANT_API_KEY=... \
   -e BLOB_READ_WRITE_TOKEN=... \
   -e UPSTASH_REDIS_REST_URL=... -e UPSTASH_REDIS_REST_TOKEN=... \
-  -e STACK_PROJECT_ID=... -e STACK_SECRET_SERVER_KEY=... \
+  -e NEON_AUTH_BASE_URL=... -e NEON_AUTH_PROJECT_ID=... -e NEON_AUTH_SECRET_SERVER_KEY=... \
   kb-backend
 
-# Frontend (Stack Auth only activates when all 3 NEXT_PUBLIC_* build args are set)
+# Frontend — all four NEXT_PUBLIC_* values must be set at build time
 cd frontend
 docker build -t kb-frontend \
   --build-arg NEXT_PUBLIC_API_BASE=http://host.docker.internal:8000 \
-  --build-arg NEXT_PUBLIC_STACK_PROJECT_ID=... \
-  --build-arg NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=... \
-  --build-arg STACK_SECRET_SERVER_KEY=... \
+  --build-arg NEXT_PUBLIC_NEON_AUTH_BASE_URL=... \
+  --build-arg NEXT_PUBLIC_NEON_AUTH_PROJECT_ID=... \
+  --build-arg NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY=... \
+  --build-arg NEON_AUTH_SECRET_SERVER_KEY=... \
   .
 docker run --rm -p 3000:3000 \
-  -e STACK_SECRET_SERVER_KEY=... \
+  -e NEON_AUTH_BASE_URL=... \
+  -e NEON_AUTH_SECRET_SERVER_KEY=... \
   kb-frontend
 ```
 
