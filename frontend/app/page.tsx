@@ -9,12 +9,12 @@ import { BrandMark } from "@/components/brand";
 import { useWorkspaceStore } from "@/store/workspace-store";
 
 const STEPS = [
-  { n: 1, href: "/upload",       icon: Upload,            title: "Upload KB files",  desc: "Drop one or more JSONs — knowledge and/or tool." },
-  { n: 2, href: "/domain",       icon: Tag,               title: "Configure domain", desc: "Name the domain, organization, and focus areas." },
-  { n: 3, href: "/graph-config", icon: Sliders,           title: "Tune graph knobs", desc: "Adjust how dense, how deep, how precise the graph should be." },
-  { n: 4, href: "/build",        icon: Hammer,            title: "Run the build",    desc: "Embeddings, edges, cross-KB links. Watch it happen." },
-  { n: 5, href: "/explore",      icon: Network,           title: "Explore visually", desc: "Zoom, filter, and inspect every node of the finished graph." },
-  { n: 6, href: "/chat",         icon: MessageSquareText, title: "Chat with it",     desc: "Pick any workspace, pick any model, and query it in natural language." },
+  { n: 1, href: "/upload", icon: Upload, title: "Upload KB files", desc: "Drop one or more JSONs — knowledge and/or tool." },
+  { n: 2, href: "/domain", icon: Tag, title: "Configure domain", desc: "Name the domain, organization, and focus areas." },
+  { n: 3, href: "/graph-config", icon: Sliders, title: "Tune graph knobs", desc: "Adjust how dense, how deep, how precise the graph should be." },
+  { n: 4, href: "/build", icon: Hammer, title: "Run the build", desc: "Embeddings, edges, cross-KB links. Watch it happen." },
+  { n: 5, href: "/explore", icon: Network, title: "Explore visually", desc: "Zoom, filter, and inspect every node of the finished graph." },
+  { n: 6, href: "/chat", icon: MessageSquareText, title: "Chat with it", desc: "Pick any workspace, pick any model, and query it in natural language." },
 ];
 
 export default function Home() {
@@ -28,7 +28,8 @@ export default function Home() {
       <section className="space-y-4">
         <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
           <BrandMark size={14} />
-          OpenGraph · Knowledge graph platform
+          OpenGraph
+
         </div>
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight max-w-3xl">
           OpenGraph — one workspace per domain, a typed graph per workspace,

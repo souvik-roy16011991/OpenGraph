@@ -45,12 +45,12 @@ interface NavItem {
 const WIZARD_ROUTES = ["/upload", "/domain", "/graph-config", "/build", "/explore"];
 
 const PRIMARY_NAV: NavItem[] = [
-  { href: "/templates", label: "Templates",    icon: LayoutGrid },
-  { href: "/chat",      label: "Chat",         icon: MessageSquareText },
-  { href: "/upload",    label: "Create Graph", icon: GitBranch, matchPrefixes: WIZARD_ROUTES },
-  { href: "/playground",label: "Playground",   icon: GitCompareArrows },
-  { href: "/history",   label: "History",      icon: HistoryIcon },
-  { href: "/profile",   label: "Profile",      icon: CircleUser },
+  { href: "/templates", label: "Templates", icon: LayoutGrid },
+  { href: "/chat", label: "Chat", icon: MessageSquareText },
+  { href: "/upload", label: "Create Graph", icon: GitBranch, matchPrefixes: WIZARD_ROUTES },
+  { href: "/playground", label: "Playground", icon: GitCompareArrows },
+  { href: "/history", label: "History", icon: HistoryIcon },
+  { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 
 function isActive(pathname: string | null, item: NavItem): boolean {
@@ -298,9 +298,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {!collapsed && (
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-semibold leading-tight truncate">OpenGraph</span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-                Knowledge graph platform
-              </span>
             </div>
           )}
         </Link>
