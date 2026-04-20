@@ -41,14 +41,14 @@ local disk. No per-tenant state in the container.
           │  │ /chat    (standalone playground)│  │
           │  │ /history (audit)                │  │
           │  └─────────────────────────────────┘  │
-          │   @stackframe/stack  (Neon Auth JWT)  │
+          │   first-party JWT (HS256, bcrypt pw)  │
           └────────────────┬──────────────────────┘
                            │ Authorization: Bearer <jwt>
                            │ X-Workspace-Id: <uuid>
                            ▼
           ┌─────────── FastAPI  :8000 ────────────┐
           │                                       │
-          │   src/api/auth.py      JWKS-verified  │
+          │   src/api/auth.py      HS256 verify   │
           │   src/api/deps.py      ownership      │
           │   src/api/routes.py    + sub-routers  │
           │       workspace │ kb │ config │ build │
@@ -82,20 +82,21 @@ local disk. No per-tenant state in the container.
 
 ### Auth & tenancy model
 
-- **Identity**: [Neon Auth](https://neon.tech/docs/guides/neon-auth) — a
-  Neon-hosted Stack Auth tenant. Frontend uses `@stackframe/stack` with a
-  custom `baseUrl`; backend validates JWTs against the tenant's JWKS
-  endpoint (cached 24h in Upstash with on-rotation refetch).
-- **`Authorization: Bearer <jwt>`** carries the caller's identity; the
-  `sub` claim is matched against `users.stack_user_id`, auto-creating
-  the row on first sight. A per-process LRU caches the `sub → User.id`
-  mapping for 5 min so the hot path skips the SELECT/UPDATE.
-- **`X-Workspace-Id: <uuid>`** is a claim that must match the workspace's
-  `user_id`. Ownership is verified in [src/api/deps.py](src/api/deps.py)
-  before any work runs; mismatch returns **404** (not 403) to avoid
-  leaking workspace existence across tenants.
+- **Identity**: first-party JWT. `POST /api/v1/auth/signup` and
+  `/auth/login` exchange email + password for a 30-day HS256 JWT
+  ([PyJWT](https://pyjwt.readthedocs.io/)); passwords are bcrypt-hashed
+  at rest. Each email maps to exactly one `users` row — the tenant
+  boundary.
+- **`Authorization: Bearer <jwt>`** carries the caller's identity; `sub`
+  is the user's UUID. A per-process LRU caches `sub → User` for 5 min
+  so the steady-state request path skips the SELECT.
+- **`X-Workspace-Id: <uuid>`** must match the workspace's `user_id`.
+  Ownership is verified in [src/api/deps.py](src/api/deps.py) before any
+  work runs; mismatch returns **404** (not 403) to avoid leaking
+  workspace existence across tenants.
 - **No dev fallback.** Protected routes return 401 without a valid JWT
-  and 503 if Neon Auth env vars are unset.
+  and 503 if `JWT_SECRET` is unset. Rotating `JWT_SECRET` invalidates
+  every live session at once.
 
 ### In-memory caches (per process)
 
@@ -117,10 +118,11 @@ local disk. No per-tenant state in the container.
 
 - Python 3.12
 - Node 20
-- Credentials for: Neon (required), Neon Auth (required), OpenRouter
-  (required), Memgraph + Qdrant + Vercel Blob + Upstash (required for
-  production behaviour; the app degrades to partial functionality if any
-  are missing).
+- Credentials for: Neon (required), OpenRouter (required), Memgraph +
+  Qdrant + Vercel Blob + Upstash (required for production behaviour; the
+  app degrades to partial functionality if any are missing).
+- A 48-byte `JWT_SECRET` (required):
+  `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
 
 ### Backend
 
@@ -154,14 +156,9 @@ python3 -m uvicorn src.api.server:app --port 8000 --reload
 cd frontend
 npm install
 
-# frontend/.env.local
+# frontend/.env.local — no third-party auth env vars needed
 NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000
-# Neon Auth — required for sign-in
-NEON_AUTH_BASE_URL=https://ep-<id>.neonauth.<region>.aws.neon.tech/neondb/auth
-NEXT_PUBLIC_NEON_AUTH_BASE_URL=$NEON_AUTH_BASE_URL
-NEXT_PUBLIC_NEON_AUTH_PROJECT_ID=...
-NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY=...
-NEON_AUTH_SECRET_SERVER_KEY=...
+BACKEND_URL=http://127.0.0.1:8000
 
 npm run dev
 # open http://localhost:3000
@@ -187,17 +184,15 @@ npm run dev
 | `BLOB_READ_WRITE_TOKEN` / `BLOB_STORE_PATH` | Vercel Blob (file store) |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Redis REST (caches) |
 
-### Auth (Neon Auth)
+### Auth (first-party JWT)
 
 | Var | Purpose |
 |---|---|
-| `NEON_AUTH_BASE_URL` | Tenant endpoint, e.g. `https://ep-<id>.neonauth.<region>.aws.neon.tech/neondb/auth` |
-| `NEON_AUTH_PROJECT_ID` | Tenant project id |
-| `NEON_AUTH_SECRET_SERVER_KEY` | Server-side Stack SDK (admin calls + SSR) |
-| `NEON_AUTH_JWKS_URL` | Optional — defaults to `$NEON_AUTH_BASE_URL/.well-known/jwks.json` |
-| `NEON_AUTH_ISSUER` | Optional — defaults to `$NEON_AUTH_BASE_URL` |
-| `NEON_AUTH_AUDIENCE` | Optional — defaults to `$NEON_AUTH_PROJECT_ID` |
-| `NEON_AUTH_JWT_LEEWAY_SECONDS` | Clock-skew tolerance on exp/nbf (default 30) |
+| `JWT_SECRET` | HS256 signing secret. Rotate to log everyone out. |
+| `JWT_ALGORITHM` | Optional — defaults to `HS256`. |
+| `JWT_EXPIRES_MINUTES` | Access-token lifetime in minutes (default 43200 / 30d). |
+| `JWT_ISSUER` | Stamped into `iss`; defaults to `kb-graph-engine`. |
+| `PASSWORD_MIN_LENGTH` | Server-enforced minimum password length (default 8). |
 
 ### LLM tuning
 
@@ -421,19 +416,20 @@ after the user switches models.
 
 | Route | Purpose |
 |---|---|
-| `/` | Landing; redirects unauth'd users to `/handler/sign-in` (when Stack is configured) or to `/templates` (when workspace is empty) |
+| `/` | Landing; redirects unauth'd users to `/sign-in` |
+| `/sign-in` | Email + password login — calls `POST /api/v1/auth/login` |
+| `/sign-up` | Email + password signup — calls `POST /api/v1/auth/signup` |
 | `/templates` | KB template catalog (OpenRouter-style search + category filter). Click → instantiate → `/upload` |
 | `/workspaces` | Existing workspace picker |
 | `/upload` → `/domain` → `/graph-config` → `/build` → `/explore` | Build wizard, step-locked |
 | `/chat` | Standalone Playground. Independent workspace selector (`chat-store`). Model dropdown. |
 | `/query` | Legacy redirect → `/chat` |
 | `/history` | Audit trail (builds, chats, configs, uploads) |
-| `/handler/[...stack]` | Neon Auth: sign-in / sign-up / OAuth callback / password reset |
 
 Auth gate: [frontend/middleware.ts](frontend/middleware.ts) bounces every
-unauthenticated request to `/sign-in` (which forwards to `/handler/sign-in`);
-the `stack-refresh-*` cookie set by the Neon Auth SDK is the single
-session marker.
+unauthenticated request to `/sign-in`. The `auth_token` cookie (mirrored
+in `localStorage` so `lib/api.ts` can attach `Authorization: Bearer`) is
+the single session marker.
 
 ---
 
@@ -457,22 +453,13 @@ See [DEPLOY.md](DEPLOY.md).
 |---|---|
 | `scripts/upload_kb.py` | CLI upload of KB JSONs to Vercel Blob (outside the HTTP flow) |
 | `scripts/wipe_all.py` | Clear every backing store (Memgraph, Qdrant, Blob, Neon). Idempotent. |
-| `scripts/migrate_anon_workspaces.py` | `--dry-run` / `--delete-all` / `--assign-to <stack_user_id>`. Historical one-off to clean up rows from the pre-Neon-Auth dev-mode era. |
+| `scripts/migrate_anon_workspaces.py` | `--dry-run` / `--delete-all` / `--assign-to <user_id>`. Historical one-off to clean up rows from the pre-auth dev-mode era. |
 
-### Rollout order for enabling Neon Auth
+### Rotating `JWT_SECRET`
 
-1. Verify `workspaces.domain_config` column exists on live Neon
-   (pre-check; `create_all` doesn't ALTER).
-2. Take a Neon snapshot.
-3. If migrating from the old dev-mode deployment, run
-   `python3 scripts/migrate_anon_workspaces.py --delete-all`
-   (or `--assign-to <your neon-auth sub>`).
-4. Set `NEON_AUTH_BASE_URL`, `NEON_AUTH_PROJECT_ID`,
-   `NEON_AUTH_SECRET_SERVER_KEY`, `NEXT_PUBLIC_NEON_AUTH_BASE_URL`,
-   `NEXT_PUBLIC_NEON_AUTH_PROJECT_ID`,
-   `NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY` in prod env.
-5. Redeploy backend + frontend in the same window — enforcement goes
-   live together on both sides.
+1. Generate: `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+2. Update `JWT_SECRET` on `kb-backend` and redeploy — every live token
+   becomes invalid; browsers bounce to `/sign-in` on next request.
 
 ---
 
@@ -480,15 +467,15 @@ See [DEPLOY.md](DEPLOY.md).
 
 | Layer | Tech |
 |---|---|
-| Frontend | Next.js 15.1, React 19, Tailwind 3, Radix UI, Zustand, TanStack Query, `@stackframe/stack`, Cytoscape, react-markdown |
-| Backend | FastAPI, LangGraph, langchain-openai (→ OpenRouter), SQLAlchemy 2.0 async + asyncpg, python-jose (JWT) |
+| Frontend | Next.js 15.2, React 19, Tailwind 3, Radix UI, Zustand, TanStack Query, Cytoscape, react-markdown |
+| Backend | FastAPI, LangGraph, langchain-openai (→ OpenRouter), SQLAlchemy 2.0 async + asyncpg, PyJWT (HS256), bcrypt |
 | Graph | Memgraph Cloud (Bolt) via `neo4j` driver; NetworkX as in-memory runtime view |
 | Vectors | Qdrant Cloud (REST + gRPC) via `qdrant-client` |
 | Files | Vercel Blob REST |
 | DB | Neon Postgres (pooled async) |
 | Cache | Upstash Redis REST |
 | LLM | OpenRouter (any of 342 models — user-selectable per workspace or per request) |
-| Auth | Neon Auth (Stack Auth) |
+| Auth | First-party JWT (HS256 + bcrypt), email as tenant key |
 
 ---
 

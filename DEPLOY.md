@@ -118,11 +118,13 @@ curl https://<be>.onrender.com/health
 curl https://<be>.onrender.com/api/v1/templates | jq '.templates | length'
 # => 29
 
-# 3. Neon Auth is always on — this call returns 401 unauthenticated.
-#    Sign in through the frontend to get a session, then use the browser
-#    devtools to grab the Authorization: Bearer ... header and replay here.
+# 3. JWT auth — sign up (returns { token, user }), then use that token.
+TOKEN=$(curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"email":"smoketest@example.com","password":"correct-horse"}' \
+  https://<be>.onrender.com/api/v1/auth/signup | jq -r .token)
+
 curl -X POST -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer $NEON_AUTH_TOKEN" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"production-test"}' \
   https://<be>.onrender.com/api/v1/workspaces
 WID=<uuid-returned>
@@ -141,17 +143,17 @@ open https://<fe>.onrender.com/
 
 ---
 
-## 5. Enabling Neon Auth
+## 5. Auth housekeeping
 
-### 5.1 Create the Neon Auth tenant
+### 5.1 Rotate `JWT_SECRET`
 
-1. In your Neon project dashboard → **Auth** tab → enable Neon Auth. Neon
-   provisions a Stack-Auth-compatible tenant and shows you:
-   - `NEON_AUTH_BASE_URL` — the tenant endpoint, e.g.
-     `https://ep-<id>.neonauth.<region>.aws.neon.tech/neondb/auth`
-   - `NEON_AUTH_PROJECT_ID` — the tenant project id
-   - `NEON_AUTH_SECRET_SERVER_KEY` — server-only, keep secret
-   - `NEON_AUTH_PUBLISHABLE_CLIENT_KEY` — baked into the client bundle
+Set a fresh 48-byte secret and redeploy `kb-backend`. All existing JWTs
+become invalid; every browser bounces to /sign-in on its next request.
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+# Paste into Render → kb-backend → Environment → JWT_SECRET → redeploy.
+```
 
 ### 5.2 Pre-flight: sanity-check the `workspaces.domain_config` column
 
@@ -163,49 +165,7 @@ psql "$DATABASE_URL" -c "\d workspaces" | grep domain_config
 # should show: domain_config | jsonb | nullable
 ```
 
-### 5.3 Take a Neon snapshot
-
-Neon dashboard → **Branches** → create a point-in-time branch. The
-anon-workspace migration below is irreversible.
-
-### 5.4 Wipe anonymous-owned data
-
-Every workspace currently belongs to the synthetic `__anonymous__` user.
-Once Stack Auth is enforced, real users can't access that data anyway,
-so either delete it or reassign.
-
-```bash
-# Render shell, from the kb-backend service:
-python3 scripts/migrate_anon_workspaces.py --dry-run     # preview counts
-python3 scripts/migrate_anon_workspaces.py --delete-all  # nuclear
-# OR:
-python3 scripts/migrate_anon_workspaces.py --assign-to <your-new-stack-sub>
-```
-
-### 5.5 Set the env vars on BOTH services and redeploy
-
-On `kb-backend`:
-
-```ini
-NEON_AUTH_BASE_URL             = <from 5.1>
-NEON_AUTH_PROJECT_ID           = <from 5.1>
-NEON_AUTH_SECRET_SERVER_KEY    = <from 5.1>
-```
-
-On `kb-frontend`:
-
-```ini
-NEON_AUTH_BASE_URL                             = <from 5.1>
-NEXT_PUBLIC_NEON_AUTH_BASE_URL                 = <from 5.1>
-NEXT_PUBLIC_NEON_AUTH_PROJECT_ID               = <from 5.1>
-NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY   = <from 5.1>
-NEON_AUTH_SECRET_SERVER_KEY                    = <from 5.1>
-```
-
-Redeploy **both services in the same window**. A backend-only deploy
-would 401 every live frontend tab.
-
-### 5.6 Verify the flip
+### 5.3 Verify
 
 ```bash
 # Unauthed request on any workspace route → 401
@@ -220,13 +180,12 @@ curl -i https://<be>.onrender.com/api/v1/templates | head -n 1
 open https://<fe>.onrender.com/
 ```
 
-### 5.7 First user sign-up
+### 5.4 First user sign-up
 
-1. Open `https://<fe>.onrender.com/` → redirects to `/handler/sign-in`.
-2. Click **Sign up**, create an account (email/password or an OAuth
-   provider that Neon Auth supports).
-3. On first JWT the backend auto-creates a `users` row and emits an
-   `auth.signup` audit event — confirm via `/profile`.
+1. Open `https://<fe>.onrender.com/` → redirects to `/sign-in`.
+2. Click **Sign up**, enter an email + password (≥ `PASSWORD_MIN_LENGTH`).
+3. The backend creates a `users` row, emits an `auth.signup` audit event,
+   and returns a JWT — the browser stores it and redirects to `/`.
 
 ---
 
@@ -254,22 +213,15 @@ docker run --rm -p 8000:8000 \
   -e QDRANT_URL=https://... -e QDRANT_API_KEY=... \
   -e BLOB_READ_WRITE_TOKEN=... \
   -e UPSTASH_REDIS_REST_URL=... -e UPSTASH_REDIS_REST_TOKEN=... \
-  -e NEON_AUTH_BASE_URL=... -e NEON_AUTH_PROJECT_ID=... -e NEON_AUTH_SECRET_SERVER_KEY=... \
+  -e JWT_SECRET=... \
   kb-backend
 
-# Frontend — all four NEXT_PUBLIC_* values must be set at build time
+# Frontend — only NEXT_PUBLIC_API_BASE needs to be baked at build time
 cd frontend
 docker build -t kb-frontend \
   --build-arg NEXT_PUBLIC_API_BASE=http://host.docker.internal:8000 \
-  --build-arg NEXT_PUBLIC_NEON_AUTH_BASE_URL=... \
-  --build-arg NEXT_PUBLIC_NEON_AUTH_PROJECT_ID=... \
-  --build-arg NEXT_PUBLIC_NEON_AUTH_PUBLISHABLE_CLIENT_KEY=... \
-  --build-arg NEON_AUTH_SECRET_SERVER_KEY=... \
   .
-docker run --rm -p 3000:3000 \
-  -e NEON_AUTH_BASE_URL=... \
-  -e NEON_AUTH_SECRET_SERVER_KEY=... \
-  kb-frontend
+docker run --rm -p 3000:3000 kb-frontend
 ```
 
 On macOS `host.docker.internal` lets the frontend container reach the
@@ -293,12 +245,10 @@ backend running on the host.
 
 ## Common pitfalls
 
-- **`401 Unauthorized` right after flipping Stack Auth on** — expected
-  on any open tab that was authenticated with dev mode. Refresh; the
-  middleware bounces to sign-in.
-- **`401 Unauthorized` during local dev** — Stack Auth vars are
-  partially set. Either set all three or unset all three. A partial
-  config throws off the client SDK.
+- **`401 Unauthorized` right after rotating `JWT_SECRET`** — expected on
+  every open tab. Refresh; middleware bounces to /sign-in.
+- **`503 Authentication is not configured`** — `JWT_SECRET` is empty on
+  the backend. Set it and redeploy.
 - **Backend starts but `/graph/*` returns 503** — expected until the
   first workspace is built. Hit `POST /api/v1/build`.
 - **`orphaned — process restarted` on old build jobs** — startup-time
