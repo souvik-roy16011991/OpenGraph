@@ -25,6 +25,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/user-menu";
 import { useGraphStatus } from "@/hooks/use-graph-status";
 import { useWizardStore, type WizardStep } from "@/store/wizard-store";
 import { useWorkspaceStore } from "@/store/workspace-store";
@@ -268,6 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <BackendBadges />
             <StatusPill />
+            <UserMenu />
             <ThemeToggle />
           </div>
         </header>
