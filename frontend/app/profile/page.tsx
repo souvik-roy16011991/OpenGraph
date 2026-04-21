@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -8,30 +9,31 @@ import {
   CircleUser,
   Clock,
   Loader2,
+  LogOut,
   MessageSquare,
   Pencil,
   Save,
   X,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { logout } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import type { AuditEntry, MeResponse } from "@/lib/schema";
 
 /**
  * User profile page.
  *
- * - Top card: identity (email, display name, stack user id, created date)
- *             + inline display-name editor + rolled-up counts.
+ * - Top card: identity + inline display-name editor + rolled-up counts.
+ * - Account actions: sign out (the only session-level control in the app).
  * - Below: paginated audit feed filterable by action / workspace.
  *
  * Identity facts come from the backend `/api/v1/me` endpoint — the
- * authoritative User row in Neon, not whatever the Stack JWT happens to
- * carry today. Display name is editable here; email / password changes
- * are owned by the Stack Auth flows under `/handler/*`.
+ * authoritative `public.users` row synced from Supabase `auth.users`.
+ * Display name is editable here; email / password changes go through
+ * Supabase (self-service from their hosted flows).
  */
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
@@ -143,9 +145,6 @@ function ProfileCard({ me }: { me: MeResponse }) {
                   <p className="text-sm text-muted-foreground truncate">{me.email}</p>
                 )}
               </div>
-              <Badge variant="outline" className="text-[10px] font-mono">
-                auth: {me.auth_mode}
-              </Badge>
             </div>
 
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4 text-sm">
@@ -161,6 +160,52 @@ function ProfileCard({ me }: { me: MeResponse }) {
               <p className="text-xs text-destructive mt-1">Couldn&apos;t save — {errorMessage(save.error)}</p>
             )}
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AccountActionsCard() {
+  const router = useRouter();
+  const [pending, setPending] = React.useState(false);
+
+  async function onSignOut() {
+    setPending(true);
+    try {
+      await logout();
+      router.replace("/sign-in");
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">Session</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Sign out of this device. Your data stays; you&apos;ll be asked to
+              sign in again to access your workspaces.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSignOut}
+            disabled={pending}
+            className="gap-2 shrink-0"
+          >
+            {pending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LogOut className="h-3.5 w-3.5" />
+            )}
+            {pending ? "Signing out…" : "Sign out"}
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -272,6 +317,8 @@ export default function ProfilePage() {
       </div>
 
       <ProfileCard me={me} />
+
+      <AccountActionsCard />
 
       <Card>
         <CardContent className="p-4 sm:p-5">
