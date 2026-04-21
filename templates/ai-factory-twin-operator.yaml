@@ -1,0 +1,24 @@
+slug: ai-factory-twin-operator
+name: AI Factory Twin Operator
+description: >
+  Runs a digital replica of factories — simulates and optimises
+  production in a live digital twin so shop-floor changes are tested
+  in silico before they risk OEE on the real line.
+category: operations
+icon: Factory
+domain:
+  domain_name: Digital Twin & Smart Manufacturing
+  domain_display_name: AI Factory Twin Operator
+  organization_name: Smart Manufacturing — Digital Twin Center
+  knowledge_focus_examples: |
+    ISA-95 manufacturing operations hierarchy, RAMI 4.0 reference
+    architecture, digital-twin maturity models (Gartner, Michael
+    Grieves), OPC UA companion specs, OEE calculation methodology,
+    ISA-88 batch control, discrete-event simulation patterns,
+    Unified Namespace (UNS) design, Industry-4.0 integration playbooks
+  tool_focus_examples: |
+    digital-twin platforms (Siemens Xcelerator / Teamcenter, PTC
+    ThingWorx, Dassault 3DEXPERIENCE, Microsoft Azure Digital Twins),
+    simulation (Ansys Twin Builder, Plant Simulation, FlexSim,
+    Simio), MES (Rockwell FactoryTalk, AVEVA System Platform),
+    IIoT brokers (HiveMQ, MQTT, Kepware), 3D/CAD kernels

@@ -1,0 +1,24 @@
+slug: ai-black-swan-detector
+name: AI Black Swan Detector
+description: >
+  Finds rare, high-impact risks early — continuously scans weak signals
+  across markets, supply chains, and global events to predict unlikely but
+  catastrophic tail-risk events before they cascade.
+category: strategy
+icon: Radar
+domain:
+  domain_name: Tail-Risk Intelligence
+  domain_display_name: AI Black Swan Detector
+  organization_name: Enterprise Risk & Intelligence Office
+  knowledge_focus_examples: |
+    tail-risk taxonomies (systemic, idiosyncratic, cascading),
+    Taleb / fat-tail statistical frameworks, historical black-swan
+    postmortems (LTCM, 2008 GFC, COVID supply shock), weak-signal
+    detection heuristics, pre-mortem templates, critical-infrastructure
+    interdependency maps, early-warning indicator libraries
+  tool_focus_examples: |
+    signal-mining platforms (Dataminr, Palantir Foundry), news and
+    social-media anomaly detectors (Feedly AI, Meltwater), extreme
+    value theory libraries (R evir, Python pyextremes), chaos/complexity
+    simulation toolkits, threat-intelligence feeds (Recorded Future),
+    OSINT aggregators, Bayesian network engines (Netica, AgenaRisk)

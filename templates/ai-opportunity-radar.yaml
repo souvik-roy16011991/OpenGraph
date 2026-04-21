@@ -1,0 +1,24 @@
+slug: ai-opportunity-radar
+name: AI Opportunity Radar
+description: >
+  Continuously scans for new revenue streams — identifies emerging
+  markets, unmet customer needs, adjacency plays, and white-space gaps
+  before competitors price them in.
+category: strategy
+icon: Telescope
+domain:
+  domain_name: Growth Opportunity Intelligence
+  domain_display_name: AI Opportunity Radar
+  organization_name: Growth & New Ventures Office
+  knowledge_focus_examples: |
+    Jobs-To-Be-Done discovery, TAM/SAM/SOM sizing methodology,
+    adjacency-expansion playbooks, white-space analysis frameworks,
+    customer-pain-point taxonomies, emerging-market readiness indices,
+    blue-ocean strategy (Kim-Mauborgne), unmet-needs research
+    patterns, discovery-driven planning templates
+  tool_focus_examples: |
+    customer-research platforms (Dovetail, UserInterviews),
+    trend-monitoring feeds (Exploding Topics, TrendHunter, CB Insights),
+    search-intent data (Google Trends, SparkToro), voice-of-customer
+    analytics (Qualtrics XM, Medallia), social-listening for unmet
+    needs (Brandwatch), Jobs-To-Be-Done survey platforms (Attest)

@@ -1,0 +1,24 @@
+slug: ai-safety-incident-predictor
+name: AI Safety Incident Predictor
+description: >
+  Prevents workplace accidents — identifies risky conditions early via
+  near-miss patterns, leading-indicator analysis, and real-time
+  behavioural / environmental sensor signals across the shop floor.
+category: operations
+icon: HardHat
+domain:
+  domain_name: Workplace Safety & HSE
+  domain_display_name: AI Safety Incident Predictor
+  organization_name: Environmental Health & Safety (EHS)
+  knowledge_focus_examples: |
+    Heinrich / Bird triangle of incidents, OSHA 300/300A recordable
+    taxonomies, TRIR / LTIR / DART calculations, ISO 45001 OHSMS,
+    leading vs lagging safety indicators, behaviour-based safety
+    (BBS) models, hierarchy of controls, job safety analysis (JSA),
+    near-miss reporting culture, permit-to-work classifications
+  tool_focus_examples: |
+    EHS management systems (Intelex, Enablon, VelocityEHS, Cority,
+    Sphera, Gensuite), incident-reporting apps (SafetyCulture iAuditor,
+    Safesite), computer-vision PPE detection (Intenseye, Voxel,
+    Protex AI), wearable safety (Kenzen, StrongArm), LOTO and permit
+    apps (Lockout Tagout Pro), behaviour-based-safety platforms

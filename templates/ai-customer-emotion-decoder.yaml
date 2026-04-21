@@ -1,0 +1,24 @@
+slug: ai-customer-emotion-decoder
+name: AI Customer Emotion Decoder
+description: >
+  Understands sentiment in real-time — adapts responses dynamically
+  based on emotion, tone, intent, and escalation signals from voice,
+  chat, and video interactions so agents never fumble the moment.
+category: customer
+icon: Smile
+domain:
+  domain_name: Emotion & Sentiment Intelligence
+  domain_display_name: AI Customer Emotion Decoder
+  organization_name: Customer Experience — Voice of Customer
+  knowledge_focus_examples: |
+    Plutchik / Ekman emotion taxonomies, sentiment-polarity annotation
+    guidelines, intent classification schemas, escalation-signal
+    playbooks, valence-arousal models, aspect-based sentiment analysis,
+    multimodal fusion (text + audio + facial) patterns, NPS / CSAT /
+    CES correlation with emotion scores
+  tool_focus_examples: |
+    conversation-analytics (CallMiner, NICE Nexidia, Observe.AI,
+    Verint Da Vinci), real-time sentiment (Cogito, Uniphore), facial
+    emotion APIs (Affectiva / Smart Eye, iMotions), speech emotion
+    (Vokaturi, Ellipsis Health), agent-assist platforms (Google
+    Dialogflow CX + Agent Assist, ASAPP, Cresta), LLM sentiment models

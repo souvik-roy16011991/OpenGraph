@@ -1,0 +1,24 @@
+slug: ai-rehab-progress-tracker
+name: AI Rehab Progress Tracker
+description: >
+  Monitors recovery outcomes — adjusts therapy dynamically based on
+  range-of-motion, strength, pain, and function metrics so rehab
+  plans evolve with the patient, not on a fixed template schedule.
+category: healthcare
+icon: TrendingUp
+domain:
+  domain_name: Rehabilitation & Physical Therapy Analytics
+  domain_display_name: AI Rehab Progress Tracker
+  organization_name: Rehabilitation Services
+  knowledge_focus_examples: |
+    FIM / WeeFIM / Barthel Index functional-status scales, APTA
+    clinical practice guidelines (LBP, knee OA, ACL), IRF PAI and
+    CARE tool data elements, OMEs (KOOS, HOOS, DASH, LEFS), PROMIS
+    short-forms, return-to-sport / return-to-work criteria,
+    CMS Outpatient Therapy plan-of-care rules (KX modifier)
+  tool_focus_examples: |
+    rehab EHR / practice-management (WebPT, Raintree, TheraOffice),
+    motion capture (Theia, Physimax, Kinetisense, Kemtai), home-
+    exercise apps (Hinge Health, Sword Health, Kaia Health),
+    wearable-gait analyzers (APDM Mobility Lab), tele-rehab platforms
+    (BlueJay, Sword Health), outcome-tracking libraries (FOTO)

@@ -1,0 +1,24 @@
+slug: ai-liquidity-optimizer
+name: AI Liquidity Optimizer
+description: >
+  Ensures optimal cash flow at all times — balances inflows, outflows,
+  intraday liquidity, and funding sources dynamically so treasury
+  neither over-funds idle balances nor breaches minimum buffers.
+category: finance
+icon: DollarSign
+domain:
+  domain_name: Treasury & Liquidity Management
+  domain_display_name: AI Liquidity Optimizer
+  organization_name: Corporate Treasury Operations
+  knowledge_focus_examples: |
+    liquidity coverage ratio (LCR) and NSFR mechanics, cash-sweep
+    and pooling structures, intraday-liquidity monitoring (BCBS 248),
+    FX netting and multilateral netting, money-market-fund limits,
+    repo / reverse-repo funding ladders, commercial paper programs,
+    in-house banking models, payment-factory architectures
+  tool_focus_examples: |
+    treasury management systems (Kyriba, GTreasury, ION Treasury,
+    FIS Integrity), bank connectivity (SWIFT MT/MX, EBICS, host-to-
+    host), cash-forecasting engines (HighRadius, Trovata), payment
+    orchestration, FX-dealing platforms (FXall, 360T), short-term
+    investment portals (ICD, Cachematrix), real-time payment rails

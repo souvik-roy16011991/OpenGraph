@@ -1,0 +1,24 @@
+slug: ai-policy-impact-simulator
+name: AI Policy Impact Simulator
+description: >
+  Predicts regulatory impact before it happens — models how pending
+  legislation, tariffs, and industry rules will ripple through revenue,
+  operations, and compliance so leadership can pre-position, not react.
+category: strategy
+icon: Landmark
+domain:
+  domain_name: Policy & Regulatory Foresight
+  domain_display_name: AI Policy Impact Simulator
+  organization_name: Government Affairs & Public Policy
+  knowledge_focus_examples: |
+    legislative-tracking taxonomies, regulatory impact assessment
+    (RIA) methodology, cost-benefit-analysis frameworks, OECD and
+    FASB policy-evaluation standards, historical regulatory-change
+    case studies, industry-specific rule books (Basel, HIPAA, GDPR,
+    CCPA, DSA), lobbying-disclosure norms, stakeholder-mapping tools
+  tool_focus_examples: |
+    legislative trackers (Quorum, FiscalNote, LexisNexis State Net),
+    regulatory APIs (Federal Register, EUR-Lex, Congress.gov),
+    policy-simulation models (CGE, microsimulation via EUROMOD),
+    scenario-planning tools, LLM-based bill summarization, lobbying-
+    spend databases (OpenSecrets), comment-period monitoring

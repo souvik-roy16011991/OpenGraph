@@ -1,0 +1,25 @@
+slug: ai-vehicle-performance-optimizer
+name: AI Vehicle Performance Optimizer
+description: >
+  Improves vehicle efficiency — uses real-time telemetry to tune
+  driving behaviour, ECU parameters, route selection, and tyre/pressure
+  choices for fuel/energy, emissions, and asset-life wins.
+category: operations
+icon: Car
+domain:
+  domain_name: Vehicle Telematics & Efficiency
+  domain_display_name: AI Vehicle Performance Optimizer
+  organization_name: Fleet Engineering & Connected Vehicle Ops
+  knowledge_focus_examples: |
+    OBD-II / PID-list standard diagnostics, SAE J1939 / J1979 bus
+    codes, fuel-efficiency KPIs (L/100 km, mpg, kWh/mi), eco-driving
+    scoring (harsh braking, idling, acceleration), WLTP / EPA
+    cycle methodology, tyre rolling-resistance effects, ADAS
+    utilisation patterns, EV range-degradation analysis, OEM DTC
+    catalogs
+  tool_focus_examples: |
+    telematics platforms (Samsara, Geotab, Verizon Connect, Motive,
+    Bridgestone Webfleet), fleet-analytics (Stratio, Fleet Complete),
+    EV charging + energy management (Driivz, GreenFlux), driver-
+    behaviour coaching (Lytx, Netradyne, Nauto), EV BMS analytics
+    (Voltaiq), OTA / ECU reflash (Airbiquity, Sibros), telematics APIs

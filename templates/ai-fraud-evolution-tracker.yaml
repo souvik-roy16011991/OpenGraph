@@ -1,0 +1,24 @@
+slug: ai-fraud-evolution-tracker
+name: AI Fraud Evolution Tracker
+description: >
+  Tracks how fraud techniques evolve — continuously adapts detection
+  models as fraudsters rotate mules, synthesize identities, and abuse
+  new payment rails, so the fraud stack never ships yesterday's rules.
+category: finance
+icon: ShieldAlert
+domain:
+  domain_name: Adaptive Fraud Intelligence
+  domain_display_name: AI Fraud Evolution Tracker
+  organization_name: Financial Crimes & Fraud Operations
+  knowledge_focus_examples: |
+    fraud typology taxonomies (synthetic ID, ATO, mule networks,
+    BEC, authorized push payment), Benford's Law and rare-event
+    detection, graph-based fraud ring detection patterns, PCI-DSS
+    and PSD2 SCA rules, FATF recommendations, chargeback reason
+    codes (Visa/MC), adversarial-ML playbooks, model-drift heuristics
+  tool_focus_examples: |
+    transaction-monitoring platforms (NICE Actimize, Feedzay, SAS
+    Fraud Management), identity-risk tools (Socure, Sift, LexisNexis
+    RiskNarrative), graph engines (TigerGraph, Neo4j) for ring
+    detection, adversarial-testing frameworks, MLOps model-drift
+    monitors (Evidently, Fiddler), device-fingerprinting (ThreatMetrix)

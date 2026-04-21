@@ -1,0 +1,24 @@
+slug: ai-chronic-disease-manager
+name: AI Chronic Disease Manager
+description: >
+  Manages long-term conditions — provides continuous care plans for
+  diabetes, CHF, COPD, CKD, hypertension, and comorbidities that
+  adjust in real time based on labs, vitals, and adherence patterns.
+category: healthcare
+icon: Heart
+domain:
+  domain_name: Chronic Care Management
+  domain_display_name: AI Chronic Disease Manager
+  organization_name: Chronic Care Management Program
+  knowledge_focus_examples: |
+    ADA diabetes Standards of Care, ACC/AHA heart-failure guidelines
+    (GDMT), GOLD COPD staging, KDIGO CKD classification, JNC 8
+    hypertension targets, DSMES (diabetes self-management education)
+    standards, chronic-care model (Wagner), CMS CCM/PCM billing
+    codes, medication-adherence metrics (PDC, MPR)
+  tool_focus_examples: |
+    chronic-care platforms (Livongo / Teladoc, Omada, Virta Health,
+    Noom Med), CGMs (Dexcom, Abbott FreeStyle Libre), connected BP
+    cuffs (Omron, Withings), spirometry (Aluna), remote-monitoring
+    hubs (Biofourmis, CareSignal), EHR chronic-care modules, Epic
+    Healthy Planet registries, adherence trackers (MedISafe, PillPack)

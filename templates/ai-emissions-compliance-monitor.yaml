@@ -1,0 +1,24 @@
+slug: ai-emissions-compliance-monitor
+name: AI Emissions Compliance Monitor
+description: >
+  Tracks environmental compliance — ensures regulatory adherence to
+  air, water, and waste-emission limits, schedules sampling and
+  reporting, and pre-empts permit exceedances before they trigger NOVs.
+category: operations
+icon: Cloud
+domain:
+  domain_name: Environmental Compliance & Emissions
+  domain_display_name: AI Emissions Compliance Monitor
+  organization_name: Environmental Compliance — Air, Water & Waste
+  knowledge_focus_examples: |
+    EPA Title V air-permit requirements, NESHAP / MACT standards,
+    Clean Water Act NPDES permits, RCRA hazardous-waste classification,
+    CEMS / CPMS monitoring rules (40 CFR 75), EU ETS and CBAM
+    obligations, SARA Tier II reporting, spill prevention (SPCC /
+    FRP) plans, DMR / Emissions Inventory submittals
+  tool_focus_examples: |
+    EHS compliance platforms (Sphera Cloud, Enablon, Intelex, Cority,
+    VelocityEHS, Gensuite), CEMS DAHS (Spectra, ESC DAHS,
+    DATACommander), waste-tracking (Enviance, WasteIQ), environmental
+    reporting (EPA e-DMR, CEDRI, TRI-MEweb), monitoring hardware
+    (Teledyne API, Thermo Fisher), weather / dispersion modelling (AERMOD)

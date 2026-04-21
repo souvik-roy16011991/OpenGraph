@@ -1,0 +1,24 @@
+slug: ai-energy-efficiency-optimizer
+name: AI Energy Efficiency Optimizer
+description: >
+  Minimizes energy consumption — balances cost and sustainability by
+  orchestrating HVAC, compressed air, process heating, lighting, and
+  demand-response across facilities and fleets.
+category: operations
+icon: Zap
+domain:
+  domain_name: Industrial Energy Management
+  domain_display_name: AI Energy Efficiency Optimizer
+  organization_name: Facilities & Energy Management
+  knowledge_focus_examples: |
+    ISO 50001 energy-management systems, ASHRAE 90.1 / 189.1 building
+    standards, specific energy consumption (SEC) benchmarks, demand-
+    response programs (ISO / RTO rules), peak-shaving and load-
+    shifting strategies, PUE / WUE for data centres, power-factor
+    correction, carbon-intensity grid signals, EPA ENERGY STAR for plants
+  tool_focus_examples: |
+    energy-management systems (Schneider Electric EcoStruxure,
+    Siemens EnergyIP, Honeywell Forge Energy, Envizi), BMS / BAS
+    (Johnson Controls Metasys, Siemens Desigo, Honeywell EBI), HVAC
+    optimisation (BrainBox AI, Verdigris), IIoT meters (Accuenergy,
+    Dent), demand-response automation (Enel X, Voltus, AutoGrid)

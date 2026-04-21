@@ -1,0 +1,24 @@
+slug: ai-inventory-intelligence-agent
+name: AI Inventory Intelligence Agent
+description: >
+  Maintains optimal stock levels — prevents overstock and stockouts
+  through probabilistic demand forecasting and multi-echelon reorder
+  policies tuned per SKU, location, and lead-time variability.
+category: operations
+icon: Boxes
+domain:
+  domain_name: Inventory Optimisation
+  domain_display_name: AI Inventory Intelligence Agent
+  organization_name: Supply Planning & Inventory Management
+  knowledge_focus_examples: |
+    inventory-policy types (s/S, r/Q, base-stock, min/max),
+    multi-echelon optimisation theory, service-level definitions
+    (CSL, fill rate), EOQ and Wilson formula, safety-stock calculation
+    (normal, Poisson, NBD), ABC/XYZ segmentation, demand-sensing vs
+    forecasting, pull vs push replenishment, inventory-turn KPIs
+  tool_focus_examples: |
+    inventory platforms (o9 Solutions, Kinaxis RapidResponse, Blue
+    Yonder, SAP IBP, Oracle Cloud SCM, Relex, Toolsgroup), forecast
+    engines (Prophet, SAP APO, DMI, Vidya), ERP stock ledgers (SAP
+    MM, Oracle Inventory), warehouse analytics, POS-to-DC connectors
+    (Fabric, Shopify Plus), RFID inventory accuracy tools (Impinj)

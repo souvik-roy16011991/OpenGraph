@@ -1,0 +1,24 @@
+slug: ai-preventive-health-strategist
+name: AI Preventive Health Strategist
+description: >
+  Predicts diseases before symptoms — uses lifestyle, biometric,
+  genomic, and claims data to stratify risk and recommend personalised
+  screening, behavioural, and medication interventions upstream.
+category: healthcare
+icon: HeartPulse
+domain:
+  domain_name: Preventive & Population Health
+  domain_display_name: AI Preventive Health Strategist
+  organization_name: Population Health & Preventive Medicine
+  knowledge_focus_examples: |
+    USPSTF screening guidelines, Framingham / ASCVD / QRISK risk
+    calculators, HEDIS and CMS Stars quality measures, ICD-10 and
+    SNOMED problem lists, lifestyle-modification evidence (DPP,
+    ACSM exercise guidelines), health-coaching protocols, SDoH
+    screening instruments, social-prescribing frameworks
+  tool_focus_examples: |
+    EHR platforms (Epic, Cerner/Oracle Health, Athenahealth, Meditech),
+    FHIR APIs for clinical data, population-health tools (Epic Healthy
+    Planet, Arcadia.io, Innovaccer), wearable integrations (Apple
+    HealthKit, Google Fit, Fitbit Web API, Oura, Whoop), claims data
+    warehouses, risk-stratification engines (Johns Hopkins ACG, 3M CRG)

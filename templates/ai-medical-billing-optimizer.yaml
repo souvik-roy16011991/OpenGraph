@@ -1,0 +1,24 @@
+slug: ai-medical-billing-optimizer
+name: AI Medical Billing Optimizer
+description: >
+  Reduces errors and costs — automates coding, claim scrubbing, and
+  denial-management loops so the revenue cycle recovers legitimate
+  payment faster without tipping into upcoding risk.
+category: healthcare
+icon: Receipt
+domain:
+  domain_name: Revenue Cycle Management
+  domain_display_name: AI Medical Billing Optimizer
+  organization_name: Revenue Cycle Management Operations
+  knowledge_focus_examples: |
+    ICD-10-CM / CPT / HCPCS code sets, CMS NCCI edits and MUEs,
+    NCD / LCD coverage determinations, modifier usage rules (25,
+    59, 51, 91, XS), medical-necessity documentation requirements,
+    AAPC / AHIMA coding guidelines, prior-authorization policies,
+    HIPAA 837/835 transactions, top-denial CARC/RARC codes
+  tool_focus_examples: |
+    coding tools (3M CAC, Optum360 LifeCode, Dolbey Fusion CAC),
+    clearinghouses (Change Healthcare, Waystar, Availity), RCM
+    suites (Epic Resolute, Cerner Revenue Cycle, athenaCollector),
+    denials-management platforms (Waystar, RecondoTech), payer-
+    policy databases (ClaimRemedi), coverage-discovery tools

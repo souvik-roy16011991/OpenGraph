@@ -1,0 +1,24 @@
+slug: ai-autonomous-quality-inspector
+name: AI Autonomous Quality Inspector
+description: >
+  Detects defects in real-time — uses machine-vision and sensor
+  systems at line speed to flag surface, dimensional, and assembly
+  defects before they reach packaging, cutting scrap and escapes.
+category: operations
+icon: ScanLine
+domain:
+  domain_name: Machine-Vision Quality Inspection
+  domain_display_name: AI Autonomous Quality Inspector
+  organization_name: Quality & Inspection Engineering
+  knowledge_focus_examples: |
+    ISO 9001 / IATF 16949 quality-management systems, AQL sampling
+    plans (ANSI/ASQ Z1.4), GD&T drawings per ASME Y14.5, SPC control
+    charts (X-bar, R, p, c), defect taxonomies (scratch, dent,
+    porosity, missing part), PPAP / APQP documentation, capability
+    indices (Cp, Cpk, Pp, Ppk), root-cause analysis (8D, 5-why, FMEA)
+  tool_focus_examples: |
+    machine-vision platforms (Cognex VisionPro, Keyence CV-X,
+    Datalogic, National Instruments NI Vision), deep-learning vision
+    (Cognex ViDi, MVTec Halcon, Landing AI), industrial cameras
+    (Basler, IDS, FLIR), line-scan and 3D sensors, SPC software
+    (Minitab, Infinity QS), MES quality modules (Aegis FactoryLogix)

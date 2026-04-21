@@ -1,0 +1,24 @@
+slug: ai-emergency-response-coordinator
+name: AI Emergency Response Coordinator
+description: >
+  Optimizes emergency services — improves dispatch response times,
+  unit allocation, and hospital routing using real-time incident,
+  traffic, and capacity data so the right resource arrives first.
+category: healthcare
+icon: LifeBuoy
+domain:
+  domain_name: EMS & Emergency Dispatch Optimization
+  domain_display_name: AI Emergency Response Coordinator
+  organization_name: Emergency Medical Services Operations
+  knowledge_focus_examples: |
+    NEMSIS data standards, MPDS (Medical Priority Dispatch System)
+    codes, RETTS / ESI triage scales, NFPA 1710/1720 response-time
+    standards, trauma-center verification levels, stroke / STEMI
+    bypass protocols, mass-casualty incident triage (START, SALT),
+    helicopter EMS activation criteria, hospital destination rules
+  tool_focus_examples: |
+    CAD systems (Motorola PremierOne, Hexagon OnCall, Central Square
+    Public Safety), EMS ePCR platforms (ESO, ImageTrend, Zoll),
+    hospital-status dashboards (EMResource, Juvare WebEOC), AVL/GPS
+    (MapMyFleet, Verizon Connect), traffic APIs (HERE, TomTom),
+    incident-intelligence feeds (RapidSOS), hospital-capacity APIs

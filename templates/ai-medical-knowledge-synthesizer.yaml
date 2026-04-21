@@ -1,0 +1,24 @@
+slug: ai-medical-knowledge-synthesizer
+name: AI Medical Knowledge Synthesizer
+description: >
+  Combines global medical research — keeps clinicians updated instantly
+  by synthesising journal articles, guidelines, and real-world evidence
+  into point-of-care summaries that are source-cited and up to date.
+category: healthcare
+icon: Library
+domain:
+  domain_name: Medical Literature Synthesis
+  domain_display_name: AI Medical Knowledge Synthesizer
+  organization_name: Chief Medical Office — Medical Affairs
+  knowledge_focus_examples: |
+    GRADE evidence-quality rating, PICO question framing, Cochrane
+    systematic-review methodology, PRISMA reporting checklist,
+    UpToDate / DynaMed editorial conventions, clinical practice
+    guidelines (NICE, USPSTF, AHA, ASCO), pharmacology references
+    (Micromedex, Lexicomp), EBM hierarchy of evidence
+  tool_focus_examples: |
+    literature APIs (PubMed / NCBI E-utilities, Europe PMC,
+    OpenAlex, Semantic Scholar), guideline repositories (ECRI,
+    GIN), evidence-synthesis platforms (Covidence, DistillerSR,
+    Rayyan), LLM-grounded medical QA (OpenEvidence, Glass Health),
+    drug databases (RxNorm, FDA Orange Book, DailyMed), UpToDate API

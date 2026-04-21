@@ -1,0 +1,25 @@
+slug: ai-production-bottleneck-hunter
+name: AI Production Bottleneck Hunter
+description: >
+  Finds inefficiencies instantly — detects real-time bottlenecks in
+  line flow, changeover time, and constraint drift, and suggests
+  fixes using Theory of Constraints before the shift ends.
+category: operations
+icon: Gauge
+domain:
+  domain_name: Production Throughput & TOC
+  domain_display_name: AI Production Bottleneck Hunter
+  organization_name: Continuous Improvement — Lean & TOC
+  knowledge_focus_examples: |
+    Theory of Constraints (Goldratt 5 focusing steps, DBR, TOC
+    buffers), lean-manufacturing (Toyota TPS, Value Stream Mapping,
+    SMED changeover), OEE breakdown (availability, performance,
+    quality), Little's Law for flow, bottleneck-detection heuristics
+    (utilisation peak, WIP queue depth), continuous-improvement
+    methods (kaizen, 5S, A3, PDCA)
+  tool_focus_examples: |
+    MES dashboards (Siemens Opcenter Execution, Rockwell FactoryTalk
+    ProductionCentre, GE Proficy Plant Applications), OEE platforms
+    (Evocon, Redzone, Vorne XL), process-mining tools (Celonis, UiPath
+    Process Mining, Apromore), shop-floor andon systems, time-study
+    apps (TimeStudyPro, Proplanner), Lean visual-management templates

@@ -1,0 +1,24 @@
+slug: ai-boardroom-translator
+name: AI Boardroom Translator
+description: >
+  Converts complex data into executive narratives — translates technical
+  analytics, model outputs, and dashboards into the strategic language
+  a board of directors and C-suite can act on in minutes, not hours.
+category: strategy
+icon: Languages
+domain:
+  domain_name: Executive Communication
+  domain_display_name: AI Boardroom Translator
+  organization_name: Office of the CEO — Board Relations
+  knowledge_focus_examples: |
+    board-pack structure conventions, Pyramid Principle (Minto),
+    BCG / McKinsey slide frameworks, executive-summary rubrics,
+    data-to-narrative conversion patterns, strategic-storytelling
+    archetypes, board meeting etiquette and quorum rules, SEC
+    disclosure-friendly language, proxy-statement conventions
+  tool_focus_examples: |
+    slide-generation tools (Beautiful.ai, Tome, Gamma), BI connectors
+    (Looker, Power BI, Tableau), narrative-analytics (Arria NLG,
+    Narrative Science), board-portal platforms (Diligent, BoardEffect),
+    chart-to-text LLM pipelines, executive-summary prompt libraries,
+    pdf/docx generation (python-docx, Puppeteer), voiceover tools

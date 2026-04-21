@@ -1,0 +1,24 @@
+slug: ai-vision-stress-tester
+name: AI Vision Stress Tester
+description: >
+  Tests company vision against reality — evaluates the feasibility,
+  resilience, and internal consistency of long-term visions against
+  market, capability, and capital constraints before commitment.
+category: strategy
+icon: Binoculars
+domain:
+  domain_name: Vision Feasibility & Resilience
+  domain_display_name: AI Vision Stress Tester
+  organization_name: Office of the CEO — Strategic Planning
+  knowledge_focus_examples: |
+    long-range strategic-planning frameworks, vision-statement
+    critique rubrics (Collins, Porras), capital-allocation stress
+    tests, capability-gap analysis (VRIO), McKinsey 7S diagnostics,
+    strategy-on-a-page canvases, assumption-identification templates,
+    failure-mode library of visionary pivots (Nokia, Kodak, Blockbuster)
+  tool_focus_examples: |
+    strategy-mapping tools (Kumu, Cascade), capability-assessment
+    surveys, financial-model stress testing (Quantrix, Anaplan),
+    Monte Carlo planning (@RISK, Crystal Ball), benchmarking
+    databases (APQC, Gartner), pre-mortem facilitation templates,
+    LLM-based red-team prompts for vision critique

@@ -1,0 +1,24 @@
+slug: ai-strategic-timing-optimizer
+name: AI Strategic Timing Optimizer
+description: >
+  Decides when to act, not just what to do — identifies optimal windows
+  for launches, exits, fundraises, and pivots by reading cycle position,
+  competitor timing, and macro conditions.
+category: strategy
+icon: Gauge
+domain:
+  domain_name: Strategic Timing
+  domain_display_name: AI Strategic Timing Optimizer
+  organization_name: Corporate Development & Strategy
+  knowledge_focus_examples: |
+    business-cycle / Kondratieff wave theory, technology-adoption
+    S-curves, diffusion of innovations (Rogers), product-launch
+    timing case studies (iPhone, Teams, Zoom), market-window
+    analytics, seasonality decomposition methods, real-options
+    decision rules, first-mover vs fast-follower trade-offs
+  tool_focus_examples: |
+    time-series forecasting (Prophet, NeuralProphet, statsmodels),
+    macro-indicator dashboards (TradingEconomics, FRED, OECD CLIs),
+    market-pulse feeds (CB Insights, PitchBook), launch-tracker
+    databases (Product Hunt Rewind), sentiment momentum indexes,
+    competitive-timing monitors, LLM-based cycle-position classifiers

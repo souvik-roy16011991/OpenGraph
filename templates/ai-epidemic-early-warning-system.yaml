@@ -1,0 +1,25 @@
+slug: ai-epidemic-early-warning-system
+name: AI Epidemic Early Warning System
+description: >
+  Detects outbreaks early — uses global data signals (syndromic
+  surveillance, wastewater, ED visits, news, travel) to spot epidemics
+  weeks before official case counts catch up.
+category: healthcare
+icon: Radar
+domain:
+  domain_name: Public-Health Surveillance
+  domain_display_name: AI Epidemic Early Warning System
+  organization_name: Public Health Surveillance & Preparedness
+  knowledge_focus_examples: |
+    WHO IHR (International Health Regulations) event definitions,
+    CDC National Notifiable Diseases list, BioSense / NSSP syndromic
+    surveillance categories, ProMED / HealthMap outbreak signals,
+    wastewater-based epidemiology, R0 / effective-Rt estimation
+    methods, EpiEstim / Cori methods, case-based vs event-based
+    surveillance, ICD-10 clusters of interest
+  tool_focus_examples: |
+    surveillance systems (Epi Info, SORMAS, DHIS2, Tableau for
+    public health), wastewater analytics (Biobot, WastewaterSCAN),
+    outbreak-intelligence feeds (BlueDot, Metabiota, HealthMap),
+    genomic-epi tools (Nextstrain, Pangolin), ED chief-complaint
+    NLP (EpiSpider), BioHub/ProMED alerts, CDC DPH data exchanges

@@ -1,0 +1,24 @@
+slug: ai-decision-auditor
+name: AI Decision Auditor
+description: >
+  Evaluates every major decision made — tracks decisions, measures
+  outcomes, and recommends improvements using causal inference so the
+  organization compounds decision-quality over time.
+category: strategy
+icon: FileSearch
+domain:
+  domain_name: Decision Quality & Audit
+  domain_display_name: AI Decision Auditor
+  organization_name: Office of the COO — Decision Analytics
+  knowledge_focus_examples: |
+    decision-quality frameworks (Howard, Matheson), causal inference
+    methods (DAGs, do-calculus, difference-in-differences), pre-mortem
+    and post-mortem protocols, cognitive-bias checklists (Kahneman,
+    Tversky), decision-log schemas, counterfactual reasoning templates,
+    ROI attribution models, accountability matrices (RACI, DACI)
+  tool_focus_examples: |
+    decision-intelligence platforms (Peak, Quantellia), causal-inference
+    libraries (DoWhy, EconML, CausalNex), outcome-tracking systems
+    (Lattice, 15five for OKRs), A/B testing infrastructure (Optimizely,
+    Eppo), Bayesian decision trees (SilverDecisions), data warehouse
+    joins to KPI marts (Snowflake, BigQuery), dashboard layers (Looker)

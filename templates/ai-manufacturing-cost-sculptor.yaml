@@ -1,0 +1,24 @@
+slug: ai-manufacturing-cost-sculptor
+name: AI Manufacturing Cost Sculptor
+description: >
+  Continuously reduces production cost — finds per-SKU optimisation
+  opportunities in BOM, routing, labour, scrap, energy, and overhead
+  allocation using should-cost models and activity-based costing.
+category: operations
+icon: TrendingDown
+domain:
+  domain_name: Cost Engineering & Should-Cost
+  domain_display_name: AI Manufacturing Cost Sculptor
+  organization_name: Cost Engineering & Value Analysis
+  knowledge_focus_examples: |
+    should-cost modelling methodology, activity-based costing (ABC)
+    frameworks, design-for-cost (DFC) / design-to-cost playbooks,
+    value-analysis / value-engineering (VA/VE), make-buy economics,
+    learning-curve (Wright-Boeing) models, Pareto ABC cost drivers,
+    product-cost master data (BOM, routing, overhead rates)
+  tool_focus_examples: |
+    should-cost platforms (aPriori, Siemens Teamcenter Product Cost
+    Management, Leopoly, Costdata), ERP cost modules (SAP CO-PC,
+    Oracle Product Cost Management), PLM (PTC Windchill, Siemens
+    Teamcenter, Dassault ENOVIA), spend-analytics (Coupa, SpendHQ),
+    BI dashboards on cost drivers (Power BI, Tableau)

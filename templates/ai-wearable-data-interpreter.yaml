@@ -1,0 +1,25 @@
+slug: ai-wearable-data-interpreter
+name: AI Wearable Data Interpreter
+description: >
+  Turns raw health data into insights — detects cardiac, sleep, and
+  activity anomalies from wearables and implantables early, and routes
+  actionable signals to clinicians without drowning them in noise.
+category: healthcare
+icon: Smartphone
+domain:
+  domain_name: Digital Biomarkers & RPM
+  domain_display_name: AI Wearable Data Interpreter
+  organization_name: Remote Patient Monitoring Program
+  knowledge_focus_examples: |
+    digital-biomarker taxonomies (HRV, SpO2, steps, sleep stages,
+    AFib detection), FDA 510(k) clearances for wearables (Apple
+    Watch ECG, Fitbit AFib, AliveCor Kardia), Continua Design
+    Guidelines, remote physiologic monitoring (RPM) CPT codes
+    (99453-99458), alert-fatigue mitigation, wearable accuracy
+    literature, informed-consent patterns for passive monitoring
+  tool_focus_examples: |
+    wearable APIs (Apple HealthKit, Google Fit, Fitbit Web API,
+    Garmin Connect, Oura, Whoop, Samsung Health, Polar), RPM
+    platforms (Vivify, Biofourmis, CareSignal, MedtronicCareLink),
+    signal-processing libraries (Biosppy, HeartPy, NeuroKit2),
+    FHIR Device + Observation resources, EHR flowsheet integrations
