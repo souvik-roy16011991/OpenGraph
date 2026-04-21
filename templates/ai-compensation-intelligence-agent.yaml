@@ -1,0 +1,27 @@
+slug: ai-compensation-intelligence-agent
+name: AI Compensation Intelligence Agent
+description: >
+  Benchmarks pay live — keeps salary bands, equity refreshes, and
+  geographic differentials aligned with the market so the comp
+  committee isn't debating stale survey data from last year.
+category: people
+icon: Wallet
+domain:
+  domain_name: Compensation & Total-Rewards Intelligence
+  domain_display_name: AI Compensation Intelligence Agent
+  organization_name: Total Rewards — Compensation Strategy
+  knowledge_focus_examples: |
+    compa-ratio / range penetration methodology, job-architecture
+    frameworks (Hay, Mercer IPE, Korn Ferry / Willis Towers Watson
+    Global Grading), market-pricing techniques, pay-equity analytics
+    (multivariate regression for gender / race pay gaps), pay-
+    transparency laws (EU Pay Transparency Directive, NYC / CA
+    disclosure rules), equity-refresh models (Radford tech benchmarks),
+    geographic-differential frameworks (location factors, zone-based
+    pay), variable-pay plan design, ISO 30414 workforce disclosures
+  tool_focus_examples: |
+    comp-intelligence platforms (Radford, Mercer WIN, Willis Towers
+    Watson CompAnalyst, Pave, Figures, Carta Compensation, LevelsFYI,
+    Ravio), pay-equity analysis (Syndio, Trusaic PayParity, Salary.com
+    IPAS, OpenComp), job-architecture tools (Mercer Mettl, SHL), HRIS
+    compensation modules (Workday Comp, SAP SuccessFactors, ADP)

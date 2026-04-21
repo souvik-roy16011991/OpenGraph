@@ -1,0 +1,28 @@
+slug: ai-attrition-predictor
+name: AI Attrition Predictor
+description: >
+  Surfaces flight risk before resignation — scores employees on
+  likelihood to leave in the next 90 days using engagement, comp-
+  position, manager-relationship, and behavioural signals so managers
+  can intervene while intervention still matters.
+category: people
+icon: UserX
+domain:
+  domain_name: Retention Analytics & Flight-Risk Prediction
+  domain_display_name: AI Attrition Predictor
+  organization_name: People Analytics — Retention Intelligence
+  knowledge_focus_examples: |
+    voluntary-turnover cost models (SHRM, Gallup, Work Institute),
+    engagement-to-retention literature (Gallup Q12, Gartner), survival-
+    analysis for employee tenure (Cox PH, Kaplan-Meier), flight-risk
+    signals (tenure + promotion interval, manager-turnover, pay
+    percentile drift, Glassdoor reviews, LinkedIn profile-update
+    anomalies), stay-interview protocols, intervention playbooks,
+    GDPR / workplace-privacy constraints on people analytics
+  tool_focus_examples: |
+    people-analytics platforms (Visier, One Model, Crunchr, Nakisa,
+    ChartHop, Worklytics, Eqtble), HRIS attrition data (Workday,
+    SAP SuccessFactors, BambooHR, Gusto, Rippling), engagement
+    survey + pulse (Culture Amp, Glint by LinkedIn, Peakon by Workday,
+    Lattice Engagement), ONA (Organisational Network Analysis)
+    tools (Polinode, TrustSphere, Worklytics), survival-analysis libs

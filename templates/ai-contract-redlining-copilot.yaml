@@ -1,0 +1,26 @@
+slug: ai-contract-redlining-copilot
+name: AI Contract Redlining Copilot
+description: >
+  Redlines contracts in real time — applies playbook-aware fallback
+  positions, flags non-standard deviations, and suggests tracked-
+  change language so counsel focuses on judgment calls, not
+  comma-wrangling.
+category: legal
+icon: FilePen
+domain:
+  domain_name: Contract Negotiation & Redlining
+  domain_display_name: AI Contract Redlining Copilot
+  organization_name: Legal Operations — Commercial Contracting
+  knowledge_focus_examples: |
+    playbook design (approved / fallback / deal-breaker positions),
+    standard clause libraries (indemnity, LoL, IP, assignment, MFN,
+    warranty, termination, data protection, SLAs), risk-tiered
+    escalation workflows, MSA vs order-form hierarchy, UCC §§ 2-207
+    battle-of-the-forms, Incoterms 2020 risk of loss, CISG
+    applicability, GDPR / DPA standard contractual clauses
+  tool_focus_examples: |
+    contract-review AI (Ironclad AI Assist, Lexion, LinkSquares
+    Analyze, Kira Systems / Litera Kira, Lawgeex, Spellbook, Harvey,
+    Robin AI), CLM (Ironclad, Icertis, DocuSign CLM, Agiloft,
+    Evisort, SirionLabs), Microsoft Word add-ins for tracked changes,
+    clause-library systems (ContractPodAi, Woodpecker), e-signature
