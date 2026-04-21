@@ -1,0 +1,25 @@
+slug: ai-behavioral-finance-coach
+name: AI Behavioral Finance Coach
+description: >
+  Corrects emotional financial decisions — identifies biases like
+  panic selling, overconfidence, and recency bias in real time and
+  nudges the client back to the plan before they act on the impulse.
+category: advisory
+icon: HandHeart
+domain:
+  domain_name: Behavioural Finance Coaching
+  domain_display_name: AI Behavioral Finance Coach
+  organization_name: Wealth Advisory — Behavioural Coaching Practice
+  knowledge_focus_examples: |
+    behavioural-finance biases (loss aversion, disposition effect,
+    recency, home bias, mental accounting, anchoring, confirmation,
+    narrative fallacy), Vanguard Advisor's Alpha behavioural-coaching
+    research, Dalbar QAIB investor-behaviour studies, Richard Thaler
+    nudge taxonomies, regret-minimisation planning, pre-commitment
+    devices, cooling-off trade-window design, panic-sell circuit-breakers
+  tool_focus_examples: |
+    risk-profiling platforms (Riskalyze / Nitrogen Wealth, FinaMetrica,
+    Pocket Risk, Tolerisk), CRM behavioural-tagging (Salesforce FSC,
+    Wealthbox, Redtail), client portals with behaviour alerts (eMoney,
+    Orion, Envestnet Tamarac), behavioural-coaching content libraries
+    (Morningstar Behavioral Insights), LLM nudge-script generators

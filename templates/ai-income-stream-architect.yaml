@@ -1,0 +1,25 @@
+slug: ai-income-stream-architect
+name: AI Income Stream Architect
+description: >
+  Designs diversified income sources — builds stable and scalable
+  income portfolios (dividends, coupons, rental, royalties, covered
+  calls, ladder) that survive sequence-of-return and inflation shocks.
+category: advisory
+icon: Layers
+domain:
+  domain_name: Retirement & Diversified Income Planning
+  domain_display_name: AI Income Stream Architect
+  organization_name: Wealth Management — Income & Withdrawal Strategy
+  knowledge_focus_examples: |
+    withdrawal strategies (4% rule / Bengen, guardrails / Guyton-Klinger,
+    dynamic TPAW), bond-ladder and CD-ladder construction, dividend-
+    growth investing principles, REIT / rental income modelling,
+    covered-call and cash-secured-put income overlays, SPIA / DIA
+    / QLAC annuity laddering, Roth-conversion ladder income smoothing,
+    Social-Security / EPFO / pension claiming-age optimisation
+  tool_focus_examples: |
+    retirement-income software (Income Lab, Income Solver, Big Picture,
+    Timeline by Timelineapp, RetireUp / Envestnet), annuity marketplaces
+    (DPL Financial Partners, Gainbridge, RetireOne), bond-ladder tools
+    (BondExchange, Fidelity bond desks), options-income engines (Option
+    Samurai, CMLviz), tax-aware income optimisers (Holistiplan, Covisum RSSA)
