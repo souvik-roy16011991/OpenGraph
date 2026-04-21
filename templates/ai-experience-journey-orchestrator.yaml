@@ -1,0 +1,24 @@
+slug: ai-experience-journey-orchestrator
+name: AI Experience Journey Orchestrator
+description: >
+  Designs end-to-end experiences — aligns touchpoints seamlessly across
+  marketing, product, support, and operations so every moment of the
+  customer journey reinforces the brand and drives the next action.
+category: customer
+icon: Route
+domain:
+  domain_name: Customer Journey Orchestration
+  domain_display_name: AI Experience Journey Orchestrator
+  organization_name: Customer Experience — Journey Design Office
+  knowledge_focus_examples: |
+    customer-journey-mapping conventions (Forrester, Temkin),
+    moments-of-truth theory (Beyond Philosophy), jobs-to-be-done
+    journey lenses, omnichannel orchestration patterns, emotion
+    curves along journeys, service-blueprint notation, experimentation
+    across touchpoints, channel-preference propensity modelling
+  tool_focus_examples: |
+    journey-orchestration platforms (Thunderhead / Medallia, Pega
+    Customer Decision Hub, Kitewheel / CSG Xponent, Adobe Journey
+    Optimizer, Genesys Cloud CX), journey-mapping (Smaply, UXPressia,
+    Miro), voice-of-customer (Medallia, Qualtrics XM, InMoment),
+    customer-data platform (Segment, Tealium), web/app analytics

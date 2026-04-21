@@ -1,0 +1,24 @@
+slug: ai-cultural-trend-decoder
+name: AI Cultural Trend Decoder
+description: >
+  Reads societal shifts before they scale — tracks behavioral, cultural,
+  and generational changes affecting demand so product, brand, and
+  strategy teams ride the curve instead of chasing it.
+category: strategy
+icon: TrendingUp
+domain:
+  domain_name: Cultural & Consumer Trend Intelligence
+  domain_display_name: AI Cultural Trend Decoder
+  organization_name: Consumer Insights & Cultural Intelligence
+  knowledge_focus_examples: |
+    semiotics and cultural-coding frameworks, Pew / Ipsos generational
+    research, values-and-lifestyles (VALS) segmentation, ethnographic
+    research methodology, meme and subculture lifecycle models,
+    early-adopter vs mainstream diffusion signals, cultural-brief
+    templates, consumer-confidence indexes, anthropology-of-markets
+  tool_focus_examples: |
+    trend-intelligence platforms (CassandraDaily, TrendWatching,
+    WGSN), social-listening for subcultures (Pulsar, Brandwatch),
+    TikTok/Reddit/Discord signal miners, ethnographic tools (dscout,
+    Ethnio), semiotic coders (semantria), Google Trends + Glimpse,
+    LLM-based trend-summarization pipelines

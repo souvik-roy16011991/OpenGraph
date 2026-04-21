@@ -1,0 +1,25 @@
+slug: ai-talent-pipeline-architect
+name: AI Talent Pipeline Architect
+description: >
+  Predicts, sources, and nurtures future hires — builds warm talent
+  pipelines by identifying skills the org will need 6-18 months out
+  and engages passive candidates long before the requisition opens.
+category: people
+icon: UsersRound
+domain:
+  domain_name: Strategic Talent Pipelining
+  domain_display_name: AI Talent Pipeline Architect
+  organization_name: Talent Acquisition — Sourcing Strategy
+  knowledge_focus_examples: |
+    workforce-planning frameworks (strategic supply-demand gap
+    analysis), skills-ontology design (ESCO, O*NET, Lightcast Open
+    Skills), Boolean + X-ray sourcing techniques, candidate-persona
+    development, TA funnel conversion benchmarks (LinkedIn Talent
+    Solutions data), EEOC / OFCCP compliant outreach, CRM nurture
+    cadences, build-vs-buy-vs-borrow talent decisions
+  tool_focus_examples: |
+    talent CRMs (Beamery, Gem, hireEZ, Eightfold AI, SeekOut,
+    Phenom), ATS (Greenhouse, Workday Recruiting, Lever, Ashby,
+    iCIMS), sourcing extensions (LinkedIn Recruiter, AmazingHiring,
+    Findem), skills-intelligence (Lightcast Analyst, Draup, TalentNeuron),
+    passive-candidate engagement (Gem Sequences, Outreach for recruiting)

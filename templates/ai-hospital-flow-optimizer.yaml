@@ -1,0 +1,24 @@
+slug: ai-hospital-flow-optimizer
+name: AI Hospital Flow Optimizer
+description: >
+  Reduces wait times and bottlenecks — manages patient logistics
+  across ED, OR, ICU, and wards in real time to cut length of stay
+  and smooth the predictable chaos of hospital operations.
+category: healthcare
+icon: Activity
+domain:
+  domain_name: Hospital Operations & Patient Flow
+  domain_display_name: AI Hospital Flow Optimizer
+  organization_name: Hospital Operations Center — Patient Flow
+  knowledge_focus_examples: |
+    ED triage scales (ESI, CTAS, MTS), ED left-without-being-seen
+    (LWBS) playbooks, OR scheduling heuristics, ICU bed-management
+    protocols, discharge-planning checklists, Capacity Command
+    Center patterns (Johns Hopkins), NHS four-hour target,
+    Lean/Six-Sigma value-stream maps for hospitals
+  tool_focus_examples: |
+    patient-flow systems (TeleTracking, Qventus, Hospital IQ, LeanTaaS
+    iQueue), EHR modules (Epic Grand Central, Cerner Capacity
+    Management), bed-tracking (Vocera, Patientrack), command-center
+    dashboards, RTLS real-time location systems (Centrak, Midmark),
+    simulation-modeling (AnyLogic, FlexSim Healthcare, Simio)

@@ -1,0 +1,27 @@
+slug: ai-cross-asset-correlation-mapper
+name: AI Cross-Asset Correlation Mapper
+description: >
+  Finds hidden relationships across assets — identifies non-obvious
+  dependencies between currencies, commodities, rates, equities, and
+  crypto so portfolio risk isn't surprised by "uncorrelated" legs that
+  suddenly align.
+category: trading
+icon: Network
+domain:
+  domain_name: Cross-Asset Correlation & Hedging
+  domain_display_name: AI Cross-Asset Correlation Mapper
+  organization_name: Multi-Asset Portfolio Risk Research
+  knowledge_focus_examples: |
+    dynamic conditional correlation (Engle DCC-GARCH), copula models
+    for tail-dependence, hierarchical-risk-parity (Lopez de Prado),
+    PCA and factor-model decomposition, minimum-spanning-tree / PMFG
+    correlation filtering, lead-lag detection methods (CCF, Granger,
+    dynamic time warping), macro-factor linkages (DXY + commodities,
+    rates + duration, crypto + risk-on), correlation-regime detection
+  tool_focus_examples: |
+    correlation / factor engines (Axioma, Barra, Factor Investing
+    Platform by Qontigo), statistical libraries (statsmodels arch,
+    pyflux, tslearn, scikit-learn), graph libraries (NetworkX, igraph)
+    for correlation-network filtering, market data (Refinitiv, Bloomberg,
+    Polygon.io, Alpha Vantage), PyPortfolioOpt / riskparityportfolio,
+    visualization (Plotly, Bokeh, D3.js)

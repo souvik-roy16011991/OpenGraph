@@ -1,0 +1,24 @@
+slug: ai-investment-thesis-generator
+name: AI Investment Thesis Generator
+description: >
+  Creates data-backed investment ideas — produces rigorous rationale,
+  comps, sensitivities, and risk-mitigant memos for portfolio
+  decisions so investment committees vote on evidence, not anecdote.
+category: finance
+icon: Lightbulb
+domain:
+  domain_name: Investment Thesis Research
+  domain_display_name: AI Investment Thesis Generator
+  organization_name: Investment Office — Research & Analytics
+  knowledge_focus_examples: |
+    investment-memo templates (Buffett-style, Sequoia), DCF / DDM /
+    LBO / APV valuation frameworks, comparables-analysis methodology,
+    moat taxonomies (Morningstar economic moats), investment-factor
+    libraries (quality, momentum, value, low-vol), macro-overlay
+    playbooks, sector-rotation heuristics, bear-case stress-tests
+  tool_focus_examples: |
+    data platforms (Bloomberg, Refinitiv Eikon, FactSet, S&P Capital
+    IQ), fundamentals APIs (Sharadar, Polygon.io, Tiingo), valuation
+    models (Damodaran spreadsheets, Finbox), alternative-data feeds
+    (Thinknum, Second Measure, Yipit), LLM-powered 10-K extraction,
+    portfolio-construction tools (Axioma, BarraOne)

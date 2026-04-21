@@ -1,0 +1,28 @@
+slug: ai-internal-mobility-matchmaker
+name: AI Internal Mobility Matchmaker
+description: >
+  Matches employees to open roles inside the company — surfaces
+  internal candidates whose skills fit the req, quantifies stretch
+  vs fit, and protects managers from losing stars without a warm
+  handoff so the talent doesn't walk out the door instead.
+category: people
+icon: ArrowLeftRight
+domain:
+  domain_name: Internal Mobility & Talent Marketplace
+  domain_display_name: AI Internal Mobility Matchmaker
+  organization_name: Talent Management — Internal Mobility Program
+  knowledge_focus_examples: |
+    Deloitte / Josh Bersin talent-marketplace maturity models,
+    skills-based organisation (SBO) frameworks, internal-fill-rate
+    KPIs, stretch-assignment / gig / rotation / project taxonomy,
+    manager-incentive alignment for internal mobility ("talent
+    hoarding" prevention), fair-selection rules (EEOC, OFCCP internal
+    postings), career-lattice vs career-ladder design, return-on-mobility
+    (ROM) measurement, handoff / transition-planning protocols
+  tool_focus_examples: |
+    talent-marketplace platforms (Gloat, Fuel50, Workday Talent
+    Marketplace, Eightfold Talent Intelligence, SAP SuccessFactors
+    Opportunity Marketplace, hitch), skills-inference (Lightcast,
+    Eightfold), internal-gig platforms (Degreed Opportunities,
+    Hitch Works), ATS integrations for internal applications,
+    mentorship + shadowing (Chronus), HRIS skills data

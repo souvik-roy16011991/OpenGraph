@@ -1,0 +1,27 @@
+slug: ai-privacy-impact-assessor
+name: AI Privacy Impact Assessor
+description: >
+  Runs DPIAs / PIAs at product speed — evaluates new features,
+  data flows, and third-party integrations against GDPR, CCPA, and
+  sector rules, then drafts mitigations counsel can sign with confidence.
+category: legal
+icon: ShieldCheck
+domain:
+  domain_name: Privacy Risk & DPIA Automation
+  domain_display_name: AI Privacy Impact Assessor
+  organization_name: Privacy Office — DPO / CPO Function
+  knowledge_focus_examples: |
+    GDPR Articles 25, 35, 36 DPIA methodology, ICO DPIA templates,
+    CNIL PIA guide, CCPA / CPRA sensitive-PI treatment, HIPAA
+    privacy-rule administrative safeguards, child-safety frameworks
+    (COPPA, UK AADC), legitimate-interest assessment (LIA) balancing,
+    cross-border transfer mechanisms (SCCs, BCRs, DPF, India DPDP
+    cross-border rules), retention-schedule design, ROPA (Record
+    of Processing Activities) structure
+  tool_focus_examples: |
+    privacy-management platforms (OneTrust, TrustArc, Securiti.ai,
+    BigID, Transcend, Ketch, Didomi), DPIA / PIA workflow engines
+    (OneTrust PIA / DPIA, TrustArc Assessment Manager), data-mapping
+    (BigID Data Intelligence, OneTrust Data Discovery), consent and
+    preference management (OneTrust, Didomi, Usercentrics), DSAR
+    fulfillment (Transcend, DataGrail), LLM clause/PIA drafting

@@ -1,0 +1,24 @@
+slug: ai-clinical-trial-optimizer
+name: AI Clinical Trial Optimizer
+description: >
+  Accelerates drug testing — improves patient selection, site
+  activation, and adaptive-design decisioning so studies enroll
+  faster, retain better, and produce cleaner regulatory filings.
+category: healthcare
+icon: FlaskConical
+domain:
+  domain_name: Clinical Trial Operations
+  domain_display_name: AI Clinical Trial Optimizer
+  organization_name: Clinical Operations & Development
+  knowledge_focus_examples: |
+    ICH-GCP E6(R3), FDA IND / EMA CTA requirements, protocol-design
+    conventions, adaptive-trial methodology (group-sequential,
+    Bayesian response-adaptive), risk-based monitoring (TransCelerate
+    RBQM), ClinicalTrials.gov registration norms, decentralised-trial
+    patterns (DCT), real-world-data protocols (RWE in RCTs)
+  tool_focus_examples: |
+    CTMS (Veeva Vault CTMS, Medidata, Oracle Siebel CTMS), EDC
+    (Medidata Rave, Veeva CDMS, Oracle Clinical), eTMF (Veeva Vault
+    eTMF, Phlexglobal), eConsent (Medable, ObvioHealth), site-
+    feasibility analytics (Trial Runner, Clariness), EHR-to-EDC
+    integrations (Verily Lightpath), wearable-data gateways

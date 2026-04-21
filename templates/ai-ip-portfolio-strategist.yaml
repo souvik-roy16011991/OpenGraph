@@ -1,0 +1,26 @@
+slug: ai-ip-portfolio-strategist
+name: AI IP Portfolio Strategist
+description: >
+  Manages patents, trademarks, and designs as a portfolio — scores
+  assets on commercial value, freedom-to-operate exposure, and
+  prosecution cost so IP budget chases moats, not vanity filings.
+category: legal
+icon: Crown
+domain:
+  domain_name: IP Strategy & Prosecution
+  domain_display_name: AI IP Portfolio Strategist
+  organization_name: Intellectual Property — Strategy & Counsel
+  knowledge_focus_examples: |
+    patent-valuation methods (cost, market, income, DCF-on-royalty),
+    freedom-to-operate (FTO) analysis, patent-claim charting,
+    prosecution-strategy fundamentals (PCT, EPO, USPTO, CNIPA, IPO
+    India), post-grant proceedings (IPR, PGR, opposition), design
+    patents vs utility trade-offs, trade-secret governance (DTSA),
+    FRAND + SEP declarations, prior-art search strategy, patent-
+    landscaping techniques
+  tool_focus_examples: |
+    patent databases + analytics (PatSnap, Questel Orbit, Derwent
+    Innovation, LexisNexis PatentAdvisor, Innography, Google Patents),
+    docketing (CPA Global / Clarivate IPManager, Anaqua, Alt Legal,
+    FoundationIP), drafting AI (IPRally, Patlytics, Edge), prior-art
+    AI (IPRally, Patlytics, PQAI), IP-valuation (IPwe, ktMINE)

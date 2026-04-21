@@ -1,0 +1,24 @@
+slug: ai-patient-journey-designer
+name: AI Patient Journey Designer
+description: >
+  Optimizes the entire care experience — personalises treatment
+  pathways, pre-arrival prep, post-discharge follow-up, and cross-
+  specialty coordination so the patient moves smoothly, not in loops.
+category: healthcare
+icon: Route
+domain:
+  domain_name: Patient Experience & Care Pathway Design
+  domain_display_name: AI Patient Journey Designer
+  organization_name: Patient Experience & Care Coordination
+  knowledge_focus_examples: |
+    IHI Triple / Quadruple Aim, Planetree patient-centered care
+    principles, NHS care-pathway templates, value-based care
+    bundles (BPCI-A, CJR), patient-reported outcome (PRO/PROMIS)
+    instruments, shared-decision-making frameworks, health-
+    literacy guidelines, CMS HCAHPS survey categories
+  tool_focus_examples: |
+    journey-mapping tools (Miro, Smaply, UXPressia), EHR patient-
+    engagement modules (Epic MyChart, Cerner HealtheLife),
+    digital-front-door platforms (Luma, Relatient, Phreesia), post-
+    discharge follow-up (Get Well, Conversa), patient-flow
+    analytics (Qventus, Hospital IQ), care-coordination (CareSignal)

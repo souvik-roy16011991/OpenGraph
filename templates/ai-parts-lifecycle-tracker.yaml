@@ -1,0 +1,25 @@
+slug: ai-parts-lifecycle-tracker
+name: AI Parts Lifecycle Tracker
+description: >
+  Tracks every component lifecycle — improves traceability from raw
+  material to end-of-service, supporting recalls, warranty analytics,
+  and obsolescence management across multi-tier supply chains.
+category: operations
+icon: History
+domain:
+  domain_name: Parts Traceability & PLM
+  domain_display_name: AI Parts Lifecycle Tracker
+  organization_name: Product Lifecycle & Aftermarket Operations
+  knowledge_focus_examples: |
+    GS1 serialisation standards (SGTIN, UDI for medical devices),
+    AS9102 first-article inspection, MIL-STD-130 marking, recall
+    notification regulations (NHTSA 573, FDA medical device recalls,
+    EU General Product Safety), warranty-claims taxonomy, end-of-life
+    (EOL) and last-time-buy management, counterfeit-parts prevention
+    (AS5553 / AS6174), digital-thread concepts
+  tool_focus_examples: |
+    PLM systems (PTC Windchill, Siemens Teamcenter, Dassault ENOVIA,
+    Aras Innovator), serialisation platforms (Antares Vision, Optel,
+    rfxcel), blockchain-backed traceability (IBM Food Trust, VeChain,
+    Provenance), QR/DataMatrix scanning infra, recall-management
+    workflows (Stericycle ExpertRECALL), warranty-claims analytics

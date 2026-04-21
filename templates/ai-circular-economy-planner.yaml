@@ -1,0 +1,24 @@
+slug: ai-circular-economy-planner
+name: AI Circular Economy Planner
+description: >
+  Designs waste-free systems — maximises reuse, remanufacture, and
+  recycling across product lifecycles, and models closed-loop supply
+  chains that meet EPR and Right-to-Repair obligations economically.
+category: operations
+icon: Leaf
+domain:
+  domain_name: Circular Economy & Reverse Logistics
+  domain_display_name: AI Circular Economy Planner
+  organization_name: Sustainability — Circular Economy Office
+  knowledge_focus_examples: |
+    Ellen MacArthur Foundation circular-economy principles,
+    Cradle-to-Cradle design framework, R-ladder (refuse, reduce,
+    reuse, repair, recycle), Extended Producer Responsibility (EPR)
+    regulations, EU ESPR ecodesign requirements, Right-to-Repair
+    laws, materials-flow analysis, lifecycle assessment (ISO 14040)
+  tool_focus_examples: |
+    LCA software (SimaPro, GaBi, OpenLCA, ecoinvent database),
+    circular-economy tools (Circularity.id, Madaster Material
+    Passports, Metabolic Circular Economy Toolkit), reverse-logistics
+    platforms (Optoro, Inmar, ReturnGO), takeback-program software,
+    material-passport DPP tools, remanufacturing-ERP integrations

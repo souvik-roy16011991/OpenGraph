@@ -1,0 +1,24 @@
+slug: ai-audit-companion
+name: AI Audit Companion
+description: >
+  Supports auditors with deep analysis — flags anomalies in financial
+  records, cross-checks against source documents, and builds risk-based
+  sampling plans so audit teams focus on the 5% that matters.
+category: finance
+icon: Search
+domain:
+  domain_name: Audit Analytics & Assurance
+  domain_display_name: AI Audit Companion
+  organization_name: Internal Audit & External Audit Support
+  knowledge_focus_examples: |
+    ISA / PCAOB / AICPA auditing standards, SOX 404 control
+    testing playbooks, Benford's law and ratio analysis, risk-based
+    sampling methodologies (MUS, stratified, attribute), journal-
+    entry testing (JET) patterns, fraud-triangle heuristics
+    (Cressey), audit-workpaper conventions, SAS 99 fraud procedures
+  tool_focus_examples: |
+    audit-analytics platforms (ACL / Galvanize / Diligent ACL, IDEA,
+    Alteryx), data-extraction from ERP (SAP Analysis for Office,
+    Oracle EBS), continuous-auditing engines (MindBridge Ai Auditor,
+    Caseware IDEA), visualization (Tableau, Power BI), document-
+    comparison LLMs, audit workpaper suites (TeamMate+, Caseware)

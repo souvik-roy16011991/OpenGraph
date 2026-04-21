@@ -1,0 +1,24 @@
+slug: ai-ecosystem-mapper
+name: AI Ecosystem Mapper
+description: >
+  Maps entire business ecosystems — visualizes dependencies between
+  partners, suppliers, platforms, channels, and customers so leadership
+  can see where value pools, choke points, and orchestration bets sit.
+category: strategy
+icon: Network
+domain:
+  domain_name: Ecosystem & Partnership Strategy
+  domain_display_name: AI Ecosystem Mapper
+  organization_name: Corporate Strategy — Ecosystem & Alliances
+  knowledge_focus_examples: |
+    business ecosystem frameworks (Moore, Iansiti-Levien, Adner),
+    value-network analysis, platform-strategy canvases (Van Alstyne),
+    keystone / niche-player / dominator role taxonomy, multi-sided
+    market economics, partner-segmentation models, ecosystem-health
+    metrics (developer counts, GMV share), orchestration playbooks
+  tool_focus_examples: |
+    graph databases (Neo4j, Memgraph), network-visualization tools
+    (Gephi, Cytoscape, Kumu), partner-relationship management
+    platforms (Impartner, Crossbeam), alliance-tracker systems, API
+    integration dashboards, marketplace-analytics connectors, supply-
+    chain visibility platforms (Interos, Resilinc)

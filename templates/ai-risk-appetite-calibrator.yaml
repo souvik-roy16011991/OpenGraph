@@ -1,0 +1,24 @@
+slug: ai-risk-appetite-calibrator
+name: AI Risk Appetite Calibrator
+description: >
+  Defines optimal risk levels — aligns risk-taking with strategy by
+  setting, testing, and recalibrating quantitative risk-appetite
+  thresholds across credit, market, operational, and conduct risk.
+category: finance
+icon: Settings
+domain:
+  domain_name: Risk Appetite & Tolerance
+  domain_display_name: AI Risk Appetite Calibrator
+  organization_name: Enterprise Risk — Risk Appetite Framework
+  knowledge_focus_examples: |
+    risk-appetite framework standards (IFC, IIF, BIS), top-down /
+    bottom-up calibration methods, risk-tolerance boundaries by
+    risk class, KRI / KCI / KPI linkage maps, risk-capacity vs
+    appetite vs tolerance distinctions, cascading-limit structures
+    from group to business unit, board-level RAS dashboards
+  tool_focus_examples: |
+    ERM platforms (Archer, RiskLens, MetricStream, Resolver, LogicGate),
+    limits-management engines (FIS Kondor, Murex ELMS), quantitative
+    risk stacks (Moody's RiskCalc, RiskMetrics), stress-testing
+    scenarios, internal risk-data warehouses, BI dashboards with
+    threshold-breach alerting, LLM-based policy-drafting assistants

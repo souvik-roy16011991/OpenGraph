@@ -1,0 +1,24 @@
+slug: ai-process-fragmentation-resolver
+name: AI Process Fragmentation Resolver
+description: >
+  Identifies and unifies broken workflows — maps fragmented processes
+  across departments, shadow spreadsheets, and email hand-offs, then
+  rebuilds them into streamlined, documented, end-to-end flows.
+category: backoffice
+icon: Combine
+domain:
+  domain_name: Process Harmonisation & BPM
+  domain_display_name: AI Process Fragmentation Resolver
+  organization_name: Shared Services — Process Excellence
+  knowledge_focus_examples: |
+    BPMN 2.0 notation, DMN decision tables, process-mining conformance
+    checking, swim-lane redesign heuristics, APQC Process Classification
+    Framework, value-stream mapping for office work, SIPOC diagrams,
+    "as-is" vs "to-be" gap analysis, handoff / wait-time reduction
+    patterns, shadow-IT discovery rubrics
+  tool_focus_examples: |
+    process-mining (Celonis, UiPath Process Mining, Apromore, ABBYY
+    Timeline, Minit), BPM platforms (Camunda, Appian, Pega, IBM BAW,
+    Bizagi), task-mining (UiPath Task Mining, Soroco, Skan),
+    workflow engines (Temporal, n8n, Zapier, Make, Microsoft Power
+    Automate), process-docs (Scribe, Tango, Fellow), ERP APIs

@@ -1,0 +1,25 @@
+slug: ai-archival-intelligence-manager
+name: AI Archival Intelligence Manager
+description: >
+  Turns stored data into active insights — extracts value from
+  historical records, cold-tier data, and legacy archives so old
+  transactions, tickets, and emails become decision-ready context.
+category: backoffice
+icon: Archive
+domain:
+  domain_name: Archive Analytics & Legacy-Data Activation
+  domain_display_name: AI Archival Intelligence Manager
+  organization_name: Information Governance — Archive & Discovery
+  knowledge_focus_examples: |
+    data-lifecycle tiers (hot, warm, cold, frozen, deep archive),
+    records-retention schedules (GARP, ISO 15489, federal / state
+    rules), legal-hold orchestration, defensible-disposition (DED)
+    frameworks, data-minimisation principles (GDPR Art 5), archival
+    formats (WARC, CSV, Parquet, BagIt), PII discovery in legacy
+    archives, re-identification and pseudonymisation for analytics
+  tool_focus_examples: |
+    archive tiers (AWS S3 Glacier Deep Archive, Azure Archive Storage,
+    Google Coldline, Wasabi, Backblaze B2), eDiscovery + archive
+    (Exterro, Relativity One, Microsoft Purview eDiscovery), data-
+    classification (BigID, Varonis, OneTrust Data Discovery), data-
+    catalog (Collibra, Alation, DataHub), LLM retrieval over archives

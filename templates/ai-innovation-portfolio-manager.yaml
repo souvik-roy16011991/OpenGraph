@@ -1,0 +1,24 @@
+slug: ai-innovation-portfolio-manager
+name: AI Innovation Portfolio Manager
+description: >
+  Balances risk vs breakthrough bets — dynamically allocates R&D
+  investment across horizon-1 core, horizon-2 adjacent, and horizon-3
+  transformational initiatives so the innovation pipeline actually ships.
+category: strategy
+icon: Sparkles
+domain:
+  domain_name: Innovation Portfolio
+  domain_display_name: AI Innovation Portfolio Manager
+  organization_name: Office of the CTO — Innovation & R&D
+  knowledge_focus_examples: |
+    three-horizons framework (McKinsey), stage-gate / phase-gate
+    methodology, real-options valuation, technology readiness levels
+    (NASA TRL 1-9), portfolio-risk ratios (70/20/10), kill-criteria
+    playbooks, IP-portfolio strategy, Jobs-To-Be-Done discovery,
+    lean-startup and discovery-driven planning templates
+  tool_focus_examples: |
+    innovation-management platforms (ITONICS, Brightidea, Qmarkets),
+    portfolio-optimization solvers (Excel Solver, OptQuest),
+    patent-landscaping (PatSnap, Innography), project-portfolio
+    management (Planview, Workfront), startup-scouting databases
+    (Crunchbase, Tracxn, CB Insights), experiment trackers (ExperimentLab)

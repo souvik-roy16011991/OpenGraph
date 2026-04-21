@@ -1,0 +1,26 @@
+slug: ai-workforce-engagement-diagnostician
+name: AI Workforce Engagement Diagnostician
+description: >
+  Pulses engagement and diagnoses why it moves — converts survey
+  scores, verbatims, and behavioural signals into team-level driver
+  analysis and named interventions managers can actually run.
+category: people
+icon: Activity
+domain:
+  domain_name: Engagement Analytics & Driver Diagnosis
+  domain_display_name: AI Workforce Engagement Diagnostician
+  organization_name: People Analytics — Engagement & Culture
+  knowledge_focus_examples: |
+    engagement frameworks (Gallup Q12, Kahn's three dimensions,
+    Utrecht Work Engagement Scale UWES-9), driver-analysis methods
+    (Shapley, key-driver regression, Kano), eNPS methodology,
+    Glint / Qualtrics confidentiality thresholds, sentiment + topic
+    modelling of verbatims, pulse-vs-census cadence design, intervention-
+    library taxonomy (manager coaching, workload, recognition, growth),
+    burnout indicators (MBI, copenhagen burnout inventory)
+  tool_focus_examples: |
+    engagement platforms (Culture Amp, Glint by LinkedIn, Peakon by
+    Workday, Lattice Engagement, Quantum Workplace, Qualtrics EX,
+    Microsoft Viva Glint), ONA tools (Polinode, TrustSphere, Worklytics,
+    Microsoft Viva Insights), verbatim NLP (Thematic, Chattermill,
+    IBM Watson NLU), dashboards (Power BI, Looker), nudge engines

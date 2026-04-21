@@ -1,0 +1,25 @@
+slug: ai-tax-litigation-simulator
+name: AI Litigation Strategy Simulator (Tax)
+description: >
+  Prepares for tax disputes — simulates court outcomes, drafts
+  grounds-of-appeal, and builds defence strategies by mining
+  precedent, tribunal orders, and similar-fact case outcomes.
+category: tax
+icon: Gavel
+domain:
+  domain_name: Tax Litigation & Dispute Strategy
+  domain_display_name: AI Litigation Strategy Simulator (Tax)
+  organization_name: Tax Litigation & Dispute Resolution
+  knowledge_focus_examples: |
+    Indian ITAT / AAAR / HC / SC tax jurisprudence, US Tax Court /
+    district-court / circuit precedent, UK FTT / UT / Court of
+    Appeal tax decisions, EU CJEU tax cases, mutual-agreement
+    procedures (MAP) and APA strategy, penalty-waiver arguments
+    (reasonable cause), grounds-of-appeal drafting conventions,
+    strike-rate analytics by Commissioner / bench
+  tool_focus_examples: |
+    legal-research platforms (Taxmann, ITAT Online, SCC Online,
+    Manupatra, Kluwer International Tax, Bloomberg Tax, Westlaw),
+    precedent-retrieval LLMs (Harvey, Spellbook for Tax), case-
+    outcome-prediction models, document-review suites (DISCO, Everlaw,
+    Relativity), briefing-automation (Clearbrief), e-filing portals

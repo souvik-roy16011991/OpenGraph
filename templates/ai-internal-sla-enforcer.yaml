@@ -1,0 +1,25 @@
+slug: ai-internal-sla-enforcer
+name: AI Internal SLA Enforcer
+description: >
+  Ensures service-level commitments internally — monitors inter-
+  department handoffs (HR ↔ IT, Legal ↔ Sales, Finance ↔ Ops) and
+  triggers corrective actions when OLAs drift before external SLA bleed.
+category: backoffice
+icon: Timer
+domain:
+  domain_name: Internal SLA / OLA Governance
+  domain_display_name: AI Internal SLA Enforcer
+  organization_name: Shared Services — Service Management
+  knowledge_focus_examples: |
+    ITIL 4 service-level-management practice, OLA (operational-level
+    agreement) vs UC (underpinning contract) vs SLA distinction,
+    service-catalog design, MTTR / MTTA / first-response / resolution
+    target taxonomies, business-hours vs calendar-hours measurement,
+    escalation-matrix design, breach-credit mechanisms, ticket-priority
+    classification (P1-P4), root-cause-for-SLA-miss rubrics
+  tool_focus_examples: |
+    ITSM / ESM platforms (ServiceNow, Jira Service Management, Freshservice,
+    Zendesk, BMC Helix, TOPdesk, Ivanti Neurons), SLA engines within
+    ITSM, workflow orchestration (Workato, Tonkean), employee-experience
+    (Moveworks, Espressive), BI dashboards on ticket flow, PagerDuty-
+    style escalation for shared services

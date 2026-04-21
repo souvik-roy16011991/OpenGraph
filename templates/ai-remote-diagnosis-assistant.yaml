@@ -1,0 +1,24 @@
+slug: ai-remote-diagnosis-assistant
+name: AI Remote Diagnosis Assistant
+description: >
+  Supports doctors in telemedicine — analyzes symptoms, history,
+  images, and vitals during virtual visits to propose differential
+  diagnoses and triage acuity so clinicians keep the pace without cutting corners.
+category: healthcare
+icon: Stethoscope
+domain:
+  domain_name: Telemedicine Decision Support
+  domain_display_name: AI Remote Diagnosis Assistant
+  organization_name: Virtual Care Services
+  knowledge_focus_examples: |
+    differential-diagnosis generators (VisualDx, Isabel, Ada),
+    SOAP note conventions, CDC / WHO symptom-triage algorithms,
+    tele-triage scripts, red-flag symptom lists per specialty,
+    dermatology visual criteria (ABCDE, 7-point checklist), chest-
+    pain / stroke rule-outs, FDA telehealth-device classifications
+  tool_focus_examples: |
+    telehealth platforms (Teladoc, Amwell, Doxy.me, Zoom for
+    Healthcare), clinical decision support (Isabel DDx Generator,
+    UpToDate, Glass Health), ambient-scribe tools (Nuance DAX,
+    Abridge, Suki), imaging AI (Aidoc, Qure.ai, SkinVision), remote
+    vital-signs devices (Withings, iHealth), FHIR symptom collectors

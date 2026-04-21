@@ -1,0 +1,25 @@
+slug: ai-reputation-risk-manager
+name: AI Reputation Risk Manager
+description: >
+  Protects brand image — monitors public perception across earned,
+  owned, and paid channels, and triggers crisis-comms playbooks when
+  sentiment or share-of-voice deteriorates in ways that matter.
+category: customer
+icon: AlertTriangle
+domain:
+  domain_name: Brand Reputation & Crisis Comms
+  domain_display_name: AI Reputation Risk Manager
+  organization_name: Corporate Communications — Reputation Risk
+  knowledge_focus_examples: |
+    reputation-risk frameworks (Eccles, Newsquest), issue-lifecycle
+    stages (latent, emerging, hot, crisis), share-of-voice and
+    NPS-of-brand tracking, crisis-comms playbooks (Regester-Larkin,
+    Coombs SCCT), spokesperson-message-platform (SMP) discipline,
+    dark-site activation protocols, boycott / activism taxonomy,
+    journalist-relationship mapping
+  tool_focus_examples: |
+    media-monitoring (Meltwater, Cision, Onclusive, Signal AI),
+    social-listening (Brandwatch, Sprinklr, Talkwalker), influencer-
+    tracking (Traackr, CreatorIQ), sentiment-driver extraction,
+    crisis simulation platforms (Polpeo), PR CRM (Prezly, Muck Rack),
+    dark-site CMS, executive-reputation tracking (Influential Executive)

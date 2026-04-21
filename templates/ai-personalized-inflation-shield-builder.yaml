@@ -1,0 +1,27 @@
+slug: ai-personalized-inflation-shield-builder
+name: AI Personalized Inflation Shield Builder
+description: >
+  Protects individuals from inflation — designs tailored strategies
+  based on each household's actual consumption basket, income
+  elasticity, and asset mix so their real-term lifestyle holds up.
+category: advisory
+icon: Umbrella
+domain:
+  domain_name: Personal Inflation Hedging
+  domain_display_name: AI Personalized Inflation Shield Builder
+  organization_name: Wealth Advisory — Inflation & Real-Return Strategy
+  knowledge_focus_examples: |
+    personal-consumption baskets vs CPI-U / CPI-E / Chained CPI,
+    inflation-linked instruments (TIPS, I-bonds, UK ILGs, Indian
+    IIBs), real-estate and REIT inflation pass-through patterns,
+    commodity-hedging literature (Gorton-Rouwenhorst), wage-growth
+    vs inflation sensitivity by occupation, healthcare-inflation
+    (HealthView Services), education-inflation (CollegeBoard Trends),
+    wage-indexation practices
+  tool_focus_examples: |
+    inflation data (BLS CPI, Fed FRED, ECB HICP, ONS UK, MOSPI India
+    CPI / WPI, Truflation, Chapwood Index), personal-CPI tools (Perplexity
+    research prompts, custom-basket calculators), TIPS / I-bond
+    trackers (TIPSLadder, TreasuryDirect), commodity-ETF exposure
+    analytics (Morningstar Direct), real-estate inflation analytics
+    (Zillow / Redfin APIs), tax-aware inflation modelling

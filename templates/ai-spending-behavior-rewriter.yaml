@@ -1,0 +1,25 @@
+slug: ai-spending-behavior-rewriter
+name: AI Spending Behavior Rewriter
+description: >
+  Reshapes unhealthy spending patterns — uses nudges, friction, and
+  personalised insights to improve habits (impulse buys, subscription
+  bloat, dining drift) without being preachy or budgeting-shaming.
+category: advisory
+icon: ShoppingCart
+domain:
+  domain_name: Behavioural Spending Coaching
+  domain_display_name: AI Spending Behavior Rewriter
+  organization_name: Personal Finance Coaching Practice
+  knowledge_focus_examples: |
+    BJ Fogg Behavior Model (motivation × ability × trigger), Tiny
+    Habits methodology, mental-accounting (Thaler), COM-B behaviour-
+    change framework, nudging vs shoving ethics, loss-aversion-based
+    commitment devices, subscription-stacking research, cognitive-
+    bias catalogue for spending (bandwagon, licensing, present bias),
+    envelope / zero-based budgeting pedagogy
+  tool_focus_examples: |
+    personal-finance apps (Copilot, Monarch, YNAB, Simplifi, Rocket
+    Money / Truebill, Bobby, Cushion), transaction-enrichment (Plaid
+    Enrich, Ntropy, Heron Data), subscription-management (Rocket Money,
+    Bobby), nudge-engines (Qapital, Stash, Tink Insights), open-banking
+    APIs (Plaid, MX, TrueLayer, Finicity), LLM insight generation

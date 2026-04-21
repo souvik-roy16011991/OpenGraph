@@ -40,11 +40,15 @@ interface NavItem {
 }
 
 const WIZARD_ROUTES = ["/upload", "/domain", "/graph-config", "/build", "/explore"];
+// The "My Graphs" nav item stays highlighted both on the list page itself
+// (/workspaces) and while the user is stepping through any wizard-edit
+// screen for a graph (/upload, /domain, /graph-config, /build, /explore).
+const GRAPH_MATCH_PREFIXES = ["/workspaces", ...WIZARD_ROUTES];
 
 const PRIMARY_NAV: NavItem[] = [
   { href: "/templates", label: "Templates", icon: LayoutGrid },
   { href: "/chat", label: "Chat", icon: MessageSquareText },
-  { href: "/upload", label: "Create Graph", icon: GitBranch, matchPrefixes: WIZARD_ROUTES },
+  { href: "/workspaces", label: "My Graphs", icon: GitBranch, matchPrefixes: GRAPH_MATCH_PREFIXES },
   { href: "/playground", label: "Playground", icon: GitCompareArrows },
   { href: "/history", label: "History", icon: HistoryIcon },
   { href: "/profile", label: "Profile", icon: CircleUser },

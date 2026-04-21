@@ -1,0 +1,24 @@
+slug: ai-market-pulse-synthesizer
+name: AI Market Pulse Synthesizer
+description: >
+  Combines global signals into one insight engine — integrates news,
+  social, and economic data into a real-time, actionable read on where
+  markets, customers, and competitors are headed right now.
+category: strategy
+icon: Activity
+domain:
+  domain_name: Market Intelligence Synthesis
+  domain_display_name: AI Market Pulse Synthesizer
+  organization_name: Corporate Strategy — Market Intelligence
+  knowledge_focus_examples: |
+    leading-indicator taxonomies, sentiment-analysis ontologies,
+    event-study methodology, Bloomberg/Reuters market-data schemas,
+    social-listening category frameworks, natural-experiment detection
+    patterns, PEST / STEEP signal buckets, cross-asset correlation
+    heuristics, editorial-credibility scoring rubrics
+  tool_focus_examples: |
+    market-data APIs (Bloomberg BPIPE, Refinitiv Eikon, Polygon.io),
+    news aggregators (NewsAPI, Event Registry), social-listening
+    platforms (Brandwatch, Sprinklr, Talkwalker), Google Trends and
+    Glimpse, economic-release calendars (BEA, BLS, ECB), FX/rates
+    feeds, LLM summarization pipelines, vector search for news corpora

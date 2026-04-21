@@ -1,0 +1,24 @@
+slug: ai-surgical-simulation-trainer
+name: AI Surgical Simulation Trainer
+description: >
+  Trains surgeons using virtual scenarios — enhances skill development
+  with haptic VR, task-specific simulators, and objective performance
+  metrics so competency is measured, not assumed.
+category: healthcare
+icon: Syringe
+domain:
+  domain_name: Surgical Education & Simulation
+  domain_display_name: AI Surgical Simulation Trainer
+  organization_name: Academic Surgical Department — Simulation Center
+  knowledge_focus_examples: |
+    surgical-skill assessment rubrics (OSATS, GEARS, GOALS),
+    ACS / RCSEng competency frameworks, FLS and FES laparoscopic
+    fundamentals, ACGME milestones for surgical residents,
+    robotic-surgery (da Vinci) proctoring standards, deliberate-
+    practice learning theory, simulation-center accreditation (ASPiH)
+  tool_focus_examples: |
+    VR surgical simulators (FundamentalVR, Osso VR, PrecisionOS,
+    ImmersiveTouch), haptic platforms (Phantom, Mimic), robotic-
+    surgery trainers (Mimic dV-Trainer, Intuitive SimNow),
+    video-based coaching (C-SATS / Johnson & Johnson C-SATS, Theator,
+    Proximie), skill-analytics dashboards, LMS integrations (Medtronic)

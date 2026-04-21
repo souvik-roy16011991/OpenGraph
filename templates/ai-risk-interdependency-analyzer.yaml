@@ -1,0 +1,24 @@
+slug: ai-risk-interdependency-analyzer
+name: AI Risk Interdependency Analyzer
+description: >
+  Finds hidden connections between risks — detects cascading failures
+  across systems, vendors, geographies, and technologies so a single
+  shock doesn't quietly metastasize into an enterprise-wide crisis.
+category: strategy
+icon: AlertTriangle
+domain:
+  domain_name: Systemic & Cascading Risk
+  domain_display_name: AI Risk Interdependency Analyzer
+  organization_name: Enterprise Risk Management — Systemic Risk
+  knowledge_focus_examples: |
+    systemic-risk theory (interconnectedness, contagion channels),
+    bow-tie risk analysis, fault-tree / event-tree analysis,
+    COSO ERM integrated framework, stress-testing methodologies,
+    supply-chain network resilience studies, cyber-physical failure
+    taxonomies, concentration-risk heuristics (single-supplier, geo)
+  tool_focus_examples: |
+    graph-based risk platforms (RiskLens, Interos), Bayesian networks
+    (AgenaRisk, BayesiaLab), network-analysis libraries (NetworkX,
+    igraph), vendor-risk scoring (BitSight, SecurityScorecard, OneTrust
+    TPRM), supply-chain visibility (Everstream, Resilinc), GRC suites
+    (Archer, MetricStream, ServiceNow GRC)

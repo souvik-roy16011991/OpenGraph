@@ -1,0 +1,26 @@
+slug: ai-retirement-reality-simulator
+name: AI Retirement Reality Simulator
+description: >
+  Tests retirement plans against real scenarios — simulates longevity,
+  inflation regimes, market drawdowns, healthcare costs, and lifestyle
+  changes so clients see where their plan breaks, not just the mean case.
+category: advisory
+icon: Hourglass
+domain:
+  domain_name: Retirement Scenario Simulation
+  domain_display_name: AI Retirement Reality Simulator
+  organization_name: Retirement Planning — Stress-Test Research
+  knowledge_focus_examples: |
+    Monte Carlo retirement-simulation methodology, sequence-of-returns
+    risk, longevity-risk pooling (mortality tables, SSA Period Life,
+    IRDAI mortality studies), long-term-care cost distributions,
+    Medicare / ACA vs private-health cost planning, inflation regimes
+    (CPI-U, RPI, Chained CPI, healthcare inflation), dynamic spending
+    rules, sequence-risk mitigation (bond tents, cash buffer, glide paths)
+  tool_focus_examples: |
+    retirement planners with Monte Carlo (MoneyGuidePro, eMoney,
+    RightCapital, NewRetirement, Boldin, Projection Lab, cFIREsim,
+    Income Lab, Timeline), longevity modelling (Actuaries Longevity
+    Illustrator, Morningstar Aftcast), health-cost databases (HealthView
+    Services), scenario-plotting visualisations (Plotly, matplotlib),
+    tax-aware withdrawal engines (Covisum, Holistiplan)

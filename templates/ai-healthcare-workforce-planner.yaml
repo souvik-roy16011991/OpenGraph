@@ -1,0 +1,24 @@
+slug: ai-healthcare-workforce-planner
+name: AI Healthcare Workforce Planner
+description: >
+  Optimizes staffing in hospitals — matches demand (census, acuity,
+  admission forecasts) with nurse, physician, and tech availability
+  while respecting ratios, union rules, and burnout thresholds.
+category: healthcare
+icon: Users
+domain:
+  domain_name: Healthcare Workforce & Scheduling
+  domain_display_name: AI Healthcare Workforce Planner
+  organization_name: Nursing & Clinical Workforce Operations
+  knowledge_focus_examples: |
+    nurse-patient ratio regulations (CA AB 394, NQF safe-staffing),
+    acuity-tool taxonomies (GRASP, AACN Synergy, RAFAELA), HPPD
+    (hours per patient day) benchmarks, Magnet-recognition staffing
+    standards, ACGME resident duty-hour rules, CMS Nurse Staffing
+    Data (CMS-1892), burnout-index frameworks (MBI, Oldenburg)
+  tool_focus_examples: |
+    workforce-management systems (Kronos / UKG Ready, symplr
+    Workforce, Workday, API Healthcare, AMN ShiftWise), physician
+    scheduling (QGenda, Lightning Bolt, Tangier), acuity-based
+    staffing tools (AMN Smart Square), workforce analytics
+    (Laborworkx, NurseIQ), nurse-call / task-distribution (Vocera)

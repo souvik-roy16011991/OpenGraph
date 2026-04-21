@@ -1,0 +1,24 @@
+slug: ai-genomic-insight-engine
+name: AI Genomic Insight Engine
+description: >
+  Translates DNA into actionable insights — enables precision medicine
+  by interpreting germline, somatic, and pharmacogenomic variants
+  with clinical-grade evidence curation and variant-to-therapy matching.
+category: healthcare
+icon: Microscope
+domain:
+  domain_name: Genomics & Precision Medicine
+  domain_display_name: AI Genomic Insight Engine
+  organization_name: Precision Medicine & Genomic Services
+  knowledge_focus_examples: |
+    ACMG/AMP variant-classification criteria (PVS1, PS1-4, BS1-4,
+    BP1-7), ClinVar / gnomAD / COSMIC variant databases, HGVS
+    nomenclature, CPIC pharmacogenomic guidelines, OncoKB / CIViC
+    oncology actionability tiers, MSI / TMB biomarker interpretation,
+    germline vs somatic reporting rules, VUS-resolution strategies
+  tool_focus_examples: |
+    variant-calling pipelines (GATK, DeepVariant, VarScan, Strelka),
+    annotation suites (VEP, ANNOVAR, SnpEff), clinical-reporting
+    platforms (Fabric Genomics, SOPHiA GENETICS, PierianDx), tumor-
+    board decision support (Navify, QIAGEN Clinical Insight),
+    genome browsers (IGV, UCSC), FHIR Genomics resources

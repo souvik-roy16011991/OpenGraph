@@ -1,0 +1,25 @@
+slug: ai-content-authenticity-verifier
+name: AI Content Authenticity Verifier
+description: >
+  Detects fake or misleading content — ensures credibility of UGC,
+  reviews, ads, and media across your platforms by checking for
+  deepfakes, AI-generated text, astroturfing, and fake-review rings.
+category: customer
+icon: Shield
+domain:
+  domain_name: Content Authenticity & Trust & Safety
+  domain_display_name: AI Content Authenticity Verifier
+  organization_name: Trust & Safety — Content Integrity
+  knowledge_focus_examples: |
+    C2PA / CAI content-provenance standards, deepfake-detection
+    research, AI-text watermarking (SynthID, OpenAI classifier),
+    fake-review detection signals (burstiness, reviewer graphs),
+    astroturfing / coordinated-inauthentic-behaviour taxonomies,
+    DMCA / copyright-safe-harbour workflows, Section 230 vs DSA
+    moderation obligations, media-forensics chain-of-custody norms
+  tool_focus_examples: |
+    deepfake-detection (Microsoft Video Authenticator, Sensity AI,
+    Intel FakeCatcher, Reality Defender), AI-text detectors (Originality.
+    ai, GPTZero), moderation APIs (Hive, Spectrum Labs, OpenAI
+    Moderation), review-integrity platforms (Fakespot, ReviewMeta),
+    C2PA toolkit (Truepic, Adobe Content Credentials), image-forensics (Amped)

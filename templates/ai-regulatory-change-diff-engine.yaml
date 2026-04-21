@@ -1,0 +1,25 @@
+slug: ai-regulatory-change-diff-engine
+name: AI Regulatory Change Diff Engine
+description: >
+  Tracks micro-changes in tax laws — highlights the exact impact on
+  business operations, clients, and existing filings so a Budget
+  speech or GST council notification doesn't take a firm by surprise.
+category: tax
+icon: FileDiff
+domain:
+  domain_name: Tax Regulatory Change Tracking
+  domain_display_name: AI Regulatory Change Diff Engine
+  organization_name: Tax Technical & Knowledge Management
+  knowledge_focus_examples: |
+    tax-law amendment lifecycles (Finance Bill → Act → Rules →
+    Notifications → Circulars), versioned-diff methodology for
+    statutes, effective-date vs assent-date logic, retrospective vs
+    prospective analysis, client-impact tagging by industry and
+    section, rate-change propagation to systems, press-release and
+    FAQ parsing, cross-referencing to CBDT / CBIC / HMRC / IRS bulletins
+  tool_focus_examples: |
+    regulatory-tracking platforms (Taxmann Tracker, Bloomberg Tax,
+    IBFD, LexisNexis Tax Alerts, Thomson Reuters Checkpoint Edge,
+    Cube Global, Ascent RegTech), legislative-diff APIs (Congress.gov
+    changes, Parliament UK, PRS India), LLM-powered summarisation of
+    notifications, CRM tagging for affected-client notification

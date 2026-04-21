@@ -1,0 +1,24 @@
+slug: ai-capital-allocation-optimizer
+name: AI Capital Allocation Optimizer
+description: >
+  Allocates funds across business units — maximises ROI across
+  divisions, business lines, and project portfolios using hurdle-rate,
+  risk-adjusted return, and strategic-fit constraints in one solver.
+category: finance
+icon: PiggyBank
+domain:
+  domain_name: Capital Allocation & Budgeting
+  domain_display_name: AI Capital Allocation Optimizer
+  organization_name: Office of the CFO — Capital Allocation
+  knowledge_focus_examples: |
+    hurdle-rate and WACC methodology, risk-adjusted return on capital
+    (RAROC / RORAC / EVA), Markowitz portfolio theory applied to
+    internal projects, McKinsey zero-based budgeting, capital-rationing
+    heuristics, real-options valuation for optional investments,
+    strategic-fit scoring rubrics, internal-rate-of-return traps
+  tool_focus_examples: |
+    capital-planning platforms (Anaplan, Oracle EPM Hyperion, SAP
+    Analytics Cloud, Vena), optimization solvers (Gurobi, CPLEX,
+    OptQuest), portfolio-scoring tools (Planview), ERP-integrated
+    investment analyzers, Monte Carlo uncertainty simulators
+    (@RISK, Crystal Ball), BI dashboards on capital-deployment KPIs

@@ -1,0 +1,27 @@
+slug: ai-litigation-outcome-predictor
+name: AI Litigation Outcome Predictor
+description: >
+  Forecasts case strength before you file or fight — models win
+  probability, expected damages, and time-to-resolution using
+  precedent, similar-fact outcomes, and judge-level tendencies so
+  settle-vs-defend calls aren't gut-only.
+category: legal
+icon: Gavel
+domain:
+  domain_name: Litigation Analytics & Outcome Prediction
+  domain_display_name: AI Litigation Outcome Predictor
+  organization_name: Litigation & Dispute Resolution
+  knowledge_focus_examples: |
+    judge / court / venue win-rate analytics, motion-outcome base
+    rates (MTD, SJ, class cert), expected-monetary-outcome modelling
+    (damages × probability), Daubert / Frye expert-witness admissibility,
+    BATNA / WATNA / ZOPA settlement math, litigation-hold /
+    spoliation risk, insurance-indemnification tender analysis,
+    docket-delay benchmarks per jurisdiction, forum-shopping factors
+  tool_focus_examples: |
+    litigation analytics (Lex Machina, Bloomberg Law Litigation
+    Analytics, Docket Alarm, Westlaw Edge Quick Check, Courthouse
+    News), judge / attorney profiling (Premonition, Gavelytics,
+    Trellis), case law + citators (Westlaw, LexisNexis, Fastcase,
+    Casetext, vLex Vincent), LLM research copilots (Harvey,
+    CoCounsel, Lexis+ AI), case-management (Aderant, Litify, Clio)

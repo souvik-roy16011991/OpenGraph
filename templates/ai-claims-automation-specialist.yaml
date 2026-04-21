@@ -1,0 +1,24 @@
+slug: ai-claims-automation-specialist
+name: AI Claims Automation Specialist
+description: >
+  Processes insurance claims instantly — triage, eligibility, fraud
+  screen, and settlement decisioning in minutes so genuine claimants
+  get paid fast while suspicious submissions route to deep review.
+category: finance
+icon: ClipboardCheck
+domain:
+  domain_name: Insurance Claims Automation
+  domain_display_name: AI Claims Automation Specialist
+  organization_name: Insurance Claims Operations
+  knowledge_focus_examples: |
+    FNOL (first notice of loss) workflows by line of business
+    (auto, property, health, travel), coverage-decisioning rules,
+    salvage / subrogation decision trees, fraud red-flag heuristics
+    per LoB, ISO ClaimSearch / CUE data schemas, NAIC model laws,
+    straight-through-processing (STP) targets, leakage-analysis
+  tool_focus_examples: |
+    claims systems (Guidewire ClaimCenter, Duck Creek Claims,
+    Majesco, Insurity), document-understanding (Amazon Textract,
+    Azure Form Recognizer, Hyperscience), damage-estimation vision
+    (Tractable, Carpe Data), fraud screening (Shift Technology, FRISS),
+    repair-network portals, payment rails (Paypal, Zelle, real-time)

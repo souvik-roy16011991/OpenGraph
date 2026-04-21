@@ -1,0 +1,24 @@
+slug: ai-sales-conversation-coach
+name: AI Sales Conversation Coach
+description: >
+  Improves sales team performance — provides real-time guidance during
+  calls and demos, flags missed discovery questions, and surfaces
+  MEDDPICC-grade coaching moments after the call.
+category: customer
+icon: MessageCircle
+domain:
+  domain_name: Sales Coaching & Revenue Enablement
+  domain_display_name: AI Sales Conversation Coach
+  organization_name: Revenue Enablement & Sales Operations
+  knowledge_focus_examples: |
+    sales methodologies (MEDDPICC / MEDDIC, SPIN, Challenger,
+    Sandler, BANT), discovery-question frameworks, objection-handling
+    playbooks, talk-to-listen ratio benchmarks, Force Management
+    Command of the Message, pricing-negotiation tactics, call-
+    stage gating criteria, win/loss-analysis templates
+  tool_focus_examples: |
+    conversation intelligence (Gong, Chorus by ZoomInfo, Salesloft
+    Rhythm, Clari Copilot), sales-engagement (Outreach, Salesloft,
+    Apollo.io), CRM (Salesforce Sales Cloud, HubSpot, Pipedrive),
+    revenue-intelligence (Clari, BoostUp), LLM-coaching copilots
+    (Regal.io, Cresta, Dialpad Ai Sales Center), e-signature (DocuSign)

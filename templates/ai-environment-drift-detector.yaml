@@ -1,0 +1,25 @@
+slug: ai-environment-drift-detector
+name: AI Environment Drift Detector
+description: >
+  Detects unintended infra changes — maintains consistency across dev,
+  staging, and prod by continuously diffing declared state against
+  actual, flagging out-of-band changes and rolling back when safe.
+category: engineering
+icon: GitCompareArrows
+domain:
+  domain_name: Infrastructure Drift & Config Parity
+  domain_display_name: AI Environment Drift Detector
+  organization_name: Platform Engineering — Infra Governance
+  knowledge_focus_examples: |
+    Infrastructure-as-Code drift taxonomies (state drift, resource
+    drift, schema drift), Terraform state-locking and drift-detection
+    semantics, GitOps reconciliation loops (Flux, Argo CD), policy-
+    as-code guardrails (OPA / Rego, Sentinel), dev-prod parity
+    principles (12-factor), manual-change governance (break-glass
+    workflows), environment-config parity testing
+  tool_focus_examples: |
+    IaC (Terraform, OpenTofu, Pulumi, AWS CDK, Crossplane), drift-
+    detection (env0, Spacelift, Scalr, driftctl, Terraform Cloud
+    Drift Detection), GitOps engines (Argo CD, Flux CD, Jenkins X),
+    policy-as-code (Open Policy Agent, Sentinel, Checkov, tfsec),
+    config-scanning (Prisma Cloud, Wiz, Lacework), CMDB (ServiceNow)

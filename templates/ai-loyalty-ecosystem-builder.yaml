@@ -1,0 +1,26 @@
+slug: ai-loyalty-ecosystem-builder
+name: AI Loyalty Ecosystem Builder
+description: >
+  Designs reward ecosystems — increases retention through tiered
+  benefits, partner coalitions, and gamified engagement loops tuned
+  to CLV lift per dollar of margin given away.
+category: customer
+icon: Gift
+domain:
+  domain_name: Loyalty & Rewards Program Design
+  domain_display_name: AI Loyalty Ecosystem Builder
+  organization_name: Loyalty & Partnerships Marketing
+  knowledge_focus_examples: |
+    loyalty-program archetypes (earn-and-burn, subscription,
+    coalition, paid-premium), CLV-lift measurement methodologies,
+    liability accounting for points (IFRS 15 breakage), partner-
+    coalition economics (Avios, Payback), gamification frameworks
+    (Octalysis, SAPS), tiered-benefit progression science, redemption-
+    friction reduction patterns
+  tool_focus_examples: |
+    loyalty platforms (Cheetah Loyalty, Annex Cloud, SessionM,
+    Epsilon / Publicis Loyalty, Antavo, Open Loyalty), points-
+    accounting engines, offer-management (Salesforce Marketing Cloud
+    Personalization, Braze, Iterable), partner-API connectors,
+    gamification engines (Bunchball, Gametize), redemption-catalog
+    systems (Blackhawk Network), mobile wallet integration

@@ -1,0 +1,24 @@
+slug: ai-insider-risk-detector
+name: AI Insider Risk Detector
+description: >
+  Identifies internal financial misconduct — monitors unusual behaviour
+  patterns (expense anomalies, trading, data exfil, segregation-of-
+  duties violations) to surface insider threats before loss crystallises.
+category: finance
+icon: UserCheck
+domain:
+  domain_name: Insider Threat & Conduct Risk
+  domain_display_name: AI Insider Risk Detector
+  organization_name: Financial Crimes — Insider Threat Program
+  knowledge_focus_examples: |
+    insider-threat typology (IP theft, fraud, sabotage, compliance
+    evasion), CERT Insider Threat Center patterns, segregation-of-
+    duties matrices (SAP GRC, Oracle ARCS), behavioural-analytics
+    baselines (UEBA), communications-surveillance playbooks, trading
+    front-running / spoofing signatures, DORA personnel-risk controls
+  tool_focus_examples: |
+    UEBA platforms (Exabeam, Securonix, Microsoft Defender for
+    Identity), DLP (Symantec, Forcepoint, Microsoft Purview),
+    communications surveillance (Behavox, NICE Actimize SURVEIL-X,
+    SteelEye), expense-analytics (AppZen, Oversight), trade-
+    surveillance (Nasdaq SMARTS), identity-governance (SailPoint)

@@ -1,0 +1,27 @@
+slug: ai-regulatory-horizon-scanner
+name: AI Regulatory Horizon Scanner
+description: >
+  Monitors every regulator, bill, and rulemaking that touches the
+  business — maps incoming changes to affected products, contracts,
+  and controls with impact dates counsel can actually plan around.
+category: legal
+icon: Radar
+domain:
+  domain_name: Multi-Jurisdiction Regulatory Intelligence
+  domain_display_name: AI Regulatory Horizon Scanner
+  organization_name: Legal & Compliance — Regulatory Affairs
+  knowledge_focus_examples: |
+    regulator taxonomy across jurisdictions (SEC / CFTC / FTC / DOJ /
+    FDA / EPA / EEOC in US; EC + ESAs in EU; FCA / PRA in UK; SEBI /
+    RBI / CCI / DPIIT in India; MAS / SFC in Asia), legislative
+    lifecycle maps (bill → committee → act → statutory instrument /
+    rule → enforcement guidance), regulatory-change impact scoring
+    methodology, sunset and grandfathering analysis, public-comment-
+    period tracking, Federal Register / EUR-Lex / Gazette conventions
+  tool_focus_examples: |
+    horizon-scanning platforms (Ascent RegTech, CUBE, Thomson Reuters
+    Regulatory Intelligence, Compliance.ai, RegRadar, LexisNexis
+    Regulatory Compass, Wolters Kluwer OneSumX for Regulatory
+    Change), legislative trackers (Quorum, FiscalNote, PRS India,
+    VoterVoice), RSS + scrape frameworks (Federal Register API, EUR-Lex,
+    GSTN / CBDT notifications feeds), LLM-based diff generators

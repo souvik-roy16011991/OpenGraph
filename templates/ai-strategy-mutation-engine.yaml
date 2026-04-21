@@ -1,0 +1,27 @@
+slug: ai-strategy-mutation-engine
+name: AI Strategy Mutation Engine
+description: >
+  Evolves trading strategies automatically — uses genetic algorithms
+  and reinforcement learning to continuously improve models as alpha
+  decays, regimes change, and new data modalities appear.
+category: trading
+icon: Dna
+domain:
+  domain_name: Strategy Evolution & AutoML for Trading
+  domain_display_name: AI Strategy Mutation Engine
+  organization_name: Quant Research — Strategy Evolution Lab
+  knowledge_focus_examples: |
+    genetic-programming for trading rules (Koza, WorldQuant BRAIN),
+    neuroevolution (NEAT, ES), reinforcement-learning for order
+    execution and market making (PPO, SAC, DDPG), alpha-decay
+    management and retirement rules, strategy-combination via
+    mean-variance / risk-parity, meta-learning for fast regime
+    adaptation, fitness functions beyond Sharpe (Calmar, Sortino,
+    deflated Sharpe), evolutionary-strategy parameter spaces
+  tool_focus_examples: |
+    RL / evolutionary frameworks (stable-baselines3, RLlib, FinRL,
+    PyGAD, DEAP, Evotorch), AutoML (H2O.ai, AutoGluon, Optuna,
+    Ray Tune), backtest engines (nautilus-trader, QuantConnect Lean,
+    vectorbt, Zipline-reloaded), feature-store + pipeline (Feast,
+    Metaflow), alpha-tracking (Alphalens, pyfolio), experiment
+    tracking (MLflow, Weights & Biases, Neptune)

@@ -1,0 +1,24 @@
+slug: ai-corporate-memory-engine
+name: AI Corporate Memory Engine
+description: >
+  Never forgets organizational knowledge — stores and retrieves
+  institutional knowledge across decades, turning every decision,
+  postmortem, and tacit-know-how nugget into retrievable context.
+category: strategy
+icon: Library
+domain:
+  domain_name: Institutional Knowledge
+  domain_display_name: AI Corporate Memory Engine
+  organization_name: Office of the Chief Knowledge Officer
+  knowledge_focus_examples: |
+    knowledge-management frameworks (SECI, Nonaka-Takeuchi),
+    postmortem and decision-log archives, meeting-notes corpora,
+    project retros and after-action reviews, org-chart evolution
+    history, tacit-knowledge capture playbooks, taxonomy and
+    ontology design for enterprise knowledge graphs
+  tool_focus_examples: |
+    knowledge bases (Confluence, Notion, Guru), vector databases
+    (Pinecone, Weaviate, Qdrant), enterprise search (Glean, Elastic),
+    meeting-transcription tools (Otter, Fireflies, Gong), email and
+    chat archives (Slack, MS Graph), document management (SharePoint,
+    Box), LLM-retrieval pipelines, graph databases (Neo4j, Memgraph)

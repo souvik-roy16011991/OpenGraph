@@ -1,0 +1,24 @@
+slug: ai-tax-optimization-strategist
+name: AI Tax Optimization Strategist
+description: >
+  Legally minimizes global tax exposure — simulates tax structures
+  across jurisdictions, models transfer-pricing scenarios, and flags
+  planning opportunities while staying firmly inside OECD BEPS and local rules.
+category: finance
+icon: Receipt
+domain:
+  domain_name: Global Tax Planning
+  domain_display_name: AI Tax Optimization Strategist
+  organization_name: Corporate Tax — Planning & Transfer Pricing
+  knowledge_focus_examples: |
+    OECD BEPS 2.0 (Pillar One + Pillar Two), transfer-pricing
+    methods (CUP, TNMM, profit split), CbCR reporting rules,
+    entity-classification (GILTI, FDII, Subpart F, CFC regimes),
+    VAT/GST schemas across EU/UK/IN, treaty networks and
+    withholding-tax matrices, ATAD / DAC6 hallmarks
+  tool_focus_examples: |
+    tax-provision software (Thomson Reuters ONESOURCE, CorpTax,
+    Longview), transfer-pricing platforms (OECD TPguidelines tooling,
+    TP Catalyst), VAT engines (Vertex, Avalara), global mobility
+    systems, Pillar Two calculation engines, LLM-based treaty lookup,
+    BI dashboards on effective-tax-rate by jurisdiction

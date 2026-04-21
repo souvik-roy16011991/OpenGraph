@@ -1,0 +1,25 @@
+slug: ai-group-travel-consensus-builder
+name: AI Group Travel Consensus Builder
+description: >
+  Resolves preferences in group trips — balances budgets, dietary
+  needs, activity appetites, and schedule constraints across 2-20
+  travellers so the group agrees on a plan without a family fight.
+category: travel
+icon: UsersRound
+domain:
+  domain_name: Group Itinerary Consensus
+  domain_display_name: AI Group Travel Consensus Builder
+  organization_name: Group & Family Trip Planning Desk
+  knowledge_focus_examples: |
+    preference-aggregation methods (Borda, approval voting, Condorcet),
+    traveller-persona taxonomies (adventure, relaxation, culture,
+    budget), pairwise preference-elicitation design, accessibility
+    and mobility accommodations, dietary taxonomies (halal, kosher,
+    vegan, FODMAP, allergens), shared-budget / split-payment norms,
+    family / intergenerational travel etiquette
+  tool_focus_examples: |
+    group-trip platforms (Troupe, Troop, Tripcast, Travefy),
+    preference-voting tools (Doodle, Rallly), shared-itinerary
+    builders (Wanderlog, TripIt Pro, Roadtrippers), expense-splitting
+    (Splitwise, Tricount), group-chat bots (Slack / WhatsApp travel
+    bots), conjoint-style preference elicitation surveys (Attest)

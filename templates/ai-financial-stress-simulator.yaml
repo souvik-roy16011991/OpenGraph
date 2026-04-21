@@ -1,0 +1,24 @@
+slug: ai-financial-stress-simulator
+name: AI Financial Stress Simulator
+description: >
+  Tests company resilience to shocks — models extreme macro, credit,
+  and liquidity scenarios (rate shocks, CCAR-style severely adverse,
+  FX crises) so capital and liquidity buffers are sized to reality.
+category: finance
+icon: TrendingDown
+domain:
+  domain_name: Financial Stress Testing
+  domain_display_name: AI Financial Stress Simulator
+  organization_name: Treasury & Capital Management
+  knowledge_focus_examples: |
+    CCAR / DFAST / ICAAP / ILAAP stress-test frameworks, Basel III/IV
+    capital rules (CET1, LCR, NSFR), severely-adverse / adverse
+    scenario design, PPNR and credit-loss projection techniques,
+    liquidity contingency plans, scenario-translation from macro to
+    balance sheet, reverse stress-testing playbooks
+  tool_focus_examples: |
+    ALM and stress-testing platforms (Moody's RiskCalc, SAS Stress
+    Testing, Oracle OFSAA, QRM), capital-planning suites (AxiomSL,
+    Wolters Kluwer OneSumX), econometric stacks (R, Python statsmodels),
+    scenario-generation engines, Monte Carlo solvers, ERM dashboards,
+    central-bank data APIs (Fed, ECB, BoE)

@@ -1,0 +1,26 @@
+slug: ai-wealth-structuring-advisor
+name: AI Wealth Structuring Advisor
+description: >
+  Designs tax-efficient wealth strategies — optimises trusts, family
+  offices, insurance wrappers, and inheritance paths to preserve
+  wealth across generations while staying compliant in each domicile.
+category: tax
+icon: Vault
+domain:
+  domain_name: HNI / Family Wealth Structuring
+  domain_display_name: AI Wealth Structuring Advisor
+  organization_name: Private Wealth & Estate Planning
+  knowledge_focus_examples: |
+    trust / foundation / family-office structures (discretionary,
+    revocable, purpose trusts), Indian HUF and 56(2)(x) gift-tax
+    rules, US grantor vs non-grantor trust income-tax rules,
+    UK IHT / Probate / NRB / RNRB planning, life-insurance wrappers
+    (PPLI, VUL) for tax-deferral, Section 7702 and 72(e) US life-
+    insurance taxation, FATCA / CRS reporting, domicile vs residence
+    vs citizenship tax triggers
+  tool_focus_examples: |
+    wealth-planning suites (NaviPlan, eMoney Advisor, MoneyGuidePro,
+    Envestnet MoneyGuide, Right Capital), trust-accounting (FIS Wealth
+    Dynamix, SS&C Innotrust, Charles River Wealth), estate-simulator
+    tools, portfolio-rebalancers with tax overlays (Smartleaf), IRS
+    / HMRC / CBDT gift and estate calculators, document-automation

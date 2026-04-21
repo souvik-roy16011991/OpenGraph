@@ -1,0 +1,26 @@
+slug: ai-news-impact-quantifier
+name: AI News Impact Quantifier
+description: >
+  Measures how news affects prices — translates headlines, filings,
+  and social posts into tradable signals with event-timestamp
+  precision, decay curves, and signal-to-noise scoring per topic.
+category: trading
+icon: Newspaper
+domain:
+  domain_name: News-Driven Trading & Event Studies
+  domain_display_name: AI News Impact Quantifier
+  organization_name: Quant Research — Event & NLP Alpha
+  knowledge_focus_examples: |
+    event-study methodology (abnormal returns, CARs), NLP sentiment
+    scoring for financial text (Loughran-McDonald dictionary, FinBERT),
+    news-feed taxonomies (M&A, earnings, regulatory, guidance), signal-
+    decay curves by topic, event-time vs clock-time alignment,
+    pre-announcement drift analysis, ESG-controversy event scoring,
+    regulatory-filing embeddings (10-K, 10-Q, 8-K deltas)
+  tool_focus_examples: |
+    news APIs (Bloomberg BSRCH, Refinitiv News Analytics, Dow Jones
+    DNA, RavenPack, Event Registry), filings (SEC EDGAR, SEDAR+,
+    NSE / BSE corporate announcements), NLP models (FinBERT, Loughran-
+    McDonald, Hugging Face Transformers), social + crowd-sourced
+    (StockTwits, Reddit Pushshift, X/Twitter firehose), LLM-based
+    sentiment (Claude, GPT-4o) with financial guardrails

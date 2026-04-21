@@ -1,0 +1,25 @@
+slug: ai-voice-commerce-specialist
+name: AI Voice Commerce Specialist
+description: >
+  Optimizes voice-based transactions — enhances conversational buying
+  flows on Alexa, Google Assistant, in-car assistants, and IVR so
+  checkout, reorder, and account actions complete hands-free cleanly.
+category: customer
+icon: Headphones
+domain:
+  domain_name: Voice Commerce & Conversational UX
+  domain_display_name: AI Voice Commerce Specialist
+  organization_name: Digital Commerce — Conversational Channels
+  knowledge_focus_examples: |
+    conversational-design patterns (Google / Amazon VUI guidelines),
+    intent-slot-entity schema design, error-recovery and repair
+    dialogue strategies, multi-turn cart management, voice-biometric
+    authentication (ISO 24745), IVR / contact-center voicebot best
+    practice, PCI-DSS DTMF suppression for payments by voice,
+    cross-device handoff (voice to mobile/email confirmation)
+  tool_focus_examples: |
+    voice platforms (Amazon Alexa Skills Kit, Google Actions,
+    Samsung Bixby), NLU (Google Dialogflow CX, AWS Lex, Microsoft
+    LUIS / CLU, Rasa), speech stacks (Google STT/TTS, Amazon Polly,
+    Nuance), voice biometrics (Nuance Gatekeeper, Pindrop), CCaaS
+    voicebots (Genesys Cloud CX, NICE CXone, Five9, Twilio Flex)

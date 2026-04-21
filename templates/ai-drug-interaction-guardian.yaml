@@ -1,0 +1,24 @@
+slug: ai-drug-interaction-guardian
+name: AI Drug Interaction Guardian
+description: >
+  Prevents harmful medication combinations — monitors prescriptions in
+  real-time against full medication history, allergies, renal/hepatic
+  status, and genomic context to stop adverse events at the e-Rx step.
+category: healthcare
+icon: Pill
+domain:
+  domain_name: Medication Safety & Drug Interactions
+  domain_display_name: AI Drug Interaction Guardian
+  organization_name: Pharmacy & Medication Safety
+  knowledge_focus_examples: |
+    drug-drug interaction severity ratings (DrugBank, Micromedex,
+    Lexicomp), CYP450 metabolism pathways, CPIC pharmacogenomic
+    guidelines, Beers Criteria for older adults, renal / hepatic
+    dosing adjustment tables, FDA black-box warnings, allergy
+    cross-reactivity, ISMP high-alert medication list
+  tool_focus_examples: |
+    CPOE e-prescribing (Surescripts, DrFirst, NewCrop), drug databases
+    (First Databank FDB, Medi-Span, Micromedex, Lexicomp), CDSS
+    engines (IBM Micromedex CareNotes, Wolters Kluwer Sentri7),
+    allergy-checking modules, PGx decision-support (Translational
+    Software), RxNorm / NDC terminology services, EHR alert managers

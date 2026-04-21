@@ -1,0 +1,24 @@
+slug: ai-regulatory-interpreter
+name: AI Regulatory Interpreter
+description: >
+  Translates regulations into actions — converts new laws, consent
+  orders, and regulator guidance into operational workflows, control
+  mappings, and ticketed change requests line-of-business can execute.
+category: finance
+icon: Scale
+domain:
+  domain_name: Regulatory Operationalization
+  domain_display_name: AI Regulatory Interpreter
+  organization_name: Compliance & Regulatory Affairs
+  knowledge_focus_examples: |
+    regulatory text corpora (SEC, FINRA, OCC, CFPB, EBA, MAS, RBI),
+    control-framework mappings (COSO, NIST, ISO 27001), regulatory-
+    change-management lifecycles, rulebook-to-control traceability,
+    obligations libraries (UCITS, MiFID II, Dodd-Frank, Basel III),
+    enforcement-action pattern libraries, policy drafting templates
+  tool_focus_examples: |
+    regulatory-change platforms (Ascent RegTech, CUBE, RegData,
+    Compliance.ai), policy-management suites (NAVEX Logiq, Policy
+    Tech), GRC platforms (Archer, MetricStream, ServiceNow GRC),
+    LLM clause-extraction pipelines, control-mapping engines,
+    obligation-register databases, workflow engines (Camunda)

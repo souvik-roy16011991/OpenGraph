@@ -1,0 +1,25 @@
+slug: ai-infrastructure-cost-sculptor
+name: AI Infrastructure Cost Sculptor
+description: >
+  Continuously optimises cloud spend — balances performance and cost
+  dynamically via right-sizing, spot / savings-plan coverage, idle
+  cleanup, and data-egress shaping so the bill stops sneaking up.
+category: engineering
+icon: CloudCog
+domain:
+  domain_name: Cloud FinOps & Cost Optimisation
+  domain_display_name: AI Infrastructure Cost Sculptor
+  organization_name: Cloud Platform — FinOps Office
+  knowledge_focus_examples: |
+    FinOps Foundation framework (Inform, Optimise, Operate), unit-
+    economics (cost per request, per tenant, per feature), AWS
+    Savings Plans vs RIs vs Spot economics, committed-use discounts
+    (GCP CUDs, Azure Reserved Instances), right-sizing heuristics
+    for EC2 / GCE / AKS / GKE, egress-cost optimisation patterns,
+    Karpenter / Spot-controller autoscaling behaviour, show-back vs charge-back
+  tool_focus_examples: |
+    FinOps platforms (Apptio Cloudability, CloudHealth by VMware,
+    Flexera Cloud Management, Harness CCM, nOps, Vantage,
+    Kubecost for k8s), native cost tooling (AWS Cost Explorer +
+    Compute Optimizer, GCP Recommender + Billing, Azure Advisor +
+    Cost Management), AMI / image-audit tools, spot-capacity management

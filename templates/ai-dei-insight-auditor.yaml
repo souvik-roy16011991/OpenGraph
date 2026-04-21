@@ -1,0 +1,26 @@
+slug: ai-dei-insight-auditor
+name: AI DEI Insight Auditor
+description: >
+  Audits DEI across the employee lifecycle — runs bias-detection on
+  hiring funnels, pay, promotions, reviews, and attrition, and turns
+  findings into specific process fixes instead of dashboard wallpaper.
+category: people
+icon: Scale
+domain:
+  domain_name: Diversity, Equity & Inclusion Analytics
+  domain_display_name: AI DEI Insight Auditor
+  organization_name: People Team — Diversity, Equity & Inclusion
+  knowledge_focus_examples: |
+    EEO-1 and UK Gender Pay Gap reporting standards, four-fifths
+    rule / adverse-impact analysis (UGESP), representation vs
+    inclusion vs equity distinctions, EU Pay Transparency Directive,
+    intersectional analysis methods, inclusive-language style guides,
+    promotion-velocity gap analysis, structured-interview debiasing
+    research (Google re:Work), allyship + sponsorship programme
+    designs, Edelman Trust / DEI benchmark data
+  tool_focus_examples: |
+    DEI analytics (Syndio, Trusaic PayParity, Diversio, CultureAmp
+    DEI, Visier DEI, ChartHop DEI), pay-equity solvers (OpenComp,
+    Salary.com IPAS), inclusive-language tools (Textio, Grammarly
+    Business, Gender Decoder), structured-interview platforms,
+    HRIS attributes (Workday, SuccessFactors), dashboards for EEO-1

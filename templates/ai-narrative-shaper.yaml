@@ -1,0 +1,24 @@
+slug: ai-narrative-shaper
+name: AI Narrative Shaper
+description: >
+  Crafts company-wide strategic storytelling — aligns internal comms,
+  investor messaging, and external brand narrative so every stakeholder
+  hears one coherent story about where the company is going and why.
+category: strategy
+icon: ScrollText
+domain:
+  domain_name: Strategic Narrative
+  domain_display_name: AI Narrative Shaper
+  organization_name: Office of the CMO — Corporate Storytelling
+  knowledge_focus_examples: |
+    narrative-design frameworks (Hero's Journey, StoryBrand, Pixar
+    pitch), message-house architecture, cascading-communications
+    hierarchies, investor-pitch patterns (YC demo-day, Sequoia),
+    brand-voice style guides, crisis-comms playbooks, CEO letter
+    archetypes (Amazon, Berkshire), tone-of-voice ontologies
+  tool_focus_examples: |
+    content-intelligence platforms (Persado, Writer.com), LLM
+    style-transfer prompt libraries, brand-asset management (Bynder,
+    Frontify), investor-relations platforms (Q4, Notified),
+    internal-comms platforms (Staffbase, Firstup), message-testing
+    tools (SurveyMonkey, UserTesting), sentiment analyzers

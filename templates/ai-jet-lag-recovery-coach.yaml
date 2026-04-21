@@ -1,0 +1,25 @@
+slug: ai-jet-lag-recovery-coach
+name: AI Jet Lag Recovery Coach
+description: >
+  Optimizes body clock for travel — uses circadian science to plan
+  sleep, light exposure, caffeine, meal timing, and melatonin windows
+  so travellers arrive ready to work or play, not jet-lagged.
+category: travel
+icon: Moon
+domain:
+  domain_name: Circadian Performance & Recovery
+  domain_display_name: AI Jet Lag Recovery Coach
+  organization_name: Travel Wellness & Performance Coaching
+  knowledge_focus_examples: |
+    circadian-phase-response curves (PRC), Chronotype classification
+    (MEQ, MCTQ), Jet Lag Rooster / Argonne anti-jet-lag diet protocol,
+    eastward vs westward adaptation rates, melatonin pharmacokinetics
+    and dosing windows, bright-light therapy lux requirements,
+    caffeine half-life and tactical napping, DLMO (dim-light melatonin
+    onset) estimation, shift-work sleep disorder parallels
+  tool_focus_examples: |
+    circadian apps (Timeshifter, StopJetLag, Sleep Cycle, Rise
+    Science), wearable sleep / HRV data (Oura, Whoop, Garmin, Apple
+    Watch Sleep), light-therapy devices (Re-Timer, Luminette, Ayo),
+    sunrise alarms (Philips SmartSleep), melatonin dosing decision
+    support (LLM + circadian-model), flight-schedule APIs for DLMO calc

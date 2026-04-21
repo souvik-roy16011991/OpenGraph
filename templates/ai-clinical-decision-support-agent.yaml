@@ -1,0 +1,24 @@
+slug: ai-clinical-decision-support-agent
+name: AI Clinical Decision Support Agent
+description: >
+  Assists doctors with evidence-based insights — improves diagnostic
+  accuracy by surfacing guideline-concordant options, scoring rules,
+  and red-flag alerts inside the EHR at the point of decision.
+category: healthcare
+icon: BrainCircuit
+domain:
+  domain_name: Clinical Decision Support
+  domain_display_name: AI Clinical Decision Support Agent
+  organization_name: Clinical Informatics — CDS Team
+  knowledge_focus_examples: |
+    CDS Hooks v2 specification, 5-rights of CDS (right info, person,
+    channel, format, time), Arden Syntax medical-logic modules,
+    risk scores (Wells, HEART, CHA2DS2-VASc, MELD, PERC, CURB-65),
+    USPSTF and specialty-society guidelines, FHIR Questionnaire +
+    PlanDefinition resources, CMS MIPS promoting-interoperability CDS
+  tool_focus_examples: |
+    CDS engines (Elsevier ClinicalKey AI, Wolters Kluwer UpToDate,
+    Stanson Health, Premier Cures), FHIR CDS Hooks sandbox,
+    EHR-integrated CDS (Epic Best Practice Advisories, Cerner
+    PowerChart alerts, Meditech surveillance), LOINC / SNOMED
+    terminology services, rules engines (InterSystems HealthShare)

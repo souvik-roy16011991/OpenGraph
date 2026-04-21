@@ -1,0 +1,25 @@
+slug: ai-travel-risk-shield
+name: AI Travel Risk Shield
+description: >
+  Protects travelers from global risks — monitors safety, health,
+  political, and natural-disaster threats in real time and provides
+  proactive rerouting, evacuation, and assistance triggers.
+category: travel
+icon: ShieldCheck
+domain:
+  domain_name: Travel Risk Management & Duty of Care
+  domain_display_name: AI Travel Risk Shield
+  organization_name: Corporate Travel Security & Duty of Care
+  knowledge_focus_examples: |
+    duty-of-care / ISO 31030 travel risk-management standards,
+    GRMS / ITSM incident classifications, OSAC / FCDO / US State
+    Department travel advisories, WHO International Travel & Health
+    health alerts, natural-disaster early-warning (PTWC tsunami, USGS
+    earthquake), kidnap-and-ransom / K&R protocols, medical-evacuation
+    triggers, traveller-tracking consent rules (GDPR, state privacy)
+  tool_focus_examples: |
+    travel-risk platforms (International SOS TravelTracker, Crisis24,
+    Riskline, Sitata, Kroll, WorldAware / Crisis Insight), itinerary-
+    tracking integrations (Concur, Egencia, BCD, CWT), emergency
+    response (Global Rescue, Anvil Group), travel-medical assistance
+    (UnitedHealthcare Global, Cigna Envoy), safety SMS and app push

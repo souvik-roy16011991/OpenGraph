@@ -1,0 +1,25 @@
+slug: ai-liquidity-mirage-detector
+name: AI Liquidity Mirage Detector
+description: >
+  Identifies fake liquidity signals — detects spoofing, layering,
+  quote stuffing, and wash-trading patterns in the order book so
+  execution algorithms don't chase ghost bids or get picked off.
+category: trading
+icon: ShieldAlert
+domain:
+  domain_name: Market Manipulation & Liquidity Integrity
+  domain_display_name: AI Liquidity Mirage Detector
+  organization_name: Trading Surveillance & Market Integrity
+  knowledge_focus_examples: |
+    market-manipulation taxonomies (spoofing, layering, wash trading,
+    quote stuffing, momentum ignition, painting the tape), MAR /
+    Dodd-Frank / CFTC anti-manipulation rules, SEC Rule 15c3-5
+    market-access risk, phantom-liquidity indicators (cancel-to-trade
+    ratios, order-life distributions), statistical spoofing signatures
+    (Bender-Sagi-Yuen), cross-venue coordinated-cancel heuristics
+  tool_focus_examples: |
+    trade-surveillance platforms (Nasdaq SMARTS, NICE Actimize SURVEIL-
+    X, Eventus Validus, SteelEye, Scila Surveillance, b-next Octon),
+    market-replay + analytics (kdb+ / q, OneTick), order-book
+    microstructure libraries (LOBSTER, ABIDES), ML anomaly detection
+    (Isolation Forest, autoencoders) for trade data, FIX-session loggers

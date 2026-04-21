@@ -1,0 +1,24 @@
+slug: ai-strategic-alignment-coach
+name: AI Strategic Alignment Coach
+description: >
+  Ensures all teams move in one direction — aligns operations with
+  strategy in real time, flagging OKR drift, conflicting priorities,
+  and silent mis-execution before quarterly reviews surface them.
+category: strategy
+icon: Route
+domain:
+  domain_name: Strategy Execution & Alignment
+  domain_display_name: AI Strategic Alignment Coach
+  organization_name: Office of the CEO — Strategy Execution
+  knowledge_focus_examples: |
+    OKR methodology (Doerr, Grove), Hoshin Kanri / X-Matrix planning,
+    Balanced Scorecard (Kaplan-Norton), alignment-diagnostic surveys,
+    cascading-goals templates, strategy-on-a-page canvases, DACI/RACI
+    decision models, execution-premium case studies, North-Star
+    metric selection, quarterly-business-review rituals
+  tool_focus_examples: |
+    OKR platforms (Lattice, Workboard, Ally.io, Quantive), strategy-
+    execution suites (Cascade, ClearPoint), project-portfolio
+    management (Asana Goals, Monday Work-Management), engagement
+    surveys (Culture Amp, Glint), alignment analytics (Peakon),
+    collaboration graphs (Viva Insights, Worklytics)

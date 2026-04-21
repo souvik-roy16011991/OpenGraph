@@ -1,0 +1,27 @@
+slug: ai-sales-territory-designer
+name: AI Sales Territory Designer
+description: >
+  Balances territories on potential and rep capacity — assigns
+  accounts, verticals, and geographies so every rep has a fair
+  shot at quota and no whitespace gets accidentally orphaned.
+category: sales
+icon: MapPinned
+domain:
+  domain_name: Sales Territory & Quota Planning
+  domain_display_name: AI Sales Territory Designer
+  organization_name: Revenue Operations — Territory Planning
+  knowledge_focus_examples: |
+    territory-design principles (contiguity, compactness, balance,
+    disruption), TAM / SAM / SOM sizing for territories, account-
+    potential scoring (firmographics + intent + fit), SPIFF and
+    quota-relief design, book-of-business fairness testing, compensation-
+    commitment vs goal-attainment math (pay-mix, on-target earnings),
+    named-account vs geo vs vertical territory models, carve-vs-
+    conquer decisions, mid-year territory re-balancing protocols
+  tool_focus_examples: |
+    territory-management platforms (Xactly AlignStar, Anaplan
+    Territory & Quota, Varicent, Salesforce Maps / Territory
+    Planning, MapAnything, Fullcast, IronBowl), account-scoring
+    (6sense, Demandbase, ZoomInfo SalesOS, Clearbit), CRM (Salesforce,
+    HubSpot, Microsoft Dynamics 365 Sales), incentive-compensation
+    (CaptivateIQ, QuotaPath, Spiff, Performio)

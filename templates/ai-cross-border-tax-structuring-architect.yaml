@@ -1,0 +1,25 @@
+slug: ai-cross-border-tax-structuring-architect
+name: AI Cross-Border Tax Structuring Architect
+description: >
+  Designs global tax-efficient structures — optimises multi-country
+  entity setups, IP holding locations, and financing flows legally
+  while staying firmly inside BEPS 2.0 and substance requirements.
+category: tax
+icon: MapPinned
+domain:
+  domain_name: Cross-Border Tax Structuring
+  domain_display_name: AI Cross-Border Tax Structuring Architect
+  organization_name: International Tax Advisory — Structuring Desk
+  knowledge_focus_examples: |
+    OECD BEPS 2.0 (Pillar One + Pillar Two GloBE rules), economic-
+    substance requirements (Cayman, BVI, Jersey), treaty networks
+    and MLI positions, holdco / IPco / financeco structuring
+    archetypes, GILTI / Subpart F / CFC regimes, place-of-effective-
+    management tests, ATAD / DAC6 hallmarks, principal-purpose-test
+    (PPT), withholding-tax matrices, debt-equity classification
+  tool_focus_examples: |
+    treaty-lookup (Orbitax, IBFD Tax Research Platform, Bloomberg
+    Tax Global Portfolios), structuring modelling (ONESOURCE Global
+    Tax Advisory, CorpTax International), entity-management (Diligent
+    Blueprint OneWorld, EntityKeeper, Longview Tax), country-by-country
+    reporting (SAP CbCR, Vertex CbCR), legal-entity graphing (Neo4j)

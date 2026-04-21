@@ -1,0 +1,24 @@
+slug: ai-supplier-reliability-scorer
+name: AI Supplier Reliability Scorer
+description: >
+  Evaluates vendor performance — predicts supply risk using on-time
+  in-full history, financial-health signals, ESG, cyber, and geo
+  exposure so sourcing decisions weigh total risk, not just unit price.
+category: operations
+icon: Handshake
+domain:
+  domain_name: Supplier Risk & Performance
+  domain_display_name: AI Supplier Reliability Scorer
+  organization_name: Procurement & Supplier Management
+  knowledge_focus_examples: |
+    supplier-performance KPIs (OTIF, DPPM, PPAP, FAI pass rate),
+    CAPS / APQC sourcing benchmarks, ISO 9001 / IATF 16949 supplier
+    qualification, supplier-financial health signals (Altman Z,
+    payment-behaviour DBT), tiered supplier-risk segmentation,
+    Known-Importer Program, OFAC / denied-party screening rules
+  tool_focus_examples: |
+    supplier-risk platforms (Interos, Resilinc, Riskmethods, Everstream,
+    EcoVadis, BitSight), supplier-management suites (SAP Ariba, Coupa,
+    Jaggaer, Ivalua), financial-health signals (Dun & Bradstreet,
+    Creditsafe, RapidRatings), sanctions screening (World-Check,
+    Dow Jones RiskCenter), ESG assessment tools (Sphera, Assent)

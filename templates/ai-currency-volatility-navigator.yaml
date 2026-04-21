@@ -1,0 +1,24 @@
+slug: ai-currency-volatility-navigator
+name: AI Currency Volatility Navigator
+description: >
+  Manages forex risk — predicts and hedges currency fluctuations
+  across receivables, payables, and subsidiary translation exposure
+  using dynamic hedging strategies and macro-signal-aware overlays.
+category: finance
+icon: Globe
+domain:
+  domain_name: FX Risk & Hedging
+  domain_display_name: AI Currency Volatility Navigator
+  organization_name: Treasury — FX and Rate Risk Management
+  knowledge_focus_examples: |
+    transaction / translation / economic FX exposure taxonomy,
+    hedge-accounting under IFRS 9 / ASC 815 (cash-flow, fair-value,
+    net-investment hedges), natural-hedging playbooks, option-based
+    strategies (collars, risk reversals, participating forwards),
+    VaR and CFaR methodologies, exposure-netting frameworks
+  tool_focus_examples: |
+    FX trading platforms (FXall, 360T, Bloomberg FXGO, Kyriba FiREapps),
+    exposure-analytics (GTreasury, Reval), derivative pricers (Numerix,
+    Murex), market-data feeds (Refinitiv, Bloomberg), option-volatility
+    surfaces (SuperDerivatives), payment-and-FX bundles (Wise Platform,
+    Revolut Business), accounting-integration connectors

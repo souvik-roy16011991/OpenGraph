@@ -1,0 +1,25 @@
+slug: ai-experience-memory-composer
+name: AI Experience Memory Composer
+description: >
+  Transforms trips into meaningful narratives — curates photos,
+  location pins, audio notes, and journal fragments into personalised
+  stories and albums worth revisiting, not endless camera rolls.
+category: travel
+icon: Camera
+domain:
+  domain_name: Travel Memory & Storytelling
+  domain_display_name: AI Experience Memory Composer
+  organization_name: Post-Trip Experience Studio
+  knowledge_focus_examples: |
+    photo-curation heuristics (highlight selection, near-duplicate
+    dedupe), geo-clustering of media for trip segmentation, story
+    arcs in travel writing (Hemingway, Bryson, Theroux), map-album
+    composition principles, photo-book layout grammar, privacy-
+    aware face-clustering, metadata-preservation (EXIF, IPTC, XMP),
+    memory-consolidation research in positive psychology
+  tool_focus_examples: |
+    photo-AI libraries (Google Photos API, Apple Photos ML, Adobe
+    Lightroom AI), map-album tools (Mapbox, Polarsteps, Journi,
+    Visited), photo-book services (Artifact Uprising, Blurb, Mixbook
+    APIs), LLM-based caption and narrative generation, speech-to-text
+    for audio notes (Whisper, Deepgram), EXIF / IPTC toolkits
