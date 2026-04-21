@@ -64,9 +64,22 @@ def create_app() -> FastAPI:
     # suitable for dev. In Render production, set this to the frontend origin
     # (e.g. https://kb-frontend-xxxx.onrender.com). Credentials can only be
     # allowed with an exact origin list; with "*" we fall back to no-credentials.
+    #
+    # Render's `fromService.property: host` returns a bare hostname. Browsers
+    # send the full `Origin: https://host` header, so normalise each entry to
+    # include a scheme — otherwise every preflight would 400 in production.
     import os as _os
     raw_origins = _os.environ.get("CORS_ALLOW_ORIGINS", "*").strip()
-    origins = [o.strip() for o in raw_origins.split(",") if o.strip()] or ["*"]
+
+    def _normalise_origin(o: str) -> str:
+        o = o.strip()
+        if not o or o == "*":
+            return o
+        if "://" in o:
+            return o
+        return f"https://{o}"
+
+    origins = [_normalise_origin(o) for o in raw_origins.split(",") if o.strip()] or ["*"]
     allow_credentials = origins != ["*"]
     app.add_middleware(
         CORSMiddleware,

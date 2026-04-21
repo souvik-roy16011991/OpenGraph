@@ -12,20 +12,25 @@
 #
 # -- First-deploy secret checklist -------------------------------------------
 # In the Render dashboard set these with `sync: false` before the first deploy.
-# Auth is first-party JWT — no third-party provider.
+# Auth is Supabase Auth (HS256 JWT); Supabase owns signup / login / OAuth.
 #
-#   Backend only:
+#   Backend (opengraph-backend):
 #     OPENROUTER_API_KEY
-#     DATABASE_URL                 (Neon pooled connection string)
+#     DATABASE_URL                   (Supabase Session Pooler or Neon pooled URL)
 #     MEMGRAPH_URI / _USERNAME / _PASSWORD
 #     QDRANT_URL / QDRANT_API_KEY
 #     BLOB_READ_WRITE_TOKEN
 #     UPSTASH_REDIS_REST_URL / _TOKEN
-#     JWT_SECRET                   (generate with `python -c "import secrets;
-#                                   print(secrets.token_urlsafe(48))"`).
-#                                   Rotating this invalidates every live token.
+#     SUPABASE_JWT_SECRET            (Supabase dashboard → Settings → API →
+#                                     JWT Secret). Rotating this invalidates
+#                                     every live access token.
 #
-# Protected routes return 503 until JWT_SECRET is set. See DEPLOY.md.
+#   Frontend (opengraph-frontend):
+#     NEXT_PUBLIC_SUPABASE_URL       (Supabase dashboard → Settings → API → URL)
+#     NEXT_PUBLIC_SUPABASE_ANON_KEY  (Supabase dashboard → Settings → API → anon)
+#
+# Protected routes return 401 without a token and 503 if SUPABASE_JWT_SECRET is
+# unset. See DEPLOY.md for Google/GitHub OAuth setup in the Supabase console.
 # ---------------------------------------------------------------------------
 
 services:
@@ -104,18 +109,12 @@ services:
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
 
-      # --- Auth (JWT HS256) ---------------------------------------------
-      # Protected routes 401 without a valid Bearer JWT and 503 if JWT_SECRET
-      # is missing. The secret signs tokens minted by /auth/signup + /auth/login;
-      # rotating it invalidates every live session at once.
-      - key: JWT_SECRET
+      # --- Auth (Supabase Auth) -----------------------------------------
+      # Supabase issues HS256 JWTs signed with this secret. Find it in the
+      # Supabase dashboard → Settings → API → JWT Secret.
+      # Protected routes return 401 without a valid token; 503 if secret unset.
+      - key: SUPABASE_JWT_SECRET
         sync: false
-      - key: JWT_EXPIRES_MINUTES
-        value: "43200"           # 30 days
-      - key: JWT_ISSUER
-        value: kb-graph-engine
-      - key: PASSWORD_MIN_LENGTH
-        value: "8"
 
       # --- Guardrails ---------------------------------------------------
       # Caps each user at this many workspaces — prevents template-
@@ -169,5 +168,10 @@ services:
           property: host
       - key: NODE_ENV
         value: production
-      # Auth is first-party JWT; the browser stores the token in localStorage
-      # + a non-HttpOnly `auth_token` cookie. No third-party env vars needed.
+      # Supabase Auth — baked into the client bundle at build time.
+      # NEXT_PUBLIC_SUPABASE_URL: your project URL (https://<ref>.supabase.co)
+      # NEXT_PUBLIC_SUPABASE_ANON_KEY: the public anon key (safe to expose)
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false

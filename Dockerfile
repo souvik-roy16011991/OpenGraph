@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a virtual environment to avoid the "root user" warning and isolate deps
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python deps first so the layer caches across code changes.
 COPY requirements.txt .

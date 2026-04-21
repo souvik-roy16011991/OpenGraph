@@ -1,38 +1,72 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Auth gate — always on.
+ * Three categories of request:
+ *   1. Static / infra prefixes — always let through.
+ *   2. Auth pages (/sign-in, /sign-up) — signed-in users get bounced to "/"
+ *      (or ?return_to); anonymous users see the page.
+ *   3. Everything else — requires a Supabase session; otherwise redirect to
+ *      /sign-in?return_to=<path>.
  *
- * Until the ``auth_token`` cookie is present (written by ``lib/auth.ts`` on
- * signup/login) the visitor only sees the sign-in / sign-up pages.
- *
- * We intentionally do NOT verify the JWT here — the middleware runs on the
- * edge without access to the signing secret. Presence is sufficient for a
- * redirect; the backend verifies the signature on every protected request,
- * which is where auth actually lives.
+ * Supabase's SSR client both verifies and silently refreshes the access
+ * token. Refreshed cookies are written back onto the response.
  */
 
-const PUBLIC_PREFIXES = [
-  "/sign-in",
-  "/sign-up",
-  "/_next",
-  "/favicon",
-  "/opengraph-mark.svg",
-];
+const INFRA_PREFIXES = ["/_next", "/favicon", "/opengraph-mark.svg"];
+const AUTH_PAGE_PREFIXES = ["/sign-in", "/sign-up"];
+const AUTH_CALLBACK = "/auth/callback";
 
-function isPublic(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+function startsWithAny(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname.startsWith(p));
 }
 
-function hasSession(req: NextRequest): boolean {
-  return Boolean(req.cookies.get("auth_token")?.value);
-}
-
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
-  if (isPublic(pathname)) return NextResponse.next();
-  if (hasSession(req)) return NextResponse.next();
+  if (startsWithAny(pathname, INFRA_PREFIXES)) return NextResponse.next();
+  // OAuth code exchange must run without session gating.
+  if (pathname.startsWith(AUTH_CALLBACK)) return NextResponse.next();
+
+  const res = NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const isAuthPage = startsWithAny(pathname, AUTH_PAGE_PREFIXES);
+
+  if (isAuthPage) {
+    if (session) {
+      const rawReturn = req.nextUrl.searchParams.get("return_to");
+      const safeReturn = rawReturn && rawReturn.startsWith("/") && !startsWithAny(rawReturn, AUTH_PAGE_PREFIXES)
+        ? rawReturn
+        : "/";
+      const dest = req.nextUrl.clone();
+      dest.pathname = safeReturn;
+      dest.search = "";
+      return NextResponse.redirect(dest);
+    }
+    return res;
+  }
+
+  if (session) return res;
 
   const signIn = req.nextUrl.clone();
   signIn.pathname = "/sign-in";
