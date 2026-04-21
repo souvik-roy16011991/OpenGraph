@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -166,18 +167,17 @@ function ProfileCard({ me }: { me: MeResponse }) {
 }
 
 function AccountActionsCard() {
+  const router = useRouter();
+  const qc = useQueryClient();
   const [pending, setPending] = React.useState(false);
 
   async function onSignOut() {
     setPending(true);
     try {
-      // AuthGate listens for SIGNED_OUT and handles redirect + state reset.
-      // Keep this call site focused on the logout call itself; the gate is
-      // the single source of truth for post-logout navigation.
-      await logout();
-    } catch {
-      // Even if the network call fails, Supabase has cleared the session —
-      // AuthGate's SIGNED_OUT listener will fire and navigate.
+      logout();           // clears localStorage + cookie; fires audit ping
+      qc.clear();         // drop cached per-user query results
+      router.replace("/sign-in");
+      router.refresh();
     } finally {
       setPending(false);
     }

@@ -213,7 +213,7 @@ function NavRow({
 // Unauthenticated / full-screen routes render without the sidebar chrome so
 // the sign-in form isn't stacked next to a broken workspace switcher firing
 // 401s. Keep in sync with middleware's auth-page list.
-const CHROMELESS_PREFIXES = ["/sign-in", "/sign-up", "/auth/"];
+const CHROMELESS_PREFIXES = ["/sign-in", "/sign-up"];
 
 function isChromeless(pathname: string | null): boolean {
   if (!pathname) return false;
