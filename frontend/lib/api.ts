@@ -29,6 +29,7 @@ import type {
   WorkspaceLLMResponse,
   WorkspaceSummary,
 } from "./schema";
+import { getCachedAccessToken, primeTokenCache } from "./auth-token";
 
 // If NEXT_PUBLIC_API_BASE is set (e.g. http://localhost:8000), hit the backend
 // directly — avoids Next.js dev-proxy body-size limits on multipart uploads.
@@ -58,22 +59,17 @@ function activeWorkspaceId(): string | null {
   }
 }
 
-/** Read the Supabase access token from localStorage at call time.
+/** Return the current Supabase access token at call time.
  *
- * Supabase stores the session under `sb-<project-ref>-auth-token`.
- * The project-ref is the subdomain of NEXT_PUBLIC_SUPABASE_URL.
+ * Pulls from the in-memory cache populated by `AuthGate` and primed via
+ * `onAuthStateChange`. The browser's `@supabase/ssr` client stores the
+ * session in cookies (not localStorage), so we can't read it
+ * synchronously from storage — the cache is the sync source of truth.
  */
 function activeAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-    const ref = url.replace("https://", "").split(".")[0];
-    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
-    if (!raw) return null;
-    return (JSON.parse(raw) as { access_token?: string }).access_token ?? null;
-  } catch {
-    return null;
-  }
+  primeTokenCache();
+  return getCachedAccessToken();
 }
 
 function withHeaders(headers: HeadersInit = {}): HeadersInit {

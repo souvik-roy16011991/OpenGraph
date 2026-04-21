@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { resetLocalUserState } from "@/lib/session-reset";
+import { setCachedAccessToken } from "@/lib/auth-token";
 
 /**
  * Global auth lifecycle handler.
@@ -24,21 +25,29 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const lastUserIdRef = React.useRef<string | null>(null);
   const initialisedRef = React.useRef(false);
+  const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
     const supabase = getSupabaseBrowserClient();
 
-    // Seed the ref from the current session so the first `onAuthStateChange`
-    // event (which fires with INITIAL_SESSION) doesn't register a false
-    // "user switch" against a null baseline.
+    // Seed the ref + access-token cache from the current session so the
+    // first `onAuthStateChange` event (which fires with INITIAL_SESSION)
+    // doesn't register a false "user switch" against a null baseline.
+    // Gate rendering until this resolves so React Query's first fetch
+    // always sees a populated token cache.
     supabase.auth.getSession().then(({ data }) => {
       lastUserIdRef.current = data.session?.user.id ?? null;
+      setCachedAccessToken(data.session?.access_token ?? null);
       initialisedRef.current = true;
+      setReady(true);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       const newId = session?.user.id ?? null;
       const prevId = lastUserIdRef.current;
+
+      // Keep the in-memory bearer token in sync with every refresh.
+      setCachedAccessToken(session?.access_token ?? null);
 
       if (event === "SIGNED_OUT") {
         lastUserIdRef.current = null;
@@ -67,5 +76,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [queryClient, router]);
 
+  if (!ready) return null;
   return <>{children}</>;
 }
