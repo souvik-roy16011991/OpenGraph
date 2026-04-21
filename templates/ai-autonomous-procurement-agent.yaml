@@ -1,0 +1,25 @@
+slug: ai-autonomous-procurement-agent
+name: AI Autonomous Procurement Agent
+description: >
+  Negotiates and purchases automatically — optimises supplier
+  selection, runs guided-buying, auto-awards spot-buy RFQs, and
+  closes tail-spend categories without a human in the loop.
+category: operations
+icon: ShoppingBag
+domain:
+  domain_name: Autonomous Procurement & Sourcing
+  domain_display_name: AI Autonomous Procurement Agent
+  organization_name: Procurement — Tail-Spend & Operational Buying
+  knowledge_focus_examples: |
+    sourcing-event types (RFI, RFP, RFQ, reverse auction, Dutch
+    auction), category-specific negotiation playbooks (IT, MRO,
+    facilities, travel), e-auction bid-decrement rules, three-way
+    match (PO / GR / invoice), guided-buying catalog design,
+    tail-spend management frameworks, ESG scoring in award decisions,
+    CIPS procurement lifecycle
+  tool_focus_examples: |
+    source-to-pay suites (Coupa, SAP Ariba, Jaggaer, GEP SMART,
+    Ivalua), sourcing-optimisation (Keelvar, Scout RFP by Workday,
+    Bonfire), contract lifecycle (Icertis, Ironclad), punchout
+    catalogs (OCI, cXML PunchOut), AP automation (Tipalti, AvidXchange,
+    Stampli), negotiation bots (Pactum AI, Tradeshift), supplier portals

@@ -1,0 +1,26 @@
+slug: ai-journey-uncertainty-navigator
+name: AI Journey Uncertainty Navigator
+description: >
+  Designs travel plans resilient to disruptions — continuously adapts
+  itineraries based on weather, delays, strikes, geopolitical shifts,
+  and personal preferences so a single cancellation doesn't unravel
+  the whole trip.
+category: travel
+icon: Plane
+domain:
+  domain_name: Resilient Trip Planning
+  domain_display_name: AI Journey Uncertainty Navigator
+  organization_name: Digital Travel Concierge Desk
+  knowledge_focus_examples: |
+    IATA / ICAO flight-status conventions, Eurocontrol / FAA delay
+    propagation models, hub-and-spoke rebooking playbooks, weather-
+    impact heuristics (convective, winter ops), airline rebooking
+    entitlements (EU261, DOT Tarmac Delay Rule), MCT (minimum
+    connect times) per airport, force-majeure travel-insurance
+    triggers, rail / ferry contingency options
+  tool_focus_examples: |
+    flight-data APIs (FlightAware AeroAPI, Cirium, OAG, Amadeus
+    Schedule), GDS rebooking (Amadeus Altéa, Sabre, Travelport), hotel
+    inventory APIs (Expedia Partner Solutions, Booking.com Connectivity,
+    HotelBeds), weather APIs (AerisWeather, Tomorrow.io, NOAA AWC),
+    strike / travel-alert feeds (Riskline, Sitata), calendar sync

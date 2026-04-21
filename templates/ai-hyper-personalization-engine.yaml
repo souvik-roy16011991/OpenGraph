@@ -1,0 +1,25 @@
+slug: ai-hyper-personalization-engine
+name: AI Hyper-Personalization Engine
+description: >
+  Tailors every customer interaction — uses deep behavioural, identity,
+  and context signals to personalise offers, content, next-best-action,
+  and UI in real time across channels.
+category: customer
+icon: Sparkles
+domain:
+  domain_name: Real-Time Personalisation
+  domain_display_name: AI Hyper-Personalization Engine
+  organization_name: Digital Marketing — Personalisation COE
+  knowledge_focus_examples: |
+    Customer Data Platform (CDP) concepts, deterministic vs
+    probabilistic identity resolution, next-best-action (NBA)
+    frameworks, contextual-bandit and reinforcement-learning
+    personalisation, consent-aware segmentation (GDPR, CCPA, IAB TCF),
+    RFM and CLV segmentation, journey-trigger taxonomies, multi-armed-
+    bandit vs A/B testing tradeoffs, zero-party-data capture
+  tool_focus_examples: |
+    CDPs (Segment / Twilio, Tealium, mParticle, Treasure Data,
+    Adobe Real-Time CDP), personalisation engines (Dynamic Yield,
+    Persado, Optimizely Personalization, Bloomreach), CRM /
+    engagement (Braze, Iterable, Salesforce Marketing Cloud), bandit
+    libraries (Vowpal Wabbit, TensorFlow Recommenders), feature stores

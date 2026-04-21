@@ -1,0 +1,24 @@
+slug: ai-competitive-war-gamer
+name: AI Competitive War-Gamer
+description: >
+  Simulates competitor moves — builds predictive models of rival
+  strategies and responses, then runs multi-round war games so your
+  next launch, price move, or acquisition isn't a surprise to you.
+category: strategy
+icon: Target
+domain:
+  domain_name: Competitive War-Gaming
+  domain_display_name: AI Competitive War-Gamer
+  organization_name: Strategy Office — Competitive Intelligence
+  knowledge_focus_examples: |
+    Porter's five forces, game-theory equilibria (Nash, Stackelberg),
+    move-countermove playbooks from M&A and price-war case studies,
+    competitor capability maps, 10-K / earnings-call signal libraries,
+    patent-landscape analysis, hiring-signal heuristics, typical
+    competitor OKRs and incentive structures
+  tool_focus_examples: |
+    competitive-intelligence platforms (Crayon, Klue, Kompyte),
+    patent-search tools (PatSnap, Google Patents), hiring trackers
+    (LinkedIn Talent Insights, Revelio Labs), earnings-call transcript
+    APIs (AlphaSense), game-theoretic solvers (Gambit), M&A databases
+    (Capital IQ, PitchBook), war-game facilitation platforms (Mural)

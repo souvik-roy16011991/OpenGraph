@@ -1,0 +1,26 @@
+slug: ai-learning-path-composer
+name: AI Learning Path Composer
+description: >
+  Builds personalised L&D curricula — maps each employee's current
+  skills to target-role skills and assembles an adaptive learning
+  path from internal content, vendor courses, and mentorship so
+  careers progress on evidence, not guesswork.
+category: people
+icon: GraduationCap
+domain:
+  domain_name: Learning & Development / Career Pathing
+  domain_display_name: AI Learning Path Composer
+  organization_name: Talent Development — Learning Experience Design
+  knowledge_focus_examples: |
+    skills-taxonomy frameworks (SFIA, Lightcast Open Skills, ESCO,
+    O*NET), 70-20-10 development model, Bloom's taxonomy of learning
+    outcomes, Kirkpatrick 4-level training evaluation, adaptive-learning
+    research, competency-modeling patterns, mentorship-program design,
+    learning-in-the-flow-of-work principles (Bersin), internal
+    mobility ladder / lattice design, ROI of learning calculations
+  tool_focus_examples: |
+    LXPs (Degreed, EdCast by Cornerstone, 360Learning, Docebo, LinkedIn
+    Learning Hub, Udemy Business, Pluralsight Skills), talent-marketplace
+    platforms (Gloat, Fuel50, Workday Talent Marketplace, eightfold
+    Talent Intelligence), skills-graph tools (Lightcast Analyst),
+    mentorship software (MentorcliQ, Chronus), xAPI LRS, content APIs

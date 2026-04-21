@@ -1,0 +1,24 @@
+slug: ai-personalized-nutrition-planner
+name: AI Personalized Nutrition Planner
+description: >
+  Designs diet plans per individual biology — integrates genetics,
+  CGM glucose curves, gut microbiome, labs, and lifestyle to produce
+  meal plans tailored to metabolic response and clinical conditions.
+category: healthcare
+icon: Leaf
+domain:
+  domain_name: Precision Nutrition
+  domain_display_name: AI Personalized Nutrition Planner
+  organization_name: Nutrition & Metabolic Health Services
+  knowledge_focus_examples: |
+    Dietary Reference Intakes (DRI) and RDAs, Mediterranean / DASH /
+    low-FODMAP / ketogenic evidence, Academy of Nutrition and
+    Dietetics Nutrition Care Process (NCP), postprandial-glucose
+    research (PREDICT, Zoe), microbiome-diet associations,
+    medical-nutrition therapy codes (CPT 97802-4), allergen labeling
+  tool_focus_examples: |
+    nutrition-analysis platforms (Nutritics, ESHA Genesis, Cronometer
+    Pro), CGM data (Dexcom, Abbott Libre, Levels API), food-database
+    APIs (USDA FoodData Central, Edamam, Spoonacular), genomic-
+    nutrition panels (3x4 Genetics, Nutrigenomix), microbiome testing
+    (Viome, Zoe), meal-planning apps (MyFitnessPal, PlateJoy)

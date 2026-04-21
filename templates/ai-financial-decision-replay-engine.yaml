@@ -1,0 +1,26 @@
+slug: ai-financial-decision-replay-engine
+name: AI Financial Decision Replay Engine
+description: >
+  Replays past financial decisions — shows what-if counterfactuals
+  (what if I'd kept renting, stayed invested, not prepaid the loan)
+  so future decisions learn from the evidence of past ones.
+category: advisory
+icon: Clapperboard
+domain:
+  domain_name: Counterfactual Financial Analysis
+  domain_display_name: AI Financial Decision Replay Engine
+  organization_name: Financial Advice — Reflection & Learning Desk
+  knowledge_focus_examples: |
+    counterfactual-reasoning methods for finance, decision-journal
+    methodology (Duke "Thinking in Bets"), historical-counterfactual
+    simulation (paths-not-taken), rent-vs-buy analysis frameworks,
+    prepay-vs-invest breakeven math, policy-lapse counterfactuals,
+    Roth vs traditional retroactive optimisation, behavioural-finance
+    "hindsight bias" controls, bootstrap historical-path sampling
+  tool_focus_examples: |
+    portfolio-backtest APIs (PortfolioVisualizer, Yahoo Finance, Stooq,
+    Alpha Vantage, Portfolio Charts, testfol.io), calculator libraries
+    (Python financepy, QuantLib-Python, numpy-financial), decision-
+    journal tools (Ed Sim Decision Journal, Notion templates),
+    rent-vs-buy calculators (NYT, Fidelity, Kabbage), Roth-conversion
+    calculators (NewRetirement, Income Solver)

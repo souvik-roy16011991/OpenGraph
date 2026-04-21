@@ -1,0 +1,28 @@
+slug: ai-trademark-watch-enforcement-agent
+name: AI Trademark Watch & Enforcement Agent
+description: >
+  Detects brand infringement globally — watches trademark registries,
+  marketplaces, domains, and social handles for look-alike filings
+  and knock-offs, and drafts takedowns / oppositions at the speed
+  of bad actors.
+category: legal
+icon: ShieldAlert
+domain:
+  domain_name: Trademark Watch & Brand Enforcement
+  domain_display_name: AI Trademark Watch & Enforcement Agent
+  organization_name: Brand Protection & Trademark Prosecution
+  knowledge_focus_examples: |
+    USPTO / EUIPO / WIPO Madrid trademark-registry search, Nice
+    Classification (1-45), opposition / cancellation procedure
+    timelines, UDRP domain disputes, cybersquatting laws (ACPA),
+    marketplace brand-registry programs (Amazon Brand Registry,
+    Alibaba AliProtect, Meta Brand Rights Protection), DMCA / EU
+    DSA takedown formalities, dilution vs confusion standards,
+    letter-before-action / cease-and-desist drafting conventions
+  tool_focus_examples: |
+    trademark-watch services (CompuMark, Corsearch, Clarivate SAEGIS,
+    TrademarkVision by Clarivate, CITIS), brand-protection platforms
+    (Red Points, Incopro / Corsearch, MarkMonitor, Pointer Brand
+    Protection, BrandShield, Mulberry IP), marketplace enforcement
+    APIs (Amazon, Alibaba), social / domain monitoring (DomainTools,
+    Whoisology), LLM drafting assist for C&D

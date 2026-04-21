@@ -1,0 +1,26 @@
+slug: ai-autonomous-business-builder
+name: AI Autonomous Business Builder
+description: >
+  Creates new ventures independently — identifies, builds, and scales
+  new business lines end-to-end: spotting opportunities, validating,
+  assembling the stack, and running go-to-market until it stands alone.
+category: customer
+icon: Rocket
+domain:
+  domain_name: Autonomous Venture Building
+  domain_display_name: AI Autonomous Business Builder
+  organization_name: Corporate Venture Studio
+  knowledge_focus_examples: |
+    venture-studio operating models (eFounders / Hexa, Rocket Internet,
+    Atomic, High Alpha), lean-startup / customer-development
+    frameworks (Blank, Ries), unit-economics / LTV:CAC gates,
+    no-code GTM playbooks, pre-seed / seed fundraising norms,
+    founder-market-fit rubrics, pivot decision trees, PMF definitions
+    (Ellis 40% rule, retention cohorts), venture-scoring scorecards
+  tool_focus_examples: |
+    no-code / low-code stacks (Webflow, Bubble, Retool, Airtable,
+    Zapier, Make), CRM bootstrap (HubSpot Starter, Pipedrive),
+    analytics (Amplitude, Mixpanel, Posthog), fundraising tools
+    (AngelList Stack, Pulley, Carta), PMF surveys (PMFSurvey.com,
+    Rahul Vohra templates), competitive-intel (CB Insights, PitchBook),
+    LLM agent frameworks (LangGraph, AutoGen, CrewAI)

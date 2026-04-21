@@ -1,0 +1,25 @@
+slug: ai-experience-experimenter
+name: AI Experience Experimenter
+description: >
+  Runs continuous A/B testing — optimises UX, copy, pricing, and
+  promotions dynamically while controlling for multiple-hypothesis
+  inflation, novelty effects, and segmentation interactions.
+category: customer
+icon: FlaskConical
+domain:
+  domain_name: Experimentation Platform & CRO
+  domain_display_name: AI Experience Experimenter
+  organization_name: Growth Engineering — Experimentation
+  knowledge_focus_examples: |
+    hypothesis design (ICE, PIE prioritisation), A/B/n and
+    multi-armed-bandit tradeoffs, sequential-testing corrections
+    (Wald, O'Brien-Fleming), CUPED variance reduction, heterogeneous-
+    treatment-effect methods, sample-size / MDE calculators,
+    Simpson's paradox and SRM detection, experimentation playbooks
+    (ExP @ Microsoft, Airbnb ERF, Netflix Signal)
+  tool_focus_examples: |
+    experimentation platforms (Optimizely, LaunchDarkly Experiment,
+    Eppo, Statsig, Split.io, VWO, Adobe Target, AB Tasty), CUPED-
+    aware data pipelines, feature-flagging (LaunchDarkly, Flagsmith,
+    Unleash), BI validation stacks (Looker, Mode), stats libraries
+    (statsmodels, scipy.stats), experimentation governance wikis

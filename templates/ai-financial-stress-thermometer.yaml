@@ -1,0 +1,28 @@
+slug: ai-financial-stress-thermometer
+name: AI Financial Stress Thermometer
+description: >
+  Measures financial anxiety levels — tracks composite indicators
+  of client financial stress (cash buffer runway, debt-service
+  ratio, income volatility, spend variance) and triggers supportive
+  actions before distress crystallises.
+category: advisory
+icon: Thermometer
+domain:
+  domain_name: Financial Wellness & Stress Analytics
+  domain_display_name: AI Financial Stress Thermometer
+  organization_name: Financial Wellness — Advisory Care Team
+  knowledge_focus_examples: |
+    InCharge / CFPB / FINRA Foundation financial-wellness scales,
+    PFS Financial Stress Scale, Kim / Garman consumer financial
+    stress frameworks, emergency-fund sizing rules (3 / 6 / 12
+    months), debt-to-income and debt-service-ratio benchmarks,
+    subjective financial well-being (PERMA, CFPB), behavioural
+    indicators of distress (overdrafts, fee-paying patterns, cash-
+    advance use), early-warning payment-stress signals
+  tool_focus_examples: |
+    financial-wellness platforms (SmartPath, Enrich, Brightside,
+    Origin, LearnLux, Savology), open-banking aggregators (Plaid,
+    MX, Finicity, TrueLayer, Yodlee), credit-monitoring APIs (Experian,
+    Equifax, Credit Karma), survey tools for subjective well-being
+    (Qualtrics), behavioural-nudge engines (Stash, MoneyLion), CRM
+    risk flags (Salesforce FSC)

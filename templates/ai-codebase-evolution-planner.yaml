@@ -1,0 +1,25 @@
+slug: ai-codebase-evolution-planner
+name: AI Codebase Evolution Planner
+description: >
+  Guides long-term architecture changes — prevents tech debt, plans
+  incremental migrations, and ensures scalability by keeping a living
+  picture of where the codebase is and where it should head next.
+category: engineering
+icon: Sprout
+domain:
+  domain_name: Architecture Evolution & Tech Debt
+  domain_display_name: AI Codebase Evolution Planner
+  organization_name: Staff Engineering — Architecture Strategy
+  knowledge_focus_examples: |
+    strangler-fig migration pattern, architecture decision records
+    (ADR / MADR), fitness-functions for evolutionary architecture
+    (Ford, Parsons), technical-debt taxonomies (Martin Fowler's 4
+    quadrants, SQALE), dependency-graph analysis, microservice vs
+    modular-monolith decision frameworks (Team Topologies), code
+    hot-spot analysis (Adam Tornhill), deprecation lifecycles
+  tool_focus_examples: |
+    code-intelligence platforms (Sourcegraph, CodeScene, CAST Highlight,
+    SonarQube, Stepsize), dependency-analysis (Moderne, Deepsource,
+    GitHub CodeQL), architecture-visualisation (Structurizr, C4 model
+    tools, Lucidscale), AST-based refactoring (OpenRewrite, jscodeshift,
+    Codemod, Semgrep), ADR tooling (adr-tools), repo insights (CodeScene)

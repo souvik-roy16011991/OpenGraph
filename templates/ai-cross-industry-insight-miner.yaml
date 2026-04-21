@@ -1,0 +1,24 @@
+slug: ai-cross-industry-insight-miner
+name: AI Cross-Industry Insight Miner
+description: >
+  Finds ideas from one industry for another — systematically transfers
+  proven innovations across sectors (e.g. airline yield-management into
+  hospitals, automotive QC into fintech) to unlock analogical advantage.
+category: strategy
+icon: Layers
+domain:
+  domain_name: Cross-Industry Innovation Transfer
+  domain_display_name: AI Cross-Industry Insight Miner
+  organization_name: Corporate Innovation — Analogies Lab
+  knowledge_focus_examples: |
+    TRIZ contradiction matrix, analogical reasoning research
+    (Gentner, Holyoak), biomimicry pattern catalogs (AskNature),
+    Christensen disruption case studies, cross-industry benchmark
+    reports, lateral-thinking frameworks (de Bono), case-based-
+    reasoning ontologies, industry-convergence heuristics
+  tool_focus_examples: |
+    case-based reasoning platforms (COLIBRI), semantic search across
+    industry corpora, patent-classification databases (CPC, IPC),
+    academic search (Semantic Scholar, Google Scholar), TRIZ software
+    (Goldfire, TRIZolver), LLM cross-domain prompt patterns, Harvard
+    Business Review / MIT Sloan corpora, McKinsey / BCG insight feeds

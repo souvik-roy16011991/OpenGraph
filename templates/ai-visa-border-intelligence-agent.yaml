@@ -1,0 +1,25 @@
+slug: ai-visa-border-intelligence-agent
+name: AI Visa & Border Intelligence Agent
+description: >
+  Manages global travel compliance seamlessly — tracks visa rules,
+  entry requirements, health certifications, and automates
+  documentation readiness well before departure day.
+category: travel
+icon: FileCheck
+domain:
+  domain_name: Visa & Immigration Intelligence
+  domain_display_name: AI Visa & Border Intelligence Agent
+  organization_name: Global Mobility & Immigration Services
+  knowledge_focus_examples: |
+    Schengen / ETIAS / ESTA / eTA / Visa Waiver Program rules,
+    APIS (Advance Passenger Information), passport-validity 6-month
+    rule per country, dual-nationality and stateless exceptions,
+    yellow-fever / vaccination entry requirements, transit-visa
+    rules, visa-on-arrival matrices, biometric-data capture norms
+    (VIS, US-VISIT), overstay / re-entry ban rules
+  tool_focus_examples: |
+    visa-intelligence platforms (Sherpa, VisaHQ API, CIBTvisas),
+    passport / document-readiness scanners (Regula, Jumio, Onfido),
+    global entry-rules databases (Timatic by IATA, IATA TravelCentre),
+    eVisa / ETIAS submission portals, immigration-attorney workflow
+    (Envoy Global, Fragomen myMobility), APIS APIs from carriers

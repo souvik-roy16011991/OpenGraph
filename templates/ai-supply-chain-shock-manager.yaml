@@ -1,0 +1,24 @@
+slug: ai-supply-chain-shock-manager
+name: AI Supply Chain Shock Manager
+description: >
+  Handles disruptions instantly — reroutes logistics dynamically when
+  ports close, suppliers fail, or demand spikes, keeping service
+  levels intact without running up emergency freight costs.
+category: operations
+icon: Truck
+domain:
+  domain_name: Supply-Chain Resilience & Disruption Response
+  domain_display_name: AI Supply Chain Shock Manager
+  organization_name: Global Supply Chain Control Tower
+  knowledge_focus_examples: |
+    SCOR (Supply Chain Operations Reference) model, bullwhip-effect
+    mitigation, multi-echelon inventory optimisation, risk-pooling
+    strategies, incoterms 2020, carrier-diversification playbooks,
+    business-continuity ISO 22301, N-tier supplier-visibility patterns,
+    CBP / customs disruption SOPs, maritime / port-congestion indices
+  tool_focus_examples: |
+    control towers (Project44, FourKites, Kinaxis RapidResponse,
+    o9 Solutions, Blue Yonder Luminate), supplier-risk platforms
+    (Interos, Resilinc, Everstream Analytics), TMS (Oracle TMS,
+    SAP TM, MercuryGate), ocean/air visibility (Flexport, Freightos),
+    customs feeds (CBP ACE), commodity data (S&P Platts, Argus)

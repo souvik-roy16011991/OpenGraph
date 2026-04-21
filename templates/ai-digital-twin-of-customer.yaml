@@ -1,0 +1,25 @@
+slug: ai-digital-twin-of-customer
+name: AI Digital Twin of Customer
+description: >
+  Creates virtual customer models — simulates behaviour and preferences
+  under pricing, product, and offer variations so teams pressure-test
+  decisions against synthetic customers before rolling them out.
+category: customer
+icon: Users
+domain:
+  domain_name: Customer Digital Twins & Simulation
+  domain_display_name: AI Digital Twin of Customer
+  organization_name: Consumer Insights — Simulation Lab
+  knowledge_focus_examples: |
+    agent-based modelling of consumers (Netlogo, MESA), conjoint
+    analysis for preference elicitation, discrete-choice / logit /
+    mixed-logit models, psychographic segmentation (VALS, Big-5),
+    behavioural-economics bias catalogs, synthetic-population
+    generation techniques, counterfactual what-if simulation,
+    identity resolution across sessions
+  tool_focus_examples: |
+    agent-based simulation frameworks (NetLogo, AnyLogic, MESA,
+    Repast), conjoint platforms (Sawtooth, Conjointly), synthetic-
+    population generators (Synthea for health, UrbanSim), causal /
+    uplift libraries (EconML, CausalML), CDPs (Segment, Tealium,
+    mParticle), feature stores (Feast, Tecton), LLM persona prompts

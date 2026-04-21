@@ -1,0 +1,24 @@
+slug: ai-real-time-cfo
+name: AI Real-Time CFO
+description: >
+  Runs financial insights 24/7 — provides live financial forecasting,
+  cash-position intelligence, and variance alerts so leadership sees
+  the numbers now, not in the post-month-close Tuesday meeting.
+category: finance
+icon: LineChart
+domain:
+  domain_name: Real-Time Finance & FP&A
+  domain_display_name: AI Real-Time CFO
+  organization_name: Office of the CFO — FP&A and Treasury
+  knowledge_focus_examples: |
+    13-week cash-flow forecasting, driver-based planning, rolling
+    forecasts vs static budgets, variance-analysis taxonomies, FP&A
+    close-the-books workflows, KPI libraries (DSO, DPO, CCC, burn,
+    Rule of 40), multi-entity consolidation rules (IFRS / US-GAAP),
+    continuous-close maturity models
+  tool_focus_examples: |
+    FP&A platforms (Anaplan, Adaptive Insights, Planful, Pigment),
+    ERP systems (SAP S/4HANA, Oracle NetSuite, Workday Financials),
+    data warehouses (Snowflake, BigQuery), transformation (dbt),
+    BI dashboards (Tableau, Looker), cash-forecasting tools (Kyriba,
+    HighRadius), banking APIs (Plaid, Yapily, Stripe Treasury)

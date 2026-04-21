@@ -1,0 +1,24 @@
+slug: ai-chief-scenario-architect
+name: AI Chief Scenario Architect
+description: >
+  Simulates thousands of business futures — designs and stress-tests
+  long-term strategic scenarios using macro, geopolitical, and industry
+  signals so leadership can act on robust-across-worlds strategy.
+category: strategy
+icon: Compass
+domain:
+  domain_name: Scenario Planning & Foresight
+  domain_display_name: AI Chief Scenario Architect
+  organization_name: Strategy Office — Foresight & Futures
+  knowledge_focus_examples: |
+    scenario-planning methodologies (GBN 2x2, TAIDA, three-horizons),
+    macroeconomic indicators and leading signals, geopolitical risk
+    frameworks (EIU, GZERO), industry disruption playbooks,
+    cross-impact analysis tables, futures-wheel taxonomies,
+    backcasting narratives, decision trees for irreversible bets
+  tool_focus_examples: |
+    Monte Carlo simulators (Crystal Ball, @RISK), scenario-planning
+    suites (Shaping Tomorrow, Futures Platform), economic data APIs
+    (FRED, IMF WEO, World Bank), GDELT geopolitical event stream,
+    system-dynamics platforms (Stella, Vensim), agent-based modelling
+    (NetLogo, AnyLogic), horizon-scanning feeds (Quid, Zapnito)

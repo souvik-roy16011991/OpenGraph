@@ -1,0 +1,24 @@
+slug: ai-contract-risk-analyzer
+name: AI Contract Risk Analyzer
+description: >
+  Finds hidden risks in contracts — reviews legal documents at scale,
+  flags non-standard clauses, limits-of-liability mismatches, change-
+  of-control triggers, and obligation drift across the portfolio.
+category: finance
+icon: FileText
+domain:
+  domain_name: Contract Intelligence
+  domain_display_name: AI Contract Risk Analyzer
+  organization_name: Legal Operations — Contract Lifecycle Management
+  knowledge_focus_examples: |
+    clause taxonomies (indemnity, LoL, auto-renewal, termination,
+    assignment, MFN), playbook-style fallback positions, DPA/GDPR
+    standard contractual clauses, uniform commercial code provisions,
+    risk-ranking heuristics per clause family, obligation-management
+    best practices, redlining conventions, termination-for-convenience
+  tool_focus_examples: |
+    CLM platforms (Ironclad, Icertis, DocuSign CLM, Agiloft, Evisort),
+    clause-extraction NLP (Kira Systems, Lawgeex, LinkSquares),
+    e-signature (DocuSign, Adobe Sign), repository search (Luminance,
+    Relativity), LLM-based redline suggestion, obligation-management
+    engines, contract-analytics dashboards

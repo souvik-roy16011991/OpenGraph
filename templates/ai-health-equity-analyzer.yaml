@@ -1,0 +1,24 @@
+slug: ai-health-equity-analyzer
+name: AI Health Equity Analyzer
+description: >
+  Identifies disparities in care — measures outcome gaps across race,
+  income, geography, and social determinants, and suggests policy and
+  operational fixes backed by stratified outcome analytics.
+category: healthcare
+icon: Users
+domain:
+  domain_name: Health Equity & SDoH
+  domain_display_name: AI Health Equity Analyzer
+  organization_name: Office of Health Equity
+  knowledge_focus_examples: |
+    CMS health-equity framework, HHS / ONC SDoH data standards
+    (Gravity Project), REaL data collection (Race, Ethnicity,
+    Language), Area Deprivation Index, Healthy People 2030 targets,
+    Z-code (ICD-10) SDoH documentation, community-needs-assessment
+    conventions, food-security and housing-instability screeners
+  tool_focus_examples: |
+    SDoH screening platforms (Unite Us, FindHelp, NowPow, Healthify),
+    population-health analytics (Arcadia, Innovaccer, Socially
+    Determined), equity-dashboard libraries (Tableau + Health Equity
+    Index), claims-based disparities analyzers, community-resource
+    directories, geographic-analytics (Esri ArcGIS Health)

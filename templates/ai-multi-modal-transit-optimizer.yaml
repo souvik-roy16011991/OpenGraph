@@ -1,0 +1,24 @@
+slug: ai-multi-modal-transit-optimizer
+name: AI Multi-Modal Transit Optimizer
+description: >
+  Combines all transport modes seamlessly — designs optimal journeys
+  across air, rail, road, ferry, bike, and micro-mobility with a
+  single door-to-door itinerary and one checkout.
+category: travel
+icon: TrainFront
+domain:
+  domain_name: Door-to-Door Mobility Planning
+  domain_display_name: AI Multi-Modal Transit Optimizer
+  organization_name: Mobility-as-a-Service (MaaS) Operations
+  knowledge_focus_examples: |
+    MaaS (Mobility-as-a-Service) levels 0-4, GTFS / GTFS-Realtime
+    transit data standards, OpenTripPlanner routing graph concepts,
+    inter-modal connection times, rail-air interlining (Lufthansa
+    Express Rail, Air France TGVair), micro-mobility rules (EU MMFR),
+    accessibility standards (WCAG, ADA Title II, EU EN 301 549)
+  tool_focus_examples: |
+    routing engines (OpenTripPlanner, HERE Routing, Graphhopper,
+    Mapbox Directions, Google Directions), rail APIs (Trainline,
+    SNCF Connect, Deutsche Bahn, Indian Railways API), car-share /
+    micro-mobility (Lime, Tier, Voi, Zipcar APIs), MaaS platforms
+    (Whim, Moovit, Trafi), unified booking (Omio, Rome2Rio, Combitrip)

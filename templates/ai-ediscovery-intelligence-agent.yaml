@@ -1,0 +1,26 @@
+slug: ai-ediscovery-intelligence-agent
+name: AI E-Discovery Intelligence Agent
+description: >
+  Classifies privileged, responsive, and hot documents at scale —
+  uses TAR / CAL and large-language embeddings to collapse review
+  populations from millions to thousands with defensible accuracy.
+category: legal
+icon: Search
+domain:
+  domain_name: E-Discovery & Document Review
+  domain_display_name: AI E-Discovery Intelligence Agent
+  organization_name: Legal Ops — E-Discovery & Investigations
+  knowledge_focus_examples: |
+    EDRM (Electronic Discovery Reference Model), FRCP Rules 26-37,
+    Sedona Conference Principles + TAR case law (Da Silva Moore,
+    Rio Tinto), predictive-coding methodology (TAR 1.0 / 2.0 / CAL),
+    privilege doctrines (attorney-client, work-product, common
+    interest), privilege-log standards, ECA (early case assessment)
+    workflows, chain-of-custody protocols, Bates-numbering conventions
+  tool_focus_examples: |
+    review platforms (Relativity One, Everlaw, DISCO, Logikcull,
+    Reveal-Brainspace, Nuix, Recommind, Lighthouse), processing
+    (Nuix, Relativity, X1, OpenText Encase), forensic collection
+    (Cellebrite, Magnet AXIOM, FTK), TAR engines (Relativity Aero AI,
+    Brainspace Clusters, Everlaw Predictive Coding), LLM-assisted
+    classification (Casetext CoCounsel, Harvey E-Discovery)

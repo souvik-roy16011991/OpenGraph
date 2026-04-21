@@ -1,0 +1,27 @@
+slug: ai-performance-feedback-synthesizer
+name: AI Performance Feedback Synthesizer
+description: >
+  Turns 360 feedback into an actionable plan — distills multi-source
+  performance input (peer, manager, skip-level, self) into themes
+  and concrete next-quarter actions without losing nuance or bias
+  protection.
+category: people
+icon: MessageSquareDashed
+domain:
+  domain_name: Performance & Feedback Intelligence
+  domain_display_name: AI Performance Feedback Synthesizer
+  organization_name: People Operations — Performance Management
+  knowledge_focus_examples: |
+    continuous performance-management methodology (Pulakos, Buckingham),
+    360-degree feedback best practice, SBI (Situation-Behavior-Impact)
+    feedback framework, calibration-session design, rater-bias taxonomies
+    (leniency, halo, central tendency), growth-mindset framing (Dweck),
+    development-plan / IDP templates, competency rubrics (Lominger,
+    Korn Ferry), feedback-fatigue mitigation, privacy-aware synthesis
+  tool_focus_examples: |
+    performance-management platforms (Lattice, 15Five, Leapsome,
+    Culture Amp Performance, Betterworks, Workday Performance,
+    SAP SuccessFactors Performance), 360-feedback tools (Qualtrics
+    360, SurveyMonkey 360, Spidergap), calibration (Lattice Calibration,
+    Workday Talent Optimization), LLM summarisation of verbatim feedback,
+    IDP templates in HRIS

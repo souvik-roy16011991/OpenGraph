@@ -1,0 +1,26 @@
+slug: ai-tax-behavior-predictor
+name: AI Tax Behavior Predictor
+description: >
+  Anticipates taxpayer behaviour patterns — helps firms plan advisory
+  services, scrutiny-likelihood scoring, and capacity calendars
+  proactively based on filing, income, and cohort signals.
+category: tax
+icon: SquareActivity
+domain:
+  domain_name: Taxpayer Behaviour Analytics
+  domain_display_name: AI Tax Behavior Predictor
+  organization_name: Chartered Accountants — Advisory Analytics
+  knowledge_focus_examples: |
+    taxpayer-segmentation methodologies (by income band, business
+    type, filing history), scrutiny-risk signals (cash-deposits,
+    high refund claims, search-assessment patterns), season-curve
+    modelling for CA firms, IRS / HMRC / CBDT audit-trigger
+    heuristics, noncompliance-propensity models, behavioural-nudge
+    research (HMRC Behavioural Insights Team), dropout / last-
+    minute filer cohorts
+  tool_focus_examples: |
+    client-analytics CRMs (Salesforce Financial Services Cloud, Wolters
+    Kluwer CCH iFirm, Karbon, Taxaroo), forecasting libraries (Prophet,
+    statsmodels, sktime), propensity-model frameworks (XGBoost,
+    LightGBM), practice-management + capacity planners (Canopy, Jetpack
+    Workflow), BI dashboards (Power BI, Tableau), LLM cohort-narrative

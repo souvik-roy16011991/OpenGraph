@@ -1,0 +1,24 @@
+slug: ai-esg-compliance-guardian
+name: AI ESG Compliance Guardian
+description: >
+  Ensures sustainability compliance — tracks environmental, social, and
+  governance metrics, maps to CSRD / SFDR / ISSB disclosure standards,
+  and flags greenwashing risk before it reaches the annual report.
+category: finance
+icon: Leaf
+domain:
+  domain_name: ESG & Sustainability Reporting
+  domain_display_name: AI ESG Compliance Guardian
+  organization_name: Office of the Chief Sustainability Officer
+  knowledge_focus_examples: |
+    disclosure standards (CSRD/ESRS, SFDR, ISSB S1/S2, SASB, TCFD,
+    GRI), Scope 1/2/3 GHG accounting (GHG Protocol), CBAM carbon
+    border adjustment rules, EU Taxonomy eligibility/alignment,
+    due-diligence frameworks (OECD, UNGP), double-materiality
+    assessment, ESG-rating agency methodologies (MSCI, Sustainalytics)
+  tool_focus_examples: |
+    ESG platforms (Workiva, Diligent ESG, Watershed, Persefoni, Greenly),
+    emissions-accounting stacks (Salesforce Net Zero Cloud, Plan A),
+    supplier-data collection (EcoVadis, CDP), assurance workflow tools,
+    LLM-based disclosure drafting, ratings-agency APIs, taxonomy-
+    alignment calculators, sustainability KPI dashboards

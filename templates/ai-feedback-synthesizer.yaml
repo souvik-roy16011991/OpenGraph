@@ -1,0 +1,24 @@
+slug: ai-feedback-synthesizer
+name: AI Feedback Synthesizer
+description: >
+  Combines feedback from all channels — produces actionable insights
+  by merging support tickets, surveys, reviews, community, and sales-
+  call signals into a single, themed product / CX backlog.
+category: customer
+icon: Layers
+domain:
+  domain_name: Voice of Customer Synthesis
+  domain_display_name: AI Feedback Synthesizer
+  organization_name: Product & CX Insights — Voice of Customer
+  knowledge_focus_examples: |
+    closed-loop feedback taxonomies, NPS / CSAT / CES measurement
+    principles, driver analysis (key-driver, Shapley, Kano model),
+    JTBD interview synthesis, coding-tree construction for qualitative
+    data, sentiment and topic-model integration, severity/frequency
+    prioritisation matrices (RICE, ICE), root-cause clustering
+  tool_focus_examples: |
+    feedback-analytics platforms (Medallia, Qualtrics XM, Thematic,
+    Chattermill, Enterpret, Unwrap), support-ticket systems (Zendesk,
+    Intercom, Freshdesk, Help Scout), product-insights (Productboard,
+    Canny, Aha!, Dovetail), survey tools (SurveyMonkey, Typeform),
+    BI dashboards, LLM-based theme-extraction pipelines

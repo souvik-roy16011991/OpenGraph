@@ -1,0 +1,26 @@
+slug: ai-developer-cognitive-load-reducer
+name: AI Developer Cognitive Load Reducer
+description: >
+  Simplifies engineering workflows — removes friction and automates
+  repetitive tasks in the developer's day so time in deep-work grows
+  and time stitching together tools shrinks.
+category: engineering
+icon: Keyboard
+domain:
+  domain_name: Developer Experience (DevEx)
+  domain_display_name: AI Developer Cognitive Load Reducer
+  organization_name: Developer Experience / Platform Engineering
+  knowledge_focus_examples: |
+    DORA + SPACE + DevEx framework metrics, cognitive-load theory for
+    engineering teams (Skelton / Pais Team Topologies), golden-path
+    / paved-road concept, Backstage service-catalog maturity, internal
+    developer platforms (IDP), 15-minute / 15-day / 15-week dev-loop
+    timescales, ADR (architecture decision record) discipline, toil
+    budget (SRE), context-switch taxation research
+  tool_focus_examples: |
+    IDPs (Backstage by Spotify, Port, Humanitec, OpsLevel, Cortex),
+    scaffolding tools (cookiecutter, Yeoman, Backstage Software
+    Templates), CLI builders (Cobra, Commander, Oclif), code-assist
+    (GitHub Copilot, Cursor, Sourcegraph Cody, Tabnine, Claude Code),
+    workflow automation (n8n, Zapier, GitHub Actions), IDE remote
+    environments (Gitpod, GitHub Codespaces, Coder)

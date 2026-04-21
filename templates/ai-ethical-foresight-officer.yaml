@@ -1,0 +1,24 @@
+slug: ai-ethical-foresight-officer
+name: AI Ethical Foresight Officer
+description: >
+  Predicts ethical risks of decisions — evaluates the long-term
+  societal, environmental, and reputational consequences of product
+  launches, AI deployments, and strategic pivots before harm lands.
+category: strategy
+icon: Shield
+domain:
+  domain_name: Ethics & Responsible Innovation
+  domain_display_name: AI Ethical Foresight Officer
+  organization_name: Office of Responsible Innovation & Ethics
+  knowledge_focus_examples: |
+    AI ethics frameworks (EU AI Act, NIST AI RMF, OECD AI Principles),
+    human-rights impact assessments, algorithmic-bias taxonomies,
+    dual-use technology reviews (BIS export controls), corporate-
+    responsibility case studies (Cambridge Analytica, COMPAS), ethics-
+    review board protocols, stakeholder-salience mapping
+  tool_focus_examples: |
+    model-evaluation suites (HELM, Fairlearn, AIF360), dataset-audit
+    tools (Datasheets for Datasets, Model Cards), harms-taxonomy
+    libraries (OECD AI Incidents DB), stakeholder-mapping tools,
+    ethics-review ticketing (Jira with ethics templates), red-team
+    prompts for LLMs, privacy-impact-assessment templates (ICO DPIA)

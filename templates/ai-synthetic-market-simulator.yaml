@@ -1,0 +1,26 @@
+slug: ai-synthetic-market-simulator
+name: AI Synthetic Market Simulator
+description: >
+  Creates artificial markets for testing strategies — allows safe
+  experimentation with trading models through agent-based simulation,
+  stress scenarios, and adversarial order-flow before risking capital.
+category: trading
+icon: FlaskConical
+domain:
+  domain_name: Synthetic Market Simulation & Backtest Rigour
+  domain_display_name: AI Synthetic Market Simulator
+  organization_name: Quant Research — Simulation & Backtesting
+  knowledge_focus_examples: |
+    agent-based market models (Kim-Markowitz, Farmer-Joshi, Chiarella),
+    order-flow replay vs synthesis tradeoffs, market-impact models
+    (Almgren-Chriss, Obizhaeva-Wang), backtest overfitting and
+    deflated Sharpe ratio (Bailey-Lopez de Prado), walk-forward
+    validation, slippage and fill modelling, liquidity stress
+    scenarios, correlated-shock generation, bootstrapped return
+    paths, purged cross-validation for financial ML
+  tool_focus_examples: |
+    agent-based market simulators (ABIDES, Yagi market simulator,
+    MAXE), backtesters (Zipline-reloaded, backtrader, QuantConnect
+    Lean, nautilus-trader, vectorbt, Backtesting.py), execution
+    simulators (FinRL, PyAlgoTrade), ML frameworks (PyTorch, stable-
+    baselines3 RL), scenario-generation libraries, kdb+/q replay

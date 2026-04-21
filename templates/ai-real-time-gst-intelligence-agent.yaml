@@ -1,0 +1,25 @@
+slug: ai-real-time-gst-intelligence-agent
+name: AI Real-Time GST Intelligence Agent
+description: >
+  Monitors GST compliance dynamically — tracks filings, ITC
+  reconciliations, e-invoice and e-way-bill mismatches instantly
+  across GSTINs so the month-end scramble becomes a non-event.
+category: tax
+icon: Percent
+domain:
+  domain_name: GST / VAT Compliance Monitoring
+  domain_display_name: AI Real-Time GST Intelligence Agent
+  organization_name: Indirect Tax — GST Compliance Cell
+  knowledge_focus_examples: |
+    Indian GST law (CGST / SGST / IGST / UTGST Acts, Rules, Notifications),
+    GSTR-1 / 2A / 2B / 3B / 9 / 9C filing workflows, Input Tax Credit
+    (ITC) eligibility rules (Section 16/17), e-invoice JSON schema
+    (IRN + QR + B2B / B2C), e-way-bill validity and extension rules,
+    HSN / SAC classification, reverse-charge mechanism (RCM), anti-
+    profiteering provisions, EU VAT OSS / IOSS parallels
+  tool_focus_examples: |
+    GSTN ASP / GSP platforms (ClearTax GST, Avalara India, Cygnet
+    GSP, Taxilla, IRIS GST, Tally GST Connector), e-invoice IRP APIs,
+    e-way-bill APIs, reconciliation engines (ClearTax Reco, Zoho GST),
+    SAP S/4HANA India localisation, Oracle India tax modules, GSTN
+    rule-change monitors, accounting-ERP-to-GSTN connectors

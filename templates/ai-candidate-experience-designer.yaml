@@ -1,0 +1,25 @@
+slug: ai-candidate-experience-designer
+name: AI Candidate Experience Designer
+description: >
+  Crafts interview journeys candidates talk about in a good way —
+  personalises communications, reduces time-to-decision, and plugs
+  the silent drop-off points that cost you the best hires.
+category: people
+icon: Smile
+domain:
+  domain_name: Candidate Experience & Interview Design
+  domain_display_name: AI Candidate Experience Designer
+  organization_name: Talent Acquisition — Candidate Experience
+  knowledge_focus_examples: |
+    CandE Awards benchmark metrics, NPS for candidate experience,
+    interview-loop design patterns, structured-interview research
+    (Schmidt-Hunter meta-analysis), competency-based question banks,
+    debrief / consensus-decision protocols, rejection-comms frameworks,
+    bias-mitigation in interviews, accommodation-request workflows,
+    offer-negotiation playbooks, recruiter-SLA governance
+  tool_focus_examples: |
+    interview-scheduling (GoodTime, Modernloop, Prelude, Paradox
+    Olivia), structured-interview platforms (HireVue, Karat, Codility,
+    HackerRank), candidate-experience surveys (Survale, Starred,
+    TalentBoard), ATS candidate portals (Greenhouse, Lever, Ashby),
+    video-interview (BrightHire, MetaView, Pillar), candidate-CRM nurture

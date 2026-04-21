@@ -1,0 +1,25 @@
+slug: ai-micro-investment-optimizer
+name: AI Micro-Investment Optimizer
+description: >
+  Maximises small investment decisions — optimises everyday financial
+  choices at granular level (round-ups, spare-change investing, SIP
+  top-ups, dollar-cost-averaging cadence) so micro-moves compound.
+category: advisory
+icon: PiggyBank
+domain:
+  domain_name: Micro-Investing & Savings Automation
+  domain_display_name: AI Micro-Investment Optimizer
+  organization_name: Digital Wealth — Automated Savings Desk
+  knowledge_focus_examples: |
+    dollar-cost-averaging math vs lump sum (Vanguard research),
+    SIP (systematic investment plan) design for Indian market, round-
+    ups / spare-change investing economics (Acorns model), fractional-
+    share micro-investing regulatory status, savings-rate vs
+    investment-return sensitivity, tax-loss harvesting at small scale,
+    auto-escalation (Thaler Save More Tomorrow), overdraft-to-save flows
+  tool_focus_examples: |
+    micro-investing apps (Acorns, Stash, Public, Robinhood, Wealthfront
+    Autopilot, Groww, Zerodha Coin, Paytm Money, Stack by Bajaj),
+    round-up engines (Plaid Enrich, Qapital, Digit / Oportun),
+    fractional-share APIs (Alpaca, DriveWealth, Upstox), tax-loss-
+    harvesting automation (Wealthfront, Betterment), open-banking APIs

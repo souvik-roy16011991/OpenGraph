@@ -1,0 +1,24 @@
+slug: ai-creditworthiness-predictor
+name: AI Creditworthiness Predictor
+description: >
+  Evaluates risk beyond traditional metrics — uses alternative data
+  (cash-flow patterns, utility, telco, e-commerce, psychometrics) to
+  score thin-file and no-file applicants fairly and explainably.
+category: finance
+icon: CreditCard
+domain:
+  domain_name: Credit Risk & Underwriting
+  domain_display_name: AI Creditworthiness Predictor
+  organization_name: Consumer Credit Risk — Underwriting
+  knowledge_focus_examples: |
+    FICO / VantageScore mechanics, IFRS 9 / CECL expected-credit-loss
+    modelling, alternative-data attribute taxonomies (open banking,
+    telco CDR, utility bills), model governance SR 11-7 / SS1/23,
+    adverse-action reason codes (Reg B, ECOA), fair-lending testing
+    (disparate impact), behavioural-scoring frameworks
+  tool_focus_examples: |
+    credit-bureau APIs (Experian, Equifax, TransUnion, CIBIL), open-
+    banking platforms (Plaid, TrueLayer, MX, Finicator), alternative-
+    data vendors (Nova Credit, Yodlee, LenddoEFL), model-dev stacks
+    (scikit-learn, XGBoost, LightGBM, DataRobot), explainability
+    (SHAP, LIME), decision engines (FICO Blaze, PowerCurve, Provenir)

@@ -1,0 +1,24 @@
+slug: ai-financial-narrative-generator
+name: AI Financial Narrative Generator
+description: >
+  Explains financial performance simply — converts numbers into
+  stakeholder-friendly stories for management commentary, earnings
+  scripts, and investor updates without losing accuracy.
+category: finance
+icon: BookOpen
+domain:
+  domain_name: Financial Storytelling & MD&A
+  domain_display_name: AI Financial Narrative Generator
+  organization_name: Investor Relations & Financial Reporting
+  knowledge_focus_examples: |
+    MD&A disclosure conventions (SEC, IFRS), earnings-call script
+    templates, Reg FD guidance, non-GAAP reconciliation best practice,
+    variance-attribution narrative patterns, SASB/ISSB performance
+    narrative hooks, analyst-question playbooks, plain-language
+    translation rubrics for financial jargon
+  tool_focus_examples: |
+    narrative-analytics platforms (Arria NLG, Narrative Science
+    Quill, Narrativa), financial-close suites (Workiva, BlackLine),
+    investor-relations platforms (Q4, Notified, Intrado), earnings-
+    call transcript corpora (AlphaSense, Sentieo), LLM-based draft
+    MD&A pipelines, plain-language-check tools (Hemingway, Grammarly)

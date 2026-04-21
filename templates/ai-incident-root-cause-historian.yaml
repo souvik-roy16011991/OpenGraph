@@ -1,0 +1,26 @@
+slug: ai-incident-root-cause-historian
+name: AI Incident Root Cause Historian
+description: >
+  Learns from every outage deeply — builds long-term intelligence from
+  past incidents, clusters similar root causes, and surfaces relevant
+  postmortems inside current incidents for faster mitigation.
+category: engineering
+icon: Archive
+domain:
+  domain_name: Incident Memory & Postmortem Intelligence
+  domain_display_name: AI Incident Root Cause Historian
+  organization_name: SRE — Incident Learning Program
+  knowledge_focus_examples: |
+    blameless postmortem methodology (Google SRE, Etsy debriefing
+    facilitation), root-cause taxonomies (5 Whys, Ishikawa, causal
+    mapping), DORA metrics (MTTR, change-fail-rate), contributing-
+    factor classification, action-item follow-through discipline,
+    SEV-level definitions, timeline-reconstruction conventions,
+    near-miss capture, systemic vs proximate cause separation
+  tool_focus_examples: |
+    incident-management platforms (PagerDuty Incident Response,
+    incident.io, Rootly, FireHydrant, Blameless, Jeli, Grafana OnCall),
+    ChatOps (Slack + Kat, MS Teams incident bots), vector-indexing
+    of postmortems (Pinecone, Weaviate, Elastic), postmortem
+    templates (Google SRE workbook), log archives (Datadog Logs,
+    Splunk, Loki)

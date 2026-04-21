@@ -1,0 +1,24 @@
+slug: ai-mental-health-companion
+name: AI Mental Health Companion
+description: >
+  Provides continuous emotional support — detects early signs of
+  distress from conversational and passive signals, surfaces CBT /
+  DBT exercises, and escalates to human clinicians when needed.
+category: healthcare
+icon: Brain
+domain:
+  domain_name: Behavioural & Mental Health Support
+  domain_display_name: AI Mental Health Companion
+  organization_name: Behavioural Health Services
+  knowledge_focus_examples: |
+    PHQ-9 / GAD-7 / PCL-5 screening instruments, CBT / DBT /
+    ACT therapeutic frameworks, motivational-interviewing scripts,
+    suicide-risk escalation protocols (Columbia Protocol, SAFE-T),
+    substance-use brief interventions (SBIRT), crisis-hotline
+    warm-handoff playbooks, HIPAA + state confidentiality rules
+  tool_focus_examples: |
+    behavioural-health EHR (NextGen Behavioral Health, Qualifacts
+    Credible), digital-therapeutic platforms (Big Health Sleepio,
+    Woebot, Wysa, Ginger), crisis-response integrations (988, Crisis
+    Text Line APIs), passive-sensing apps (Mindstrong, Ellipsis
+    Health voice biomarkers), teletherapy (Doxy.me, simplepractice)

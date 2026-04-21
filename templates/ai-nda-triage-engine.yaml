@@ -1,0 +1,28 @@
+slug: ai-nda-triage-engine
+name: AI NDA Triage Engine
+description: >
+  Sorts, classifies, and auto-approves standard NDAs — lets
+  commercial teams sign mutual and inbound NDAs in minutes when
+  they match the playbook, escalating only genuinely non-standard
+  asks to counsel.
+category: legal
+icon: FileCheck
+domain:
+  domain_name: NDA Automation & Self-Service
+  domain_display_name: AI NDA Triage Engine
+  organization_name: Commercial Legal — NDA Program
+  knowledge_focus_examples: |
+    mutual vs one-way NDA use cases, standard clause library
+    (definition of confidential info, exclusions, term / perpetual
+    for trade secrets, governing-law, forum, assignment, residuals,
+    return-or-destroy), auto-approval policy design, ISO / industry
+    NDA templates (SIAC, CAM), data-classification linkage (PII,
+    IP, trade secret), deal-desk escalation rules, ClickWrap / browse-
+    wrap enforceability requirements
+  tool_focus_examples: |
+    contract-automation (Ironclad Clickwrap + Ironclad CLM, Evisort,
+    DocuSign CLM, Juro, Concord, PandaDoc, LinkSquares Finalize),
+    clause-extraction + policy-matching (Lexion, Spellbook, Kira),
+    workflow (Slack + Workato + Jira Service Management), e-signature
+    (DocuSign, Adobe Sign, SignNow), salesforce-integrated legal
+    request intake, identity-verification for counterparties

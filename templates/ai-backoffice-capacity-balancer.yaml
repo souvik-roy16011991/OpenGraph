@@ -1,0 +1,25 @@
+slug: ai-backoffice-capacity-balancer
+name: AI Backoffice Capacity Balancer
+description: >
+  Optimizes workload distribution — allocates tasks dynamically across
+  teams, geographies, and systems based on skill, SLA, queue length,
+  and availability so nobody is idle while queues burn elsewhere.
+category: backoffice
+icon: Scale
+domain:
+  domain_name: Workforce Routing & Task Allocation
+  domain_display_name: AI Backoffice Capacity Balancer
+  organization_name: Global Shared Services — Workforce Optimisation
+  knowledge_focus_examples: |
+    skills-based routing (SBR) frameworks, workload-allocation
+    policies (push vs pull, FIFO, priority-weighted, round-robin,
+    least-loaded), utilisation vs occupancy targets, follow-the-sun
+    handoff protocols, labour-law working-time constraints (EU WTD,
+    California AB5), fairness-in-routing heuristics, cross-training
+    matrices (skills inventory), surge / peak-handling playbooks
+  tool_focus_examples: |
+    work-routing platforms (Tonkean, Workato Embedded, ServiceNow
+    Advanced Work Assignment), contact-centre WFM (Verint, NICE IEX,
+    Calabrio, Genesys Workforce Engagement), WMS / staff-scheduling
+    (UKG Dimensions, Dayforce, Deputy), RPA orchestrators (UiPath,
+    Automation Anywhere) for digital workers, skills databases

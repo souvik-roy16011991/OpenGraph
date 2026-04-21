@@ -1,0 +1,24 @@
+slug: ai-compliance-drift-monitor
+name: AI Compliance Drift Monitor
+description: >
+  Detects gradual non-compliance — identifies small deviations from
+  policy, control, and regulatory norms before they accumulate into
+  headline-grade compliance failures or enforcement actions.
+category: finance
+icon: Sliders
+domain:
+  domain_name: Compliance Monitoring & Control Drift
+  domain_display_name: AI Compliance Drift Monitor
+  organization_name: Compliance Operations — Continuous Monitoring
+  knowledge_focus_examples: |
+    continuous-controls-monitoring (CCM) frameworks, control-drift
+    indicators, KRI libraries (excessive overrides, late approvals,
+    repeated exceptions), three-lines-of-defence model, compliance
+    testing cycles, statistical-process-control charts (Shewhart,
+    CUSUM), root-cause-analysis templates (5-why, Ishikawa)
+  tool_focus_examples: |
+    GRC platforms (Archer, MetricStream, ServiceNow GRC, LogicGate),
+    continuous-control monitoring (SAP GRC, AuditBoard, Workiva),
+    SIEM (Splunk, Chronicle, Sentinel) for control telemetry,
+    SQL anomaly-detection jobs, alerting (PagerDuty, Opsgenie),
+    compliance-training platforms (KnowBe4) for remediation loops

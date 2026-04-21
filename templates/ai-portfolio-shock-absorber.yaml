@@ -1,0 +1,24 @@
+slug: ai-portfolio-shock-absorber
+name: AI Portfolio Shock Absorber
+description: >
+  Auto-adjusts investments under stress — rebalances portfolios
+  instantly when volatility regimes flip, drawdowns breach limits,
+  or correlations spike, while respecting IPS constraints and taxes.
+category: finance
+icon: LifeBuoy
+domain:
+  domain_name: Portfolio Risk & Rebalancing
+  domain_display_name: AI Portfolio Shock Absorber
+  organization_name: Asset Management — Risk & Portfolio Solutions
+  knowledge_focus_examples: |
+    volatility-targeting and risk-parity frameworks, CPPI and
+    constant-mix strategies, drawdown-control overlays, regime-
+    switching models (Markov), factor-risk decomposition (Axioma /
+    Barra), ISMA / IPS constraint libraries, tax-loss harvesting
+    rules (wash-sale), rebalancing-threshold heuristics
+  tool_focus_examples: |
+    portfolio-management systems (Aladdin, Charles River IMS, SimCorp
+    Dimension), risk engines (MSCI RiskMetrics, Bloomberg PORT),
+    factor-model APIs (Axioma, BarraOne), optimization solvers
+    (Gurobi, CVXPY, MOSEK), execution-algorithms (ITG, Virtu),
+    real-time market-data feeds, tax-aware rebalancers (Smartleaf)

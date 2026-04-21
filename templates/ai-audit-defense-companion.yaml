@@ -1,0 +1,26 @@
+slug: ai-audit-defense-companion
+name: AI Audit Defense Companion
+description: >
+  Supports during tax audits — prepares documentation and
+  justifications automatically, drafts responses to notices, and
+  tracks proceedings so nothing is lost between the IRS/CBDT/HMRC
+  letter and the closure order.
+category: tax
+icon: Scroll
+domain:
+  domain_name: Tax Audit Defence & Representation
+  domain_display_name: AI Audit Defense Companion
+  organization_name: Tax Litigation & Representation Team
+  knowledge_focus_examples: |
+    assessment-notice response conventions (143(2), 142(1), 148,
+    133(6) in India; IDR / Form 4549 in US; COP in UK), documentary-
+    burden-of-proof standards, standard-operating responses per
+    notice type, reopening / reassessment strategy, time-barring
+    rules for assessments, hearing-adjournment protocols, representation
+    letters and POA conventions, electronic-proceedings portal norms
+  tool_focus_examples: |
+    document-review platforms (DISCO, Everlaw, Relativity, Logikcull),
+    e-assessment portals (CBDT Faceless Assessment, IRS TaxPro
+    Account, HMRC CDS), workflow tools (Karbon, Jetpack, Canopy),
+    LLM notice-summarisation, legal-research APIs (Taxmann, Westlaw,
+    IBFD), evidence-indexing / bates-numbering systems

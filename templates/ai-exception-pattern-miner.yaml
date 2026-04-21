@@ -1,0 +1,25 @@
+slug: ai-exception-pattern-miner
+name: AI Exception Pattern Miner
+description: >
+  Learns from operational exceptions — detects recurring anomalies
+  (manual overrides, stuck workflows, re-keys) and eliminates root
+  inefficiencies by feeding fixes back into the process design.
+category: backoffice
+icon: Bug
+domain:
+  domain_name: Exception Analytics & Continuous Improvement
+  domain_display_name: AI Exception Pattern Miner
+  organization_name: Operational Excellence — Exception Management
+  knowledge_focus_examples: |
+    exception-management frameworks, Pareto analysis for operational
+    exceptions, DMAIC / Six Sigma root-cause methodology, defect-
+    Taxonomy design (what-where-why-when), workflow-override tracking,
+    STP (straight-through processing) rate KPIs, Lean waste categories
+    (Muda, Mura, Muri), re-work and rework-loop detection patterns,
+    "golden-path" vs exception-path divergence heuristics
+  tool_focus_examples: |
+    process-mining (Celonis, UiPath Process Mining, Apromore, Minit),
+    workflow-analytics (Workato Insights, Tonkean, Zapier Insights),
+    BI dashboards (Power BI, Tableau, Looker, Metabase), anomaly-
+    detection libraries (PyOD, alibi-detect, statsmodels), RPA audit
+    logs (UiPath Orchestrator, Automation Anywhere, Blue Prism)

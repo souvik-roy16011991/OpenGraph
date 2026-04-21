@@ -1,0 +1,24 @@
+slug: ai-demand-supply-harmonizer
+name: AI Demand-Supply Harmonizer
+description: >
+  Aligns production with demand — minimises mismatch through consensus
+  S&OP, mid-month demand sensing, and constraint-aware master
+  scheduling so plants stop building what won't sell.
+category: operations
+icon: BarChart3
+domain:
+  domain_name: Sales & Operations Planning (S&OP)
+  domain_display_name: AI Demand-Supply Harmonizer
+  organization_name: Integrated Business Planning (IBP / S&OP)
+  knowledge_focus_examples: |
+    Oliver Wight S&OP / IBP maturity model, APICS CPIM master
+    scheduling, consensus demand-planning processes, demand sensing
+    vs forecasting, constraint-based MRP, SKU-location rationalisation,
+    MAPE / WMAPE / bias forecast accuracy metrics, what-if scenario
+    planning cadence, exception-based planning
+  tool_focus_examples: |
+    S&OP / IBP platforms (SAP IBP, Kinaxis RapidResponse, Oracle Cloud
+    SCM, Blue Yonder Luminate, o9 Solutions, Anaplan), demand-
+    sensing (ToolsGroup SO99+, E2open, Terra Technology, Relex),
+    BI (Power BI, Tableau), Master Production Schedule engines (SAP
+    PP/DS, Oracle ASCP), ERP planning APIs, simulation-based planning

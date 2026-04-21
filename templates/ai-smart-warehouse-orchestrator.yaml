@@ -1,0 +1,25 @@
+slug: ai-smart-warehouse-orchestrator
+name: AI Smart Warehouse Orchestrator
+description: >
+  Automates warehouse operations — improves pick speed, slotting, wave
+  planning, and MHE orchestration to squeeze cost-per-unit without
+  sacrificing order accuracy or DIFOT.
+category: operations
+icon: Package
+domain:
+  domain_name: Warehouse Automation & WMS
+  domain_display_name: AI Smart Warehouse Orchestrator
+  organization_name: Distribution Operations — Warehouse Automation
+  knowledge_focus_examples: |
+    warehouse KPIs (UPH, DIFOT, orders per hour, lines per labour
+    hour), slotting algorithms (ABC/XYZ, velocity zoning, family
+    grouping), wave / batch / zone picking strategies, pick-path
+    optimisation, goods-to-person vs person-to-goods tradeoffs,
+    Labour Management Systems (LMS) engineered-standards, dock-to-
+    stock SLAs, SKU-velocity-driven re-slotting
+  tool_focus_examples: |
+    WMS platforms (Manhattan Active WM, Blue Yonder WMS, Körber
+    HighJump, SAP EWM, Oracle WMS Cloud, Softeon), MHE controllers
+    (Dematic iQ, Swisslog SynQ, Honeywell Intelligrated Momentum),
+    robotics (Locus Robotics, 6 River Systems, Fabric, Ocado), labour
+    management (Easy Metrics, Manhattan LM), voice-picking (Vocollect)

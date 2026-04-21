@@ -1,0 +1,25 @@
+slug: ai-life-goal-financial-mapper
+name: AI Life-Goal Financial Mapper
+description: >
+  Aligns finances with life milestones — builds dynamic financial
+  plans from the client's actual goals (home, children, retirement,
+  sabbatical) and recasts them as markets, income, and life events change.
+category: advisory
+icon: Milestone
+domain:
+  domain_name: Goals-Based Financial Planning
+  domain_display_name: AI Life-Goal Financial Mapper
+  organization_name: Wealth Management — Goals-Based Advisory
+  knowledge_focus_examples: |
+    goals-based wealth management (GBWM) frameworks, bucket strategy
+    (Evensky), Monte Carlo retirement probability-of-success design,
+    529 / ESA / JEE education-goal planning, sinking-fund math for
+    short-term goals, CFP Board practice standards, required-rate-
+    of-return decomposition per goal, life-insurance-need calculators
+    (DIME, HLV), annuity laddering for lifestyle goals
+  tool_focus_examples: |
+    financial-planning software (MoneyGuidePro, eMoney Advisor, RightCapital,
+    Advicent NaviPlan, Advizr, Asset-Map, Elements by Blueleaf),
+    goal-tracking apps (Monarch, YNAB, Simplifi, Cushion), bank-
+    aggregation APIs (Plaid, MX, Yodlee, Finicity), Monte Carlo engines
+    built into planning suites, net-worth tracking (Kubera, Copilot)
