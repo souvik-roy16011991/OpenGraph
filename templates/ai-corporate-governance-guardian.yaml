@@ -1,0 +1,26 @@
+slug: ai-corporate-governance-guardian
+name: AI Corporate Governance Guardian
+description: >
+  Keeps the company book defensible — tracks board resolutions,
+  cap-table updates, consents, filings, and equity grants so
+  diligence days don't turn into document scavenger hunts.
+category: legal
+icon: Landmark
+domain:
+  domain_name: Corporate Governance & Entity Management
+  domain_display_name: AI Corporate Governance Guardian
+  organization_name: General Counsel Office — Corporate Secretariat
+  knowledge_focus_examples: |
+    board-meeting mechanics (notice, quorum, consent, minutes),
+    Delaware DGCL / Model Business Corp Act, UK Companies Act 2006
+    governance duties, Indian Companies Act 2013 + SEBI LODR,
+    409A valuation basics, cap-table waterfall math, Rule 701 /
+    Reg D / Reg S securities exemptions, shareholder-agreement
+    conventions (drag, tag, ROFR, preemptive), annual-filing
+    calendars (Form AOC-4, MGT-7, Delaware franchise tax)
+  tool_focus_examples: |
+    cap-table + equity (Carta, Pulley, Shareworks by Morgan Stanley,
+    Capdesk, Ledgy, AngelList Stack), entity-management (Diligent
+    Blueprint OneWorld, EntityKeeper, Athennian, hCue), board portals
+    (Diligent Boards, BoardEffect, Boardmaps, Nasdaq Boardvantage),
+    data-room (iDeals, DocSend, Datasite), e-signature (DocuSign)
