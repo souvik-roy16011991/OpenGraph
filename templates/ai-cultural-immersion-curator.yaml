@@ -1,0 +1,24 @@
+slug: ai-cultural-immersion-curator
+name: AI Cultural Immersion Curator
+description: >
+  Creates hyper-local authentic experiences — designs travel that
+  reflects local culture, hidden spots, seasonal events, and the
+  traveller's personality instead of top-10-list tourist loops.
+category: travel
+icon: MapPin
+domain:
+  domain_name: Local Experience Curation
+  domain_display_name: AI Cultural Immersion Curator
+  organization_name: Experiential Travel Design Studio
+  knowledge_focus_examples: |
+    slow-travel and experiential-travel frameworks, Hofstede cultural
+    dimensions, Airbnb Experiences / GetYourGuide taxonomy, UNESCO
+    Intangible Cultural Heritage lists, seasonal festival calendars,
+    local-host vetting protocols, cuisine-region ontologies (Slow
+    Food, Michelin Green Star), neighborhood-character ethnographies
+  tool_focus_examples: |
+    experience marketplaces (Airbnb Experiences, GetYourGuide, Viator,
+    Klook), local-host networks (EatWith, WithLocals), POI databases
+    (Foursquare, Google Places, OpenStreetMap), review-mining APIs
+    (TripAdvisor Content API, Yelp Fusion), Flickr geo-tagged photos,
+    LLM-based persona-to-itinerary translation, translation APIs (DeepL)

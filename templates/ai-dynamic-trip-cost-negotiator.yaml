@@ -1,0 +1,25 @@
+slug: ai-dynamic-trip-cost-negotiator
+name: AI Dynamic Trip Cost Negotiator
+description: >
+  Secures best deals in real-time — negotiates pricing across flights,
+  hotels, car hire, and ancillaries dynamically using price-prediction,
+  fare families, and loyalty-currency arbitrage.
+category: travel
+icon: BadgePercent
+domain:
+  domain_name: Dynamic Travel Pricing & Deal Discovery
+  domain_display_name: AI Dynamic Trip Cost Negotiator
+  organization_name: Travel Revenue Optimisation Desk
+  knowledge_focus_examples: |
+    airline fare-bucket and fare-family rules, revenue-management
+    booking curves, NDC (IATA New Distribution Capability) offer
+    structures, hotel rate-parity and walk-up strategies, fare-
+    skiplagging and hidden-city risks, mileage / points valuation
+    frameworks (The Points Guy), last-minute vs advance booking
+    elasticity, cancellation and change-fee economics
+  tool_focus_examples: |
+    fare-search APIs (Amadeus Self-Service, Sabre Bargain Finder Max,
+    Kiwi.com Tequila, Duffel, Skyscanner Affiliate), hotel APIs (Expedia
+    EPS Rapid, HotelBeds, Booking.com Connectivity), price-prediction
+    (Hopper Fair, Google Flights Insights), loyalty-currency trackers
+    (AwardWallet, Seats.aero), alert services (Going / Scott's Cheap Flights)
