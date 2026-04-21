@@ -10,6 +10,7 @@
 
 import type { Provider } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "./supabase";
+import { resetLocalUserState } from "./session-reset";
 
 export type AuthUser = {
   id: string;
@@ -69,8 +70,10 @@ export async function loginWithOAuth(provider: "google" | "github"): Promise<voi
   if (error) throw new Error(error.message);
 }
 
-/** Sign out — clears Supabase session (localStorage + cookies). Optionally
- *  calls the backend audit endpoint fire-and-forget. */
+/** Sign out — clears Supabase session (localStorage + cookies) AND wipes
+ *  any workspace / chat / wizard state so the next user on this device
+ *  starts from a clean slate. The AuthGate listener also reacts to
+ *  SIGNED_OUT and purges the tanstack-query cache. */
 export async function logout(): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   // Fire-and-forget backend audit event; ignore errors (token may be stale).
@@ -85,6 +88,7 @@ export async function logout(): Promise<void> {
       }).catch(() => {});
     }
   });
+  resetLocalUserState();
   await supabase.auth.signOut();
 }
 

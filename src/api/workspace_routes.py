@@ -1,9 +1,9 @@
 """
 Workspace CRUD: list / create / detail / delete.
 
-Every route requires the caller's Stack Auth identity (soft-fallbacks to a
-shared dev user when Stack env vars are unset) and enforces ownership — a
-caller can only touch workspaces where ``workspace.user_id == user.id``.
+Every route resolves the caller via ``require_user`` (Supabase JWT) and
+enforces ownership — a caller can only touch workspaces where
+``workspace.user_id == user.id``.
 
 Cross-tenant access returns 404 (not 403) to avoid leaking existence.
 """

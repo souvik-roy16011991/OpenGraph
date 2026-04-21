@@ -4,7 +4,13 @@ import type { NextConfig } from "next";
 // production the client talks to the backend directly via NEXT_PUBLIC_API_BASE
 // (baked into the bundle at `next build` time), so rewrites are mostly a
 // dev-convenience.
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+//
+// Render's `fromService.property: host` yields a bare hostname — prepend
+// https:// when the scheme is missing so the rewrite destination is valid.
+const RAW_BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = /^https?:\/\//i.test(RAW_BACKEND_URL)
+  ? RAW_BACKEND_URL
+  : `https://${RAW_BACKEND_URL}`;
 
 const config: NextConfig = {
   reactStrictMode: true,
