@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Moon,
   Sun,
-  Activity,
   Briefcase,
   ChevronDown,
   PanelLeftClose,
@@ -25,13 +24,10 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrandMark } from "@/components/brand";
-import { UserMenu } from "@/components/user-menu";
 import { FlowProgress, isWizardRoute } from "@/components/wizard/flow-progress";
-import { useGraphStatus } from "@/hooks/use-graph-status";
 import { useWorkspaceStore } from "@/store/workspace-store";
 import { useSidebarStore } from "@/store/sidebar-store";
 
@@ -161,24 +157,6 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
     </div>
   );
 }
-
-function StatusPill() {
-  const status = useGraphStatus();
-  if (status.state === "no_workspace")
-    return <Badge variant="outline">Select a workspace</Badge>;
-  if (status.state === "loading")
-    return <Badge variant="outline" className="gap-1.5"><Activity className="h-3 w-3 animate-pulse" /> Checking…</Badge>;
-  if (status.state === "ready")
-    return (
-      <Badge variant="success" className="gap-1.5">
-        <CheckCircle2 className="h-3 w-3" /> Graph ready · {status.nodes} nodes · {status.edges} edges
-      </Badge>
-    );
-  if (status.state === "empty") return <Badge variant="warning">No graph built yet</Badge>;
-  return <Badge variant="destructive">{status.message}</Badge>;
-}
-
-
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -326,9 +304,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-sm font-medium truncate">{headerLabel}</span>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-
-            <StatusPill />
-            <UserMenu />
             <ThemeToggle />
           </div>
         </header>
