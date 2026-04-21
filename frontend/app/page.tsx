@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, LayoutGrid, LogIn, UserPlus } from "lucide-react";
+import { Upload, Tag, Sliders, Hammer, Network, MessageSquareText, ArrowRight, LayoutGrid } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand";
@@ -19,9 +19,10 @@ const STEPS = [
 
 export default function Home() {
   const activeId = useWorkspaceStore((s) => s.activeId);
-  // No auto-redirect. The landing page is the unauthenticated entry point;
-  // users need to see Sign in / Sign up / Browse templates clearly. Returning
-  // users with an active workspace can jump straight to /upload from here.
+  // Middleware guarantees every visitor here is signed in — redirect to
+  // /sign-in runs in edge middleware before this page ever renders. So the
+  // CTAs target post-signup work: start from a template, resume an active
+  // workspace, or jump into the playground.
 
   return (
     <div className="space-y-8">
@@ -42,22 +43,25 @@ export default function Home() {
           history — isolated end-to-end.
         </p>
         <div className="flex gap-3 pt-2 flex-wrap">
-          <Button asChild size="lg">
-            <Link href="/sign-up"><UserPlus className="h-4 w-4" /> Sign up</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/sign-in"><LogIn className="h-4 w-4" /> Sign in</Link>
-          </Button>
-          <Button asChild variant="ghost" size="lg">
-            <Link href="/templates"><LayoutGrid className="h-4 w-4" /> Browse templates</Link>
-          </Button>
-          {activeId && (
+          {activeId ? (
             <>
-              <Button asChild variant="outline" size="lg">
+              <Button asChild size="lg">
                 <Link href="/upload">Continue workspace <ArrowRight className="h-4 w-4" /></Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/templates"><LayoutGrid className="h-4 w-4" /> Browse templates</Link>
               </Button>
               <Button asChild variant="ghost" size="lg">
                 <Link href="/chat"><MessageSquareText className="h-4 w-4" /> Playground</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild size="lg">
+                <Link href="/templates"><LayoutGrid className="h-4 w-4" /> Browse templates</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/upload"><Upload className="h-4 w-4" /> Upload KB files</Link>
               </Button>
             </>
           )}

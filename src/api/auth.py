@@ -1,40 +1,42 @@
 """
-Supabase Auth integration — JWT verification + lazy user sync.
+First-party JWT auth.
 
-Supabase issues HS256 access tokens signed with the project JWT secret
-(SUPABASE_JWT_SECRET). The backend verifies the signature on every protected
-request; Supabase handles signup, login, token refresh, password reset, and
-OAuth (Google, GitHub).
-
-Token claims relevant here:
-    sub          — Supabase user UUID (becomes our User.id)
-    email        — user's email address
-    aud          — always "authenticated" for logged-in users
-    user_metadata — dict that may contain display_name set at signup
-
-User sync (lazy upsert):
-    Supabase manages auth.users internally. Our public.users table is
-    populated on the first authenticated API request: if a row for the JWT
-    sub doesn't exist, one is created from the JWT claims. Subsequent
-    requests hit the in-proc LRU cache (5-minute TTL, up to 1024 entries).
+Simple email + password signup/login that issues an HS256 JWT. The token
+carries the user's ``id`` (UUID) and ``email`` as claims — each email maps
+to exactly one ``User`` row, which is the tenant boundary used by every
+downstream query in Neon, Memgraph, and Qdrant.
 
 Public surface (used by FastAPI routes):
-    current_user   — optional dep; None when no/invalid token.
-    require_user   — strict dep; 401 if bad/missing, 503 if secret unset.
-    invalidate_user_cache(user_id) — bust the cache on profile update.
+    hash_password(plain) / verify_password(plain, hash)
+    create_access_token(user) -> str
+    current_user   — optional dep; None when no token or not configured.
+    require_user   — strict; 401 if bad/missing token, 503 if JWT_SECRET unset.
+
+Scalability:
+    - Stateless JWT verify — no DB round-trip to authorize a request.
+    - A tiny in-proc LRU (``sub`` -> ``User``) keeps steady-state SELECT-free.
+    - Sessions don't live anywhere on the server; rotating ``JWT_SECRET``
+      is the one-shot logout-everyone lever.
 """
 
 from __future__ import annotations
 
 import logging
 import time
-import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import Header, HTTPException
 from sqlalchemy import select
 
-from src.config import SUPABASE_JWT_SECRET, USE_AUTH, USE_NEON
+from src.config import (
+    JWT_ALGORITHM,
+    JWT_EXPIRES_MINUTES,
+    JWT_ISSUER,
+    JWT_SECRET,
+    USE_AUTH,
+    USE_NEON,
+)
 from src.infra.db import get_session
 from src.infra.db_models import User
 
@@ -42,12 +44,48 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# JWT decode (Supabase HS256)
+# Password hashing (bcrypt)
 # ---------------------------------------------------------------------------
 
+def hash_password(plain: str) -> str:
+    """Return a bcrypt hash for ``plain`` suitable for storing in the DB."""
+    import bcrypt
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain: str, hashed: Optional[str]) -> bool:
+    if not hashed:
+        return False
+    import bcrypt
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
+
+
+# ---------------------------------------------------------------------------
+# JWT encode / decode (PyJWT)
+# ---------------------------------------------------------------------------
+
+def create_access_token(user: User) -> str:
+    """Sign a JWT for ``user``. Claims: sub=user.id, email, iat, exp, iss."""
+    if not JWT_SECRET:
+        raise RuntimeError("JWT_SECRET is not configured; cannot mint tokens.")
+    import jwt
+    now = datetime.now(tz=timezone.utc)
+    payload = {
+        "sub": str(user.id),
+        "email": user.email,
+        "iss": JWT_ISSUER,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=JWT_EXPIRES_MINUTES)).timestamp()),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
 def _decode_token(token: str) -> Optional[dict[str, Any]]:
-    """Verify the Supabase access token and return its claims, or None."""
-    if not token or not SUPABASE_JWT_SECRET:
+    """Return verified claims, or ``None`` if the token is missing/invalid."""
+    if not token or not JWT_SECRET:
         return None
     try:
         import jwt
@@ -58,10 +96,10 @@ def _decode_token(token: str) -> Optional[dict[str, Any]]:
     try:
         return jwt.decode(
             token,
-            SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-            options={"require": ["exp", "sub"]},
+            JWT_SECRET,
+            algorithms=[JWT_ALGORITHM],
+            issuer=JWT_ISSUER,
+            options={"require": ["exp", "iat", "sub"]},
         )
     except InvalidTokenError as exc:
         logger.info("JWT verification failed: %s", exc)
@@ -72,7 +110,7 @@ def _decode_token(token: str) -> Optional[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# In-proc user cache (sub -> User, 5-minute TTL)
+# In-proc user cache (sub -> User)
 # ---------------------------------------------------------------------------
 
 _USER_CACHE_TTL_SECONDS = 300
@@ -99,7 +137,7 @@ def _cache_put(sub: str, user: User) -> None:
 
 
 def invalidate_user_cache(user_id: Optional[str] = None) -> None:
-    """Drop one user entry (or the whole cache) — call on profile updates."""
+    """Drop a single user (or the whole cache) — used on profile updates."""
     if user_id is None:
         _user_cache.clear()
     else:
@@ -107,20 +145,17 @@ def invalidate_user_cache(user_id: Optional[str] = None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# User lookup + lazy upsert
+# User lookup
 # ---------------------------------------------------------------------------
 
-async def _load_user(
-    sub: str,
-    email: Optional[str],
-    display_name: Optional[str],
-) -> Optional[User]:
-    """Return the User row for sub, creating it on first sight (lazy sync)."""
+async def _load_user(sub: str) -> Optional[User]:
+    """Load the ``User`` row for the JWT subject. Cached in-proc for 5 min."""
     if not USE_NEON:
         return None
     cached = _cache_get(sub)
     if cached is not None:
         return cached
+    import uuid
     try:
         user_uuid = uuid.UUID(sub)
     except (ValueError, TypeError):
@@ -129,13 +164,19 @@ async def _load_user(
         row = (await s.execute(
             select(User).where(User.id == user_uuid)
         )).scalar_one_or_none()
-        if row is None:
-            row = User(id=user_uuid, email=email, display_name=display_name)
-            s.add(row)
-            await s.commit()
-            await s.refresh(row)
-    _cache_put(sub, row)
+    if row is not None:
+        _cache_put(sub, row)
     return row
+
+
+async def get_user_by_email(email: str) -> Optional[User]:
+    """Return the ``User`` row for a given email (case-sensitive) or None."""
+    if not USE_NEON:
+        return None
+    async with get_session() as s:
+        return (await s.execute(
+            select(User).where(User.email == email)
+        )).scalar_one_or_none()
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +195,7 @@ def _extract_bearer(authorization: Optional[str]) -> Optional[str]:
 async def current_user(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> Optional[User]:
-    """Return the caller's User row if a valid Supabase Bearer token is sent."""
+    """Return the caller's ``User`` row if a valid Bearer JWT is sent."""
     token = _extract_bearer(authorization)
     if not token:
         return None
@@ -164,11 +205,8 @@ async def current_user(
     sub = claims.get("sub")
     if not sub:
         return None
-    email: Optional[str] = claims.get("email")
-    meta: dict = claims.get("user_metadata") or {}
-    display_name: Optional[str] = meta.get("display_name") or meta.get("full_name")
     try:
-        return await _load_user(sub, email, display_name)
+        return await _load_user(sub)
     except Exception as exc:
         logger.warning("User lookup failed (sub=%s): %s", sub, exc)
         return None
@@ -177,7 +215,7 @@ async def current_user(
 async def require_user(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> User:
-    """Return the caller's User row. 401 if no/invalid token; 503 if auth
+    """Return the caller's ``User`` row. 401 if no/invalid token; 503 if auth
     isn't configured on this deployment.
     """
     if not USE_AUTH:

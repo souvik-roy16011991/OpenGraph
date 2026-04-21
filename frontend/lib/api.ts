@@ -33,16 +33,7 @@ import type {
 // If NEXT_PUBLIC_API_BASE is set (e.g. http://localhost:8000), hit the backend
 // directly — avoids Next.js dev-proxy body-size limits on multipart uploads.
 // Empty string = same-origin, relying on next.config.ts rewrites().
-//
-// Render's `fromService.property: host` returns a bare hostname (no scheme);
-// normalise so fetches work whether the env has a scheme or not.
-function normaliseBase(raw: string): string {
-  const trimmed = raw.replace(/\/$/, "");
-  if (!trimmed) return "";
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
-}
-const BASE = normaliseBase(process.env.NEXT_PUBLIC_API_BASE ?? "");
+const BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
 
 /** Read the active workspace id from the persisted zustand store at call time. */
 function activeWorkspaceId(): string | null {
@@ -58,19 +49,16 @@ function activeWorkspaceId(): string | null {
   }
 }
 
-/** Read the Supabase access token from localStorage at call time.
+/** Read the JWT issued by /api/v1/auth/{signup,login} from localStorage.
  *
- * Supabase stores the session under `sb-<project-ref>-auth-token`.
- * The project-ref is the subdomain of NEXT_PUBLIC_SUPABASE_URL.
+ * Written by ``lib/auth.ts::setSession``. If absent, the Authorization header
+ * is omitted and the backend returns 401 — middleware will have redirected
+ * the user to /sign-in already in that case.
  */
 function activeAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-    const ref = url.replace("https://", "").split(".")[0];
-    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
-    if (!raw) return null;
-    return (JSON.parse(raw) as { access_token?: string }).access_token ?? null;
+    return window.localStorage.getItem("auth_token");
   } catch {
     return null;
   }
@@ -244,12 +232,20 @@ export const api = {
   myAudit: (opts?: { limit?: number; before_id?: number; workspace_id?: string; action?: string }) =>
     get<AuditListResponse>("/api/v1/me/audit", opts),
 
-  // Templates
+  // Templates (stock + user-custom; `id` is a slug for stock, UUID for custom)
   listTemplates: (opts?: { q?: string; category?: string }) =>
     get<{ templates: KBTemplate[] }>("/api/v1/templates", opts),
-  getTemplate: (slug: string) => get<KBTemplate>(`/api/v1/templates/${slug}`),
-  instantiateTemplate: (slug: string, body: { name?: string; description?: string } = {}) =>
-    json<InstantiateTemplateResponse>(`/api/v1/templates/${slug}/instantiate`, "POST", body),
+  getTemplate: (id: string) => get<KBTemplate>(`/api/v1/templates/${encodeURIComponent(id)}`),
+  createTemplate: (body: import("./schema").TemplateCreateInput) =>
+    json<KBTemplate>("/api/v1/templates", "POST", body),
+  updateTemplate: (id: string, body: import("./schema").TemplateUpdateInput) =>
+    json<KBTemplate>(`/api/v1/templates/${encodeURIComponent(id)}`, "PATCH", body),
+  deleteTemplate: (id: string) =>
+    json<{ ok: true; deleted_template_id: string }>(
+      `/api/v1/templates/${encodeURIComponent(id)}`, "DELETE",
+    ),
+  instantiateTemplate: (id: string, body: { name?: string; description?: string } = {}) =>
+    json<InstantiateTemplateResponse>(`/api/v1/templates/${encodeURIComponent(id)}/instantiate`, "POST", body),
 
   // LLM selection
   listModels: (refresh = false) =>

@@ -360,3 +360,45 @@ class UserAuditLog(Base):
 # ---------------------------------------------------------------------------
 
 ANONYMOUS_STACK_ID = "__anonymous__"
+
+
+# ---------------------------------------------------------------------------
+# user_templates — user-owned KB templates (custom, private to creator)
+#
+# Stock templates ship as YAML files under /templates (global, read-only).
+# This table stores custom templates created via the /templates page CRUD UI.
+# The two sources are merged at read-time by the API layer; on instantiate,
+# the backend shape-detects the identifier (UUID → custom, slug → stock).
+# ---------------------------------------------------------------------------
+
+class UserTemplate(Base):
+    __tablename__ = "user_templates"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(64), nullable=False, default="custom")
+    icon: Mapped[str] = mapped_column(String(32), nullable=False, default="Folder")
+    # The five DomainProfile fields copied onto Workspace.domain_config on
+    # instantiate. Shape matches stock KBTemplate.domain exactly.
+    domain: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        # One user can't have two templates with the same name — matches the
+        # per-user workspace naming rule so the UI copy stays consistent.
+        UniqueConstraint("user_id", "name", name="uq_user_templates_user_name"),
+        Index("ix_user_templates_user_id", "user_id"),
+    )
