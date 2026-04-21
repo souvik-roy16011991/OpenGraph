@@ -12,20 +12,25 @@
 #
 # -- First-deploy secret checklist -------------------------------------------
 # In the Render dashboard set these with `sync: false` before the first deploy.
-# Auth is first-party JWT — no third-party provider.
+# Auth is Supabase Auth (HS256 JWT); Supabase owns signup / login / OAuth.
 #
-#   Backend only:
+#   Backend (opengraph-backend):
 #     OPENROUTER_API_KEY
-#     DATABASE_URL                 (Neon pooled connection string)
+#     DATABASE_URL                   (Supabase Session Pooler or Neon pooled URL)
 #     MEMGRAPH_URI / _USERNAME / _PASSWORD
 #     QDRANT_URL / QDRANT_API_KEY
 #     BLOB_READ_WRITE_TOKEN
 #     UPSTASH_REDIS_REST_URL / _TOKEN
-#     JWT_SECRET                   (generate with `python -c "import secrets;
-#                                   print(secrets.token_urlsafe(48))"`).
-#                                   Rotating this invalidates every live token.
+#     SUPABASE_JWT_SECRET            (Supabase dashboard → Settings → API →
+#                                     JWT Secret). Rotating this invalidates
+#                                     every live access token.
 #
-# Protected routes return 503 until JWT_SECRET is set. See DEPLOY.md.
+#   Frontend (opengraph-frontend):
+#     NEXT_PUBLIC_SUPABASE_URL       (Supabase dashboard → Settings → API → URL)
+#     NEXT_PUBLIC_SUPABASE_ANON_KEY  (Supabase dashboard → Settings → API → anon)
+#
+# Protected routes return 401 without a token and 503 if SUPABASE_JWT_SECRET is
+# unset. See DEPLOY.md for Google/GitHub OAuth setup in the Supabase console.
 # ---------------------------------------------------------------------------
 
 services:

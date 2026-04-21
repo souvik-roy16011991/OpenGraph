@@ -1,26 +1,34 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PREFIXES = [
-  "/sign-in",
-  "/sign-up",
-  "/auth/callback",
-  "/_next",
-  "/favicon",
-  "/opengraph-mark.svg",
-];
+/**
+ * Three categories of request:
+ *   1. Static / infra prefixes — always let through.
+ *   2. Auth pages (/sign-in, /sign-up) — signed-in users get bounced to "/"
+ *      (or ?return_to); anonymous users see the page.
+ *   3. Everything else — requires a Supabase session; otherwise redirect to
+ *      /sign-in?return_to=<path>.
+ *
+ * Supabase's SSR client both verifies and silently refreshes the access
+ * token. Refreshed cookies are written back onto the response.
+ */
 
-function isPublic(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+const INFRA_PREFIXES = ["/_next", "/favicon", "/opengraph-mark.svg"];
+const AUTH_PAGE_PREFIXES = ["/sign-in", "/sign-up"];
+const AUTH_CALLBACK = "/auth/callback";
+
+function startsWithAny(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname.startsWith(p));
 }
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
-  if (isPublic(pathname)) return NextResponse.next();
 
-  // Build a response we can write Supabase session cookies into.
+  if (startsWithAny(pathname, INFRA_PREFIXES)) return NextResponse.next();
+  // OAuth code exchange must run without session gating.
+  if (pathname.startsWith(AUTH_CALLBACK)) return NextResponse.next();
+
   const res = NextResponse.next();
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -38,11 +46,25 @@ export async function middleware(req: NextRequest) {
     },
   );
 
-  // getSession() also silently refreshes an expired access token and writes
-  // the new tokens into `res` via the setAll cookie handler above.
   const {
     data: { session },
   } = await supabase.auth.getSession();
+
+  const isAuthPage = startsWithAny(pathname, AUTH_PAGE_PREFIXES);
+
+  if (isAuthPage) {
+    if (session) {
+      const rawReturn = req.nextUrl.searchParams.get("return_to");
+      const safeReturn = rawReturn && rawReturn.startsWith("/") && !startsWithAny(rawReturn, AUTH_PAGE_PREFIXES)
+        ? rawReturn
+        : "/";
+      const dest = req.nextUrl.clone();
+      dest.pathname = safeReturn;
+      dest.search = "";
+      return NextResponse.redirect(dest);
+    }
+    return res;
+  }
 
   if (session) return res;
 
