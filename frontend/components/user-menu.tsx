@@ -5,33 +5,38 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getStoredUser, logout, type StoredUser } from "@/lib/auth";
+import { logout } from "@/lib/auth";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-/**
- * Header user menu.
- *
- * Auth is always enforced (see middleware.ts), so by the time this component
- * mounts the user has a valid JWT in localStorage/cookie. We read the stored
- * user record for a label; sign-out clears the session and redirects.
- */
 export function UserMenu() {
   const router = useRouter();
-  const [user, setUser] = React.useState<StoredUser | null>(null);
+  const [label, setLabel] = React.useState<string>("");
   const [hydrated, setHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    setUser(getStoredUser());
-    setHydrated(true);
+    getSupabaseBrowserClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        const u = data.user;
+        if (u) {
+          const meta = u.user_metadata ?? {};
+          setLabel(
+            (meta.display_name as string | null) ||
+            (meta.full_name as string | null) ||
+            u.email ||
+            "signed in",
+          );
+        }
+        setHydrated(true);
+      });
   }, []);
 
   if (!hydrated) {
     return <span className="h-8 w-24 rounded-md bg-muted/30 animate-pulse" />;
   }
 
-  const label = user?.display_name || user?.email || "signed in";
-
-  const onSignOut = () => {
-    logout();
+  const onSignOut = async () => {
+    await logout();
     router.replace("/sign-in");
     router.refresh();
   };
@@ -44,7 +49,7 @@ export function UserMenu() {
         title="Open profile"
       >
         <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="max-w-[160px] truncate">{label}</span>
+        <span className="max-w-[160px] truncate">{label || "signed in"}</span>
       </Link>
       <Button
         variant="ghost"

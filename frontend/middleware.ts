@@ -1,20 +1,10 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Auth gate — always on.
- *
- * Until the ``auth_token`` cookie is present (written by ``lib/auth.ts`` on
- * signup/login) the visitor only sees the sign-in / sign-up pages.
- *
- * We intentionally do NOT verify the JWT here — the middleware runs on the
- * edge without access to the signing secret. Presence is sufficient for a
- * redirect; the backend verifies the signature on every protected request,
- * which is where auth actually lives.
- */
 
 const PUBLIC_PREFIXES = [
   "/sign-in",
   "/sign-up",
+  "/auth/callback",
   "/_next",
   "/favicon",
   "/opengraph-mark.svg",
@@ -24,15 +14,37 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
-function hasSession(req: NextRequest): boolean {
-  return Boolean(req.cookies.get("auth_token")?.value);
-}
-
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
-
   if (isPublic(pathname)) return NextResponse.next();
-  if (hasSession(req)) return NextResponse.next();
+
+  // Build a response we can write Supabase session cookies into.
+  const res = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  // getSession() also silently refreshes an expired access token and writes
+  // the new tokens into `res` via the setAll cookie handler above.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session) return res;
 
   const signIn = req.nextUrl.clone();
   signIn.pathname = "/sign-in";

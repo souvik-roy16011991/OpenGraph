@@ -49,16 +49,19 @@ function activeWorkspaceId(): string | null {
   }
 }
 
-/** Read the JWT issued by /api/v1/auth/{signup,login} from localStorage.
+/** Read the Supabase access token from localStorage at call time.
  *
- * Written by ``lib/auth.ts::setSession``. If absent, the Authorization header
- * is omitted and the backend returns 401 — middleware will have redirected
- * the user to /sign-in already in that case.
+ * Supabase stores the session under `sb-<project-ref>-auth-token`.
+ * The project-ref is the subdomain of NEXT_PUBLIC_SUPABASE_URL.
  */
 function activeAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.localStorage.getItem("auth_token");
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    const ref = url.replace("https://", "").split(".")[0];
+    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return null;
+    return (JSON.parse(raw) as { access_token?: string }).access_token ?? null;
   } catch {
     return null;
   }
