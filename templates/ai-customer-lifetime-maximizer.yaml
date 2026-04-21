@@ -1,0 +1,25 @@
+slug: ai-customer-lifetime-maximizer
+name: AI Customer Lifetime Maximizer
+description: >
+  Increases long-term value — optimises engagement strategies, upgrade
+  timing, and offer mix using CLV models and propensity scoring so
+  acquisition ROI compounds across the customer relationship.
+category: customer
+icon: TrendingUp
+domain:
+  domain_name: Customer Lifetime Value Optimisation
+  domain_display_name: AI Customer Lifetime Maximizer
+  organization_name: Growth Marketing — CLV & Retention
+  knowledge_focus_examples: |
+    CLV modelling techniques (BG/NBD, Gamma-Gamma, discounted-cash-
+    flow CLV), RFM segmentation, cohort retention analysis (Layer-
+    Cake charts), LTV:CAC ratio targets, upsell / cross-sell
+    propensity modelling, loyalty-program economics, payback-period
+    analysis, negative churn / net revenue retention math, wallet-
+    share estimation
+  tool_focus_examples: |
+    CLV libraries (Lifetimes Python, pymc-marketing, Google Analytics
+    4 predictive metrics), growth stacks (Amplitude, Mixpanel,
+    Heap, CustomerIO), marketing automation (Braze, Iterable,
+    Marketo, HubSpot), data warehouses (Snowflake, BigQuery), dbt
+    transformations, reverse-ETL (Hightouch, Census)

@@ -1,0 +1,25 @@
+slug: ai-digital-human-representative
+name: AI Digital Human Representative
+description: >
+  Acts as a human-like agent — handles complex customer interactions
+  via voice and animated avatar with contextual memory, empathy
+  modelling, and safe handoff to live staff when the conversation asks for it.
+category: customer
+icon: UserPlus
+domain:
+  domain_name: Digital Humans & Avatar Agents
+  domain_display_name: AI Digital Human Representative
+  organization_name: Customer Care — Digital Human Channels
+  knowledge_focus_examples: |
+    digital-human design principles (Uncanny Valley mitigation),
+    multimodal conversational-agent architecture (speech + face + gesture),
+    empathy and rapport-building dialogue patterns, safe-handoff to
+    human protocols, accessibility standards (WCAG 2.2 for voice/
+    avatar interfaces), consent and disclosure of AI agent, persona
+    and brand-voice anchoring, emotion-adaptive dialogue management
+  tool_focus_examples: |
+    digital-human platforms (Soul Machines, UneeQ, D-ID Agents,
+    NVIDIA Tokkio / ACE), TTS (ElevenLabs, Play.ht, Amazon Polly),
+    lipsync / facial animation (NVIDIA Audio2Face, Replica Studios),
+    dialogue orchestration (Google Dialogflow CX + Vertex AI, AWS
+    Lex + Bedrock), knowledge retrieval (RAG with Pinecone / Weaviate)

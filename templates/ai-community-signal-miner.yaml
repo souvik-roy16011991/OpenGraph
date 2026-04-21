@@ -1,0 +1,25 @@
+slug: ai-community-signal-miner
+name: AI Community Signal Miner
+description: >
+  Extracts insights from communities — finds trends, feature requests,
+  and support-ticket precursors lurking in Reddit, Discord, Slack,
+  review sites, and own-brand communities before they reach NPS.
+category: customer
+icon: MessageSquare
+domain:
+  domain_name: Community & Voice-of-Customer Intelligence
+  domain_display_name: AI Community Signal Miner
+  organization_name: Consumer Insights — Community Intelligence
+  knowledge_focus_examples: |
+    online-community taxonomies (support, advocacy, knowledge),
+    sentiment / topic / intent classification for informal text,
+    Reddit thread-propagation patterns, Discord server archetypes,
+    product-feedback-loop frameworks (Continuous Discovery Habits),
+    CSAT-driver extraction methodologies, complaint-ladder modelling,
+    influencer / super-user identification heuristics
+  tool_focus_examples: |
+    social-listening (Brandwatch, Sprinklr, Talkwalker, Pulsar),
+    community platforms (Discord API, Discourse, Circle, Khoros,
+    Vanilla Forums), review scrapers (Trustpilot, G2, TrustRadius,
+    App Store Connect), topic-modeling stacks (BERTopic, gensim),
+    LLM summarisation pipelines, Zendesk / Intercom conversation APIs

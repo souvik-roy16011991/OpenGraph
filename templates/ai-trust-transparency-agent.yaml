@@ -1,0 +1,25 @@
+slug: ai-trust-transparency-agent
+name: AI Trust & Transparency Agent
+description: >
+  Explains AI decisions to users — builds trust and compliance by
+  producing plain-language justifications, feature-attribution views,
+  and recourse suggestions for every consequential model output.
+category: customer
+icon: ShieldCheck
+domain:
+  domain_name: AI Explainability & Trust
+  domain_display_name: AI Trust & Transparency Agent
+  organization_name: Responsible AI Office — Explainability Team
+  knowledge_focus_examples: |
+    EU AI Act transparency obligations, NIST AI RMF trustworthiness
+    characteristics, GDPR Article 22 automated-decision provisions,
+    adverse-action notice requirements (FCRA, Reg B), XAI taxonomies
+    (post-hoc vs self-explaining), counterfactual-recourse design,
+    algorithmic-recourse accessibility, ModelCard / Datasheet formats,
+    consumer-friendly ML communication research
+  tool_focus_examples: |
+    explainability libraries (SHAP, LIME, Captum, InterpretML,
+    Google What-If Tool), model-card generators (Model Card Toolkit),
+    counterfactual tools (DiCE, Alibi, AIF360), auditing suites
+    (Fairlearn, IBM AI Fairness 360, Arthur AI), user-facing
+    explanation UIs, disclosure-templating engines

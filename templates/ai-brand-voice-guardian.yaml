@@ -1,0 +1,25 @@
+slug: ai-brand-voice-guardian
+name: AI Brand Voice Guardian
+description: >
+  Ensures consistent communication — maintains tone, terminology, and
+  stylistic guidelines across every channel, agent, and LLM so brand
+  voice stays coherent from tweet to TOS to support macro.
+category: customer
+icon: Megaphone
+domain:
+  domain_name: Brand Voice & Editorial Governance
+  domain_display_name: AI Brand Voice Guardian
+  organization_name: Brand & Editorial Governance
+  knowledge_focus_examples: |
+    brand-voice style guides (tone attributes, pacing, vocabulary),
+    AP / Chicago / proprietary editorial standards, inclusive-
+    language guides (Conscious Style Guide), multilingual tone
+    adaptation rules, glossary / lexicon management, UX-writing
+    principles (Nielsen Norman), regulated-industry disclosure
+    wording, brand-safety blocklists
+  tool_focus_examples: |
+    content-governance platforms (Acrolinx, Writer.com, Grammarly
+    Business, Crownpeak DQM), style linting (Vale, LanguageTool,
+    Textlint), brand-asset management (Frontify, Bynder), CMS /
+    DXP (Contentful, Sitecore, Adobe Experience Manager), LLM
+    prompt-template libraries, translation-memory systems (Smartling)
