@@ -42,7 +42,8 @@ def _normalize_database_url(url: str) -> str:
 
     - postgres://           -> postgresql+asyncpg://
     - postgresql://         -> postgresql+asyncpg://
-    - Remove sslmode=...    (asyncpg takes ssl via connect_args, not URL)
+    - Strips libpq-only query params (sslmode, channel_binding, pgbouncer)
+      that asyncpg doesn't understand.
     """
     if not url:
         return url
@@ -51,13 +52,9 @@ def _normalize_database_url(url: str) -> str:
         out = "postgresql+asyncpg://" + out[len("postgres://"):]
     elif out.startswith("postgresql://"):
         out = "postgresql+asyncpg://" + out[len("postgresql://"):]
-    # sslmode= is libpq syntax; asyncpg uses `ssl=` kwarg.  Strip and remember
-    # whether SSL was requested.
-    if "sslmode=" in out:
-        out = _strip_query_param(out, "sslmode")
-    # channel_binding= is another libpq-ism asyncpg doesn't understand
-    if "channel_binding=" in out:
-        out = _strip_query_param(out, "channel_binding")
+    for libpq_only in ("sslmode", "channel_binding", "pgbouncer"):
+        if f"{libpq_only}=" in out:
+            out = _strip_query_param(out, libpq_only)
     return out
 
 
@@ -70,6 +67,17 @@ def _strip_query_param(url: str, key: str) -> str:
     return base + ("?" + "&".join(kept) if kept else "")
 
 
+def _is_transaction_pooler(url: str) -> bool:
+    """Transaction-mode PgBouncer rewrites sessions per-transaction, which
+    breaks asyncpg's prepared-statement cache. Neon's pooler defaults to
+    session mode (safe), but expose the check so other poolers (e.g. a
+    raw PgBouncer sidecar) can be detected by port :6543 or pgbouncer=true.
+    """
+    if not url:
+        return False
+    return ":6543" in url or "pgbouncer=true" in url
+
+
 def _init_engine():
     global _engine, _session_maker
     if not USE_NEON:
@@ -80,19 +88,37 @@ def _init_engine():
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
     url = _normalize_database_url(DATABASE_URL)
-    # Neon and Supabase both require SSL over TCP.
-    _needs_ssl = any(d in url for d in ("neon.tech", "supabase.co", "supabase.com"))
-    connect_args = {"ssl": "require"} if _needs_ssl or "sslmode=" in DATABASE_URL else {}
+    # Neon requires SSL. asyncpg honors ssl='require' for the default OpenSSL
+    # context; match by host to keep local postgres (no SSL) working.
+    _needs_ssl = "neon.tech" in url or "sslmode=" in DATABASE_URL
+    connect_args: dict = {"ssl": "require"} if _needs_ssl else {}
+
+    if _is_transaction_pooler(DATABASE_URL):
+        # asyncpg silently caches prepared statements per-connection; when the
+        # pooler rewrites transactions onto different backends the cached
+        # name becomes invalid on the next call. Disable the cache to survive.
+        connect_args["statement_cache_size"] = 0
+        connect_args["prepared_statement_cache_size"] = 0
+        logger.warning(
+            "Transaction-pooler URL detected (port 6543 / pgbouncer=true) — "
+            "disabling asyncpg prepared-statement cache."
+        )
+
     _engine = create_async_engine(
         url,
         pool_size=5,
         max_overflow=10,
-        pool_pre_ping=True,
-        pool_recycle=1800,
+        pool_pre_ping=True,   # drop dead connections (Neon idle-kills eventually)
+        pool_recycle=1800,    # recycle every 30m, under Neon's idle limit
+        pool_timeout=30,      # fail fast instead of hanging when the pool is saturated
         connect_args=connect_args,
     )
     _session_maker = async_sessionmaker(_engine, expire_on_commit=False)
-    logger.info("Postgres async engine initialised for %s", url.split("@")[-1].split("?")[0])
+    logger.info(
+        "Neon async engine initialised for %s (ssl=%s)",
+        url.split("@")[-1].split("?")[0],
+        bool(connect_args.get("ssl")),
+    )
 
 
 @asynccontextmanager
@@ -128,7 +154,7 @@ async def init_db() -> None:
         await conn.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"
         ))
-    logger.info("Supabase tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit).")
+    logger.info("Neon tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit).")
 
 
 # ---------------------------------------------------------------------------

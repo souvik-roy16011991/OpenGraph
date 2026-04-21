@@ -168,12 +168,14 @@ function ProfileCard({ me }: { me: MeResponse }) {
 
 function AccountActionsCard() {
   const router = useRouter();
+  const qc = useQueryClient();
   const [pending, setPending] = React.useState(false);
 
   async function onSignOut() {
     setPending(true);
     try {
-      await logout();
+      logout();           // clears localStorage + cookie; fires audit ping
+      qc.clear();         // drop cached per-user query results
       router.replace("/sign-in");
       router.refresh();
     } finally {

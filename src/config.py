@@ -128,14 +128,25 @@ UPSTASH_REDIS_REST_URL: str = os.environ.get("UPSTASH_REDIS_REST_URL", "")
 UPSTASH_REDIS_REST_TOKEN: str = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 
 # ---------------------------------------------------------------------------
-# Auth — Supabase Auth (HS256 JWT). Supabase issues access tokens signed with
-# a project-specific secret. The backend verifies the signature on every
-# protected request; Supabase handles signup, login, token refresh, and OAuth.
+# Auth — first-party JWT (HS256). Each user is identified by email; tenant
+# isolation is enforced by scoping every query to ``User.id`` in Neon.
 #
-# SUPABASE_JWT_SECRET  Found in Supabase dashboard → Settings → API → JWT Secret.
-#                      REQUIRED: protected routes return 503 until this is set.
+# JWT_SECRET           Shared secret used to sign and verify tokens. Generate
+#                      with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+#                      REQUIRED: the app refuses to start auth if empty.
+# JWT_ALGORITHM        HMAC algorithm for PyJWT; HS256 is the default.
+# JWT_EXPIRES_MINUTES  Access-token lifetime. 30 days keeps sessions long
+#                      enough that re-login isn't annoying; rotate the secret
+#                      to invalidate all live tokens at once.
+# JWT_ISSUER           Stamped into `iss`; defaults to the app name so a
+#                      leaked token from another deployment can't replay here.
+# PASSWORD_MIN_LENGTH  Enforced server-side at signup.
 # ---------------------------------------------------------------------------
-SUPABASE_JWT_SECRET: str = os.environ.get("SUPABASE_JWT_SECRET", "")
+JWT_SECRET: str = os.environ.get("JWT_SECRET", "")
+JWT_ALGORITHM: str = os.environ.get("JWT_ALGORITHM", "HS256")
+JWT_EXPIRES_MINUTES: int = int(os.environ.get("JWT_EXPIRES_MINUTES", "43200"))  # 30 days
+JWT_ISSUER: str = os.environ.get("JWT_ISSUER", "kb-graph-engine")
+PASSWORD_MIN_LENGTH: int = int(os.environ.get("PASSWORD_MIN_LENGTH", "8"))
 
 # Optional allowlist of OpenRouter models exposed to end-users. Comma-separated
 # list of model ids (e.g. "anthropic/claude-3-7-sonnet,openai/gpt-4o-mini").
@@ -150,4 +161,4 @@ USE_MEMGRAPH: bool = bool(MEMGRAPH_URI)
 USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
 USE_NEON: bool = bool(DATABASE_URL)
 USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
-USE_AUTH: bool = bool(SUPABASE_JWT_SECRET)
+USE_AUTH: bool = bool(JWT_SECRET)

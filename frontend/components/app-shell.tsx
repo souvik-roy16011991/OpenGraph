@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrandMark } from "@/components/brand";
 import { FlowProgress, isWizardRoute } from "@/components/wizard/flow-progress";
+import { UserMenu } from "@/components/user-menu";
 import { useWorkspaceStore } from "@/store/workspace-store";
 import { useSidebarStore } from "@/store/sidebar-store";
 
@@ -210,6 +211,16 @@ function NavRow({
   );
 }
 
+// Unauthenticated / full-screen routes render without the sidebar chrome so
+// the sign-in form isn't stacked next to a broken workspace switcher firing
+// 401s. Keep in sync with middleware's auth-page list.
+const CHROMELESS_PREFIXES = ["/sign-in", "/sign-up"];
+
+function isChromeless(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return CHROMELESS_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const collapsed = useSidebarStore((s) => s.collapsed);
@@ -222,6 +233,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const mql = window.matchMedia("(max-width: 767px)");
     if (mql.matches) setCollapsed(true);
   }, [setCollapsed]);
+
+  if (isChromeless(pathname)) {
+    return <>{children}</>;
+  }
 
   const headerLabel =
     PRIMARY_NAV.find((n) => isActive(pathname, n))?.label ?? "Overview";
@@ -304,6 +319,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-sm font-medium truncate">{headerLabel}</span>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
+            <UserMenu />
             <ThemeToggle />
           </div>
         </header>
