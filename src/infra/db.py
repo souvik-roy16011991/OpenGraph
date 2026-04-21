@@ -80,9 +80,8 @@ def _init_engine():
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
     url = _normalize_database_url(DATABASE_URL)
-    # Neon and Supabase both require SSL over TCP.
-    _needs_ssl = any(d in url for d in ("neon.tech", "supabase.co", "supabase.com"))
-    connect_args = {"ssl": "require"} if _needs_ssl or "sslmode=" in DATABASE_URL else {}
+    # Neon requires SSL.  asyncpg honors ssl=True for OpenSSL default context.
+    connect_args = {"ssl": "require"} if "neon.tech" in url or "sslmode=" in DATABASE_URL else {}
     _engine = create_async_engine(
         url,
         pool_size=5,
@@ -92,7 +91,7 @@ def _init_engine():
         connect_args=connect_args,
     )
     _session_maker = async_sessionmaker(_engine, expire_on_commit=False)
-    logger.info("Postgres async engine initialised for %s", url.split("@")[-1].split("?")[0])
+    logger.info("Neon async engine initialised for %s", url.split("@")[-1].split("?")[0])
 
 
 @asynccontextmanager
@@ -128,7 +127,7 @@ async def init_db() -> None:
         await conn.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"
         ))
-    logger.info("Supabase tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit).")
+    logger.info("Neon tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit).")
 
 
 # ---------------------------------------------------------------------------
