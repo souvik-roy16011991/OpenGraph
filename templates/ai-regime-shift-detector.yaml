@@ -1,0 +1,26 @@
+slug: ai-regime-shift-detector
+name: AI Regime Shift Detector
+description: >
+  Identifies market-condition changes instantly — detects transitions
+  between bull, bear, volatile, and mean-reverting regimes so
+  strategies auto-switch their factor tilt instead of whipsawing.
+category: trading
+icon: SquareDashedMousePointer
+domain:
+  domain_name: Regime-Switching & Volatility Detection
+  domain_display_name: AI Regime Shift Detector
+  organization_name: Quant Portfolio Construction
+  knowledge_focus_examples: |
+    hidden Markov models (HMM) for regime classification, Markov
+    regime-switching autoregressive (MS-AR) models, volatility-
+    regime indicators (VIX term structure, realised vs implied
+    vol gap), structural-break tests (Chow, CUSUM), HP-filter
+    cycle-trend separation, state-space models (Kalman filter),
+    breadth / correlation shift signals, NBER recession-dating
+    methodology, risk-on vs risk-off cross-asset heuristics
+  tool_focus_examples: |
+    regime-detection libraries (hmmlearn, pomegranate, Regime-Switching
+    GARCH in R rugarch, statsmodels MarkovRegression), factor-risk
+    engines (Axioma, Barra), macro-data APIs (FRED, IMF, OECD),
+    volatility surfaces (OptionMetrics IvyDB, CBOE LiveVol), research
+    stacks (QuantConnect, Quantopian-successor platforms)

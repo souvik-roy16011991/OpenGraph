@@ -1,0 +1,25 @@
+slug: ai-api-ecosystem-guardian
+name: AI API Ecosystem Guardian
+description: >
+  Ensures API reliability and governance — monitors usage,
+  performance, security, version drift, and breaking-change risk
+  across internal and external APIs with contract-first enforcement.
+category: engineering
+icon: Webhook
+domain:
+  domain_name: API Governance & Observability
+  domain_display_name: AI API Ecosystem Guardian
+  organization_name: Platform Engineering — API Governance
+  knowledge_focus_examples: |
+    API-first design principles, OpenAPI 3.1 / AsyncAPI spec
+    conventions, API-versioning strategies (URL, header, content-
+    negotiation), semantic-versioning breaking-change rules, API
+    security (OWASP API Top 10, OAuth 2.1, PKCE, mTLS), rate-limit
+    / quota design, deprecation lifecycle management (sunset
+    header RFC 8594), SLA / SLO for APIs, catalog / discoverability
+  tool_focus_examples: |
+    API gateways (Kong, Apigee, AWS API Gateway, Azure API Management,
+    Tyk, Gravitee), observability (Datadog APM, New Relic One,
+    Dynatrace, Honeycomb, Moesif), contract testing (Pact, PactFlow,
+    Postman Contract Testing), API-catalog / docs (Stoplight, ReadMe,
+    SwaggerHub, Scalar), API-security (Salt Security, Noname, Traceable)

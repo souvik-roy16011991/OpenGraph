@@ -1,0 +1,25 @@
+slug: ai-knowledge-decay-preventer
+name: AI Knowledge Decay Preventer
+description: >
+  Prevents loss of operational knowledge — captures tacit know-how
+  from employees before attrition or role changes, converting tribal
+  knowledge into searchable, versioned, attributed documentation.
+category: backoffice
+icon: BookMarked
+domain:
+  domain_name: Tacit Knowledge Capture & Retention
+  domain_display_name: AI Knowledge Decay Preventer
+  organization_name: Knowledge Management — Business Continuity
+  knowledge_focus_examples: |
+    SECI model of knowledge conversion (Nonaka-Takeuchi),
+    knowledge-audit methodology, structured-exit-interview protocols,
+    critical-knowledge identification (bus-factor analysis), communities-
+    of-practice design, apprenticeship-observation capture, how-to vs
+    know-why documentation split, knowledge-half-life research, meeting
+    archaeology patterns, succession-planning knowledge transfer
+  tool_focus_examples: |
+    knowledge-bases (Confluence, Notion, Guru, Bloomfire, Document360),
+    AI-search (Glean, Mem, Dashworks, Sana, Slite), meeting-transcription
+    (Otter.ai, Fireflies, Gong, Fathom, Read AI), screen-recording
+    SOP tools (Scribe, Tango, Guidde), LLM-RAG stacks over internal
+    corpora, workflow-capture (UiPath Task Capture, Soroco Scout)

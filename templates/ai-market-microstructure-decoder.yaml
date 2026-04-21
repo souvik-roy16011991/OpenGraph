@@ -1,0 +1,25 @@
+slug: ai-market-microstructure-decoder
+name: AI Market Microstructure Decoder
+description: >
+  Understands order-book behaviour deeply — analyses tick-level data
+  to detect hidden liquidity, iceberg orders, venue routing quirks,
+  and queue-position dynamics for smarter execution decisions.
+category: trading
+icon: Activity
+domain:
+  domain_name: Market Microstructure & Execution Analytics
+  domain_display_name: AI Market Microstructure Decoder
+  organization_name: Quant Execution Research
+  knowledge_focus_examples: |
+    order-book mechanics (limit / market / iceberg / pegged / MOO /
+    MOC), Kyle / Glosten-Milgrom microstructure models, queue-position
+    dynamics, adverse-selection and toxicity measurement (VPIN),
+    Almgren-Chriss optimal execution, tick-size and make-taker fee
+    impact, RegNMS / MiFID II venue-selection rules, dark-pool
+    behaviours, order-type taxonomies per exchange
+  tool_focus_examples: |
+    tick-data providers (Refinitiv TRTH, Polygon.io, Databento, Kaiko
+    for crypto, LOBSTER, AlgoSeek), analytic suites (kdb+ / q,
+    OneTick, ArcticDB), execution-analytics (BestX, Abel Noser, ITG
+    TCA), limit-order-book simulators (ABIDES, RLLib LOB), Python
+    stacks (pandas, polars, nautilus-trader), FIX protocol toolkits

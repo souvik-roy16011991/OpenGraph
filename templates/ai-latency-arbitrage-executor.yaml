@@ -1,0 +1,26 @@
+slug: ai-latency-arbitrage-executor
+name: AI Latency Arbitrage Executor
+description: >
+  Capitalises on microsecond inefficiencies — executes trades faster
+  than market reaction times across venues and instruments using
+  low-latency networking, colocation, and hardware-accelerated stacks.
+category: trading
+icon: Zap
+domain:
+  domain_name: Low-Latency / HFT Execution
+  domain_display_name: AI Latency Arbitrage Executor
+  organization_name: HFT Engineering — Execution Platform
+  knowledge_focus_examples: |
+    colocation + cross-connect architectures (NY4 / NY5 / LD4 /
+    TY3 / CH1), PTP clock-synchronisation (IEEE 1588), kernel-
+    bypass networking (DPDK, Solarflare OpenOnload, Exablaze /
+    Cisco Nexus SmartNICs), FPGA accelerated matching, market-data
+    feeds (NASDAQ TotalView-ITCH, NYSE Pillar, CME MDP 3.0), order-
+    book consolidation algorithms, latency arbitrage ethics /
+    regulation (IEX speed bump, MiFID II RTS 6)
+  tool_focus_examples: |
+    low-latency stacks (DPDK, Solarflare / Xilinx Alveo, Mellanox
+    ConnectX, Exablaze), FPGA frameworks (Xilinx Vivado, Intel
+    Quartus), kdb+/q for tick analytics, OMS / EMS (Fidessa, ITRS
+    Geneos, ATS platforms), FIX engines (OnixS, QuickFIX / FIX8),
+    PTP time sync (Meinberg, Endace), deep-packet capture (cPacket)

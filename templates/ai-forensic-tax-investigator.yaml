@@ -1,0 +1,25 @@
+slug: ai-forensic-tax-investigator
+name: AI Forensic Tax Investigator
+description: >
+  Finds hidden tax risks and anomalies — analyzes transactions,
+  ledgers, and third-party data to detect inconsistencies, evasion
+  patterns, and exposures likely to draw an audit.
+category: tax
+icon: Fingerprint
+domain:
+  domain_name: Forensic Tax Analytics
+  domain_display_name: AI Forensic Tax Investigator
+  organization_name: Chartered Accountants — Forensic & Tax Advisory
+  knowledge_focus_examples: |
+    forensic-accounting methodologies (ACFE CFE), Benford's-law
+    anomaly detection, round-sum and end-of-period anomaly patterns,
+    related-party transaction red flags, shell-entity and layering
+    indicators, Indian IT Act Section 68/69 unexplained credits,
+    HMRC CoP8/CoP9 procedures, IRS fraud-indicator badges, ITR /
+    Form 26AS / AIS reconciliation heuristics
+  tool_focus_examples: |
+    data-analytics suites (ACL / Galvanize, IDEA, Alteryx, Power
+    BI), accounting-data extractors (Tally Connector, Zoho Books API,
+    SAP Analysis for Office, QuickBooks Online API), GSTN / AIS /
+    TDS portal APIs, PAN-KYC verifiers (Karza, Signzy, Digio),
+    bank-statement analysers (Perfios, Finbox), GL visualisation (Luca)

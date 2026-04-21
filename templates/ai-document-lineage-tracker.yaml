@@ -1,0 +1,24 @@
+slug: ai-document-lineage-tracker
+name: AI Document Lineage Tracker
+description: >
+  Tracks the lifecycle of every document — maintains full traceability
+  from creation through review, approval, distribution, and archival
+  across SharePoint, DMS, email, and email chains.
+category: backoffice
+icon: FileClock
+domain:
+  domain_name: Document Lifecycle & Lineage
+  domain_display_name: AI Document Lineage Tracker
+  organization_name: Information Governance & Records Management
+  knowledge_focus_examples: |
+    ISO 15489 records-management, ARMA GARP principles, retention-
+    schedule design, file-plan taxonomies, DIRKS methodology,
+    eDiscovery (EDRM reference model), audit-trail completeness
+    requirements, watermarking and provenance (C2PA basics), chain-
+    of-custody conventions, version-control vs recordisation boundaries
+  tool_focus_examples: |
+    DMS / ECM platforms (SharePoint / Microsoft Purview, OpenText
+    Documentum, M-Files, NetDocuments, iManage), eDiscovery (Relativity,
+    Logikcull, Everlaw, DISCO), records-management (OpenText
+    eDOCS, Laserfiche), data-classification (Microsoft Purview, BigID,
+    Varonis), blockchain lineage (Hyperledger Fabric records), SIEM trails

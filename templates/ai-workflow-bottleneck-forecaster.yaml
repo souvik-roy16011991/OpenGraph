@@ -1,0 +1,25 @@
+slug: ai-workflow-bottleneck-forecaster
+name: AI Workflow Bottleneck Forecaster
+description: >
+  Predicts operational slowdowns before they occur — uses historical
+  queue patterns, arrival-rate seasonality, and team-capacity signals
+  to preempt delays and rebalance before SLAs slip.
+category: backoffice
+icon: Gauge
+domain:
+  domain_name: Workflow Capacity Forecasting
+  domain_display_name: AI Workflow Bottleneck Forecaster
+  organization_name: Shared Services — Capacity Planning
+  knowledge_focus_examples: |
+    queueing-theory essentials (Little's Law, M/M/c, G/G/c), Erlang-C
+    staffing formulas, workload-forecasting (time-series + arrival-
+    rate modelling), cycle-time vs lead-time vs touch-time, WIP
+    limits (Kanban), capacity-demand gap analysis, backlog-aging
+    curve construction, seasonality decomposition for back-office
+    work, Poisson-process fit for ticket arrivals
+  tool_focus_examples: |
+    forecasting libraries (Prophet, NeuralProphet, sktime, statsforecast),
+    process-mining (Celonis, Apromore), workforce-management (Verint
+    WFM, NICE IEX WFM, Calabrio ONE), workload-distribution engines
+    (Tonkean, Workato), Kanban platforms with flow metrics (ActionableAgile,
+    Nave, LinearB), ticketing-data warehouses (Jira + Snowflake)

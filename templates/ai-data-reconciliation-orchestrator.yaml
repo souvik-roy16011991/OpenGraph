@@ -1,0 +1,25 @@
+slug: ai-data-reconciliation-orchestrator
+name: AI Data Reconciliation Orchestrator
+description: >
+  Aligns mismatched data across systems — automates reconciliation
+  across finance, ops, CRM, and reporting systems so month-end isn't
+  a manual hunt for the missing penny or the ghost record.
+category: backoffice
+icon: Shuffle
+domain:
+  domain_name: Data Reconciliation & Close Automation
+  domain_display_name: AI Data Reconciliation Orchestrator
+  organization_name: Finance Operations — Record-to-Report
+  knowledge_focus_examples: |
+    reconciliation types (account, bank, intercompany, sub-ledger,
+    three-way match), tolerance-threshold design, break-management
+    workflows, continuous-close principles, matching algorithms
+    (exact, fuzzy, weighted-field), unapplied-cash / suspense-account
+    lifecycle, inter-entity elimination rules, MDM / golden-record
+    conventions, reconciliation certification governance (SOX evidence)
+  tool_focus_examples: |
+    reconciliation platforms (BlackLine, Trintech Cadency / Adra,
+    FloQast, SmartStream TLM, Oracle ARCS, AutoRek, SAP Account
+    Substantiation), data-integration (Fivetran, Airbyte, Talend,
+    Matillion), MDM (Informatica MDM, Reltio, Tibco EBX), ETL tools,
+    match-and-merge libraries (fuzzywuzzy, RapidFuzz, recordlinkage)

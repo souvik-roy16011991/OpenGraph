@@ -1,0 +1,25 @@
+slug: ai-sustainable-travel-planner
+name: AI Sustainable Travel Planner
+description: >
+  Minimizes environmental impact of travel — calculates per-trip
+  carbon footprint and suggests eco-friendly alternatives, offsets,
+  and lower-impact stays without sacrificing the reason you're going.
+category: travel
+icon: TreePine
+domain:
+  domain_name: Low-Carbon & Sustainable Travel
+  domain_display_name: AI Sustainable Travel Planner
+  organization_name: Sustainability & Responsible Travel Office
+  knowledge_focus_examples: |
+    GHG-Protocol Scope 3 Category 6 business-travel calculation,
+    DEFRA / IEA emission factors for travel modes, radiative-
+    forcing multipliers for aviation (CORSIA, EASA), SAF (sustainable
+    aviation fuel) availability and chain-of-custody, Gold Standard /
+    Verra VCS offset integrity, eco-certified lodging (Green Key,
+    EarthCheck, LEED), slow-travel / flight-shame (flygskam) movement
+  tool_focus_examples: |
+    carbon-calculator APIs (Travalyst, ClimatePartner API, MyClimate
+    Flight, Google Flights emissions data, Thrust Carbon, SquakeAPI),
+    offset marketplaces (Patch, CNaught, Wren, Cloverly), SAF tracking
+    (SkyNRG, Neste), eco-lodging databases (BookDifferent, EcoHotels,
+    Responsible Travel), low-carbon routing in multi-modal engines

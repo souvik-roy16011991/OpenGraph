@@ -1,0 +1,26 @@
+slug: ai-alpha-signal-composer
+name: AI Alpha Signal Composer
+description: >
+  Generates unique trading signals — combines unconventional datasets
+  (satellite, card spend, web traffic, supply-chain telemetry) to
+  discover new alpha sources that aren't already priced in by everyone.
+category: trading
+icon: SquareStack
+domain:
+  domain_name: Alpha Research & Signal Generation
+  domain_display_name: AI Alpha Signal Composer
+  organization_name: Quant Research — Alpha Team
+  knowledge_focus_examples: |
+    factor-investing frameworks (Fama-French, Barra, AQR), alpha-
+    decay and crowding measurement, purged / combinatorial cross-
+    validation (Lopez de Prado), signal-orthogonalisation methods,
+    alternative-data evaluation (signal uniqueness, timeliness,
+    history), feature-engineering for time series, WorldQuant Alpha
+    operators vocabulary, Information Coefficient (IC) and IC
+    decay analysis, statistical-significance vs economic-significance
+  tool_focus_examples: |
+    alternative-data platforms (Thinknum, Second Measure / Facteus,
+    Yipit Data, RS Metrics, Orbital Insight, Quiver Quant,
+    Predata), research stacks (JupyterHub, QuantConnect, WorldQuant
+    BRAIN, Alphathon), factor libraries (Barra, Axioma, Qlik
+    Sense, Alphalens), ML frameworks (scikit-learn, XGBoost, PyTorch)

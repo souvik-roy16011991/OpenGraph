@@ -1,0 +1,25 @@
+slug: ai-compliance-timeline-orchestrator
+name: AI Compliance Timeline Orchestrator
+description: >
+  Manages all tax deadlines intelligently — prevents penalties via
+  proactive scheduling, escalation ladders, and document-readiness
+  checks across every statutory obligation for every entity.
+category: tax
+icon: CalendarClock
+domain:
+  domain_name: Tax Compliance Calendar
+  domain_display_name: AI Compliance Timeline Orchestrator
+  organization_name: Compliance Operations — Filing Calendar
+  knowledge_focus_examples: |
+    entity-wise compliance calendars (income tax, TDS, GST, PF / ESI,
+    ROC / MCA, advance tax, equalisation levy, 1099 / W-2, P11D,
+    VAT returns), late-filing penalty structures per jurisdiction,
+    safe-harbour extensions (IRS Form 4868, Form 7004), holiday /
+    non-working-day shifting rules, escalation SLAs for missed
+    milestones, preparer vs reviewer vs approver workflow gates
+  tool_focus_examples: |
+    compliance-calendar platforms (Avalara Returns, Vertex O Series,
+    Thomson Reuters ONESOURCE Tax Calendar, CCH Axcess Workstream,
+    CompliancePoint, Karbon), workflow engines (Asana, Monday,
+    ClickUp, Jetpack Workflow), CPA-firm practice management (Canopy,
+    TaxDome, Pascal Workflow), deadline-reminder bots (Slack + cron)

@@ -1,0 +1,25 @@
+slug: ai-deployment-risk-forecaster
+name: AI Deployment Risk Forecaster
+description: >
+  Predicts failure before deployment — analyses code changes,
+  dependencies, test coverage, deploy-time signals, and recent
+  incidents to score a release's blast risk and gate green-amber-red.
+category: engineering
+icon: CloudLightning
+domain:
+  domain_name: Deployment Risk & Change Intelligence
+  domain_display_name: AI Deployment Risk Forecaster
+  organization_name: Platform Engineering — Release Governance
+  knowledge_focus_examples: |
+    change-failure-rate (DORA metric) fundamentals, commit-level risk
+    signals (size, author seniority, touched-file history), canary
+    / progressive-delivery patterns, dependency-vulnerability scoring
+    (CVSS, EPSS), test-coverage-to-risk correlation, SLO burn-rate
+    predictive signals, release-time-of-day risk distribution, post-
+    mortem root-cause categorisation (coding, config, infra, data)
+  tool_focus_examples: |
+    deployment-risk / intelligence (Faros AI, Jellyfish, Sleuth,
+    LinearB, OpsLevel), progressive-delivery (LaunchDarkly, Flagger,
+    Argo Rollouts), CI/CD (GitHub Actions, GitLab CI, Jenkins, Buildkite,
+    CircleCI), SCA / SAST (Snyk, Semgrep, SonarQube), observability
+    APIs for SLOs (Datadog, Honeycomb, Lightstep), Git event APIs

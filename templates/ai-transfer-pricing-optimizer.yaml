@@ -1,0 +1,25 @@
+slug: ai-transfer-pricing-optimizer
+name: AI Transfer Pricing Optimizer
+description: >
+  Ensures fair intercompany pricing — aligns global transactions with
+  regulatory expectations, builds benchmarking studies, and produces
+  documentation that holds up under multi-jurisdiction scrutiny.
+category: tax
+icon: ArrowLeftRight
+domain:
+  domain_name: Transfer Pricing & Intercompany Pricing
+  domain_display_name: AI Transfer Pricing Optimizer
+  organization_name: Transfer Pricing & International Tax
+  knowledge_focus_examples: |
+    OECD TP Guidelines, UN Practical Manual on TP, TP methods (CUP,
+    RPM, CPM, TNMM, Profit Split), comparability analysis and
+    benchmarking studies, intercompany agreements drafting, BEPS
+    Action 13 Master / Local / CbCR documentation, safe-harbour
+    rules for low-value-adding services, TP for intangibles (DEMPE),
+    functional-and-risk (F&R) analysis, year-end true-up adjustments
+  tool_focus_examples: |
+    TP documentation (Thomson Reuters ONESOURCE Operational TP,
+    Bloomberg Tax TP, Longview TP, Aibidia), benchmarking databases
+    (TP Catalyst, Bureau van Dijk Orbis, Moody's Compustat), treaty
+    lookup (IBFD, Orbitax), intercompany-pricing engines (SAP
+    Intercompany Matrix, Oracle EPM), document-automation (DocuSign CLM)

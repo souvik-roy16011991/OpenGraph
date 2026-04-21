@@ -1,0 +1,25 @@
+slug: ai-policy-to-process-translator
+name: AI Policy-to-Process Translator
+description: >
+  Converts policies into executable workflows — ensures operational
+  compliance through automation by turning policy PDFs into BPMN
+  processes, decision rules, and workflow tasks mapped to each control.
+category: backoffice
+icon: ListChecks
+domain:
+  domain_name: Policy Operationalisation
+  domain_display_name: AI Policy-to-Process Translator
+  organization_name: Compliance Operations — Policy Automation
+  knowledge_focus_examples: |
+    policy-to-control mapping frameworks (NIST CSF, ISO 27001 Annex
+    A, SOX 404 ITGC / ITAC), DMN decision-model standard, policy-
+    authoring lifecycle (draft, attest, certify, retire), policy-
+    exception workflows, control-testing methodology (design vs
+    operating effectiveness), BPMN gateway / task mapping conventions,
+    attestation cadence design, readability / plain-English rewriting
+  tool_focus_examples: |
+    policy-management platforms (NAVEX PolicyTech, MetricStream Policy
+    & Document Mgmt, Hyperproof, Vanta, Drata, Tugboat Logic, Strike
+    Graph), workflow engines (Camunda, Pega, Appian), DMN engines
+    (Camunda DMN, Decision Manager), LLM-driven policy-to-BPMN
+    translators, GRC platforms (Archer, ServiceNow GRC, LogicGate)
