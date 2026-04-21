@@ -232,12 +232,20 @@ export const api = {
   myAudit: (opts?: { limit?: number; before_id?: number; workspace_id?: string; action?: string }) =>
     get<AuditListResponse>("/api/v1/me/audit", opts),
 
-  // Templates
+  // Templates (stock + user-custom; `id` is a slug for stock, UUID for custom)
   listTemplates: (opts?: { q?: string; category?: string }) =>
     get<{ templates: KBTemplate[] }>("/api/v1/templates", opts),
-  getTemplate: (slug: string) => get<KBTemplate>(`/api/v1/templates/${slug}`),
-  instantiateTemplate: (slug: string, body: { name?: string; description?: string } = {}) =>
-    json<InstantiateTemplateResponse>(`/api/v1/templates/${slug}/instantiate`, "POST", body),
+  getTemplate: (id: string) => get<KBTemplate>(`/api/v1/templates/${encodeURIComponent(id)}`),
+  createTemplate: (body: import("./schema").TemplateCreateInput) =>
+    json<KBTemplate>("/api/v1/templates", "POST", body),
+  updateTemplate: (id: string, body: import("./schema").TemplateUpdateInput) =>
+    json<KBTemplate>(`/api/v1/templates/${encodeURIComponent(id)}`, "PATCH", body),
+  deleteTemplate: (id: string) =>
+    json<{ ok: true; deleted_template_id: string }>(
+      `/api/v1/templates/${encodeURIComponent(id)}`, "DELETE",
+    ),
+  instantiateTemplate: (id: string, body: { name?: string; description?: string } = {}) =>
+    json<InstantiateTemplateResponse>(`/api/v1/templates/${encodeURIComponent(id)}/instantiate`, "POST", body),
 
   // LLM selection
   listModels: (refresh = false) =>

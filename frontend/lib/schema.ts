@@ -305,20 +305,40 @@ export interface AuditListResponse {
 }
 
 // ---------- Templates ----------
+export interface TemplateDomain {
+  domain_name: string;
+  domain_display_name: string;
+  organization_name: string;
+  knowledge_focus_examples: string;
+  tool_focus_examples: string;
+}
+
 export interface KBTemplate {
+  /** Opaque identifier — slug for stock, UUID string for custom. Use this
+   *  in /api/v1/templates/{id} paths. */
+  id: string;
+  /** Legacy: stock slug when source='stock', empty string for custom. */
   slug: string;
+  source: "stock" | "custom";
+  /** True only for templates this user can PATCH / DELETE (own custom ones). */
+  editable: boolean;
   name: string;
   description: string;
   category: string;
   icon: string;
-  domain: {
-    domain_name: string;
-    domain_display_name: string;
-    organization_name: string;
-    knowledge_focus_examples: string;
-    tool_focus_examples: string;
-  };
+  domain: TemplateDomain;
 }
+
+export interface TemplateCreateInput {
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  domain: TemplateDomain;
+}
+
+export type TemplateUpdateInput = Partial<TemplateCreateInput>;
+
 export interface InstantiateTemplateResponse {
   id: string;
   name: string;
