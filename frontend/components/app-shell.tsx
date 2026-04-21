@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrandMark } from "@/components/brand";
 import { FlowProgress, isWizardRoute } from "@/components/wizard/flow-progress";
+import { UserMenu } from "@/components/user-menu";
 import { useWorkspaceStore } from "@/store/workspace-store";
 import { useSidebarStore } from "@/store/sidebar-store";
 
@@ -318,6 +319,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-sm font-medium truncate">{headerLabel}</span>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
+            <UserMenu />
             <ThemeToggle />
           </div>
         </header>
