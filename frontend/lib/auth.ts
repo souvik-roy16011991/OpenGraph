@@ -18,6 +18,14 @@ export type AuthUser = {
   display_name: string | null;
 };
 
+export type SignupResult = {
+  user: AuthUser;
+  /** true when Supabase returned a session — user is logged in and can be
+   *  redirected straight to the app. false when email confirmation is
+   *  required — the caller should show a "check your inbox" message. */
+  signedIn: boolean;
+};
+
 function toAuthUser(user: import("@supabase/supabase-js").User): AuthUser {
   const meta = user.user_metadata ?? {};
   return {
@@ -27,23 +35,33 @@ function toAuthUser(user: import("@supabase/supabase-js").User): AuthUser {
   };
 }
 
-/** Sign up with email + password. Pass display_name in user_metadata. */
+/** Sign up with email + password. Pass display_name in user_metadata.
+ *
+ *  Returns `signedIn: false` when Supabase has email confirmation enabled —
+ *  the account exists but the user must verify their inbox before the next
+ *  `signInWithPassword`. Without this flag the sign-up page would redirect
+ *  to `/`, middleware would see no session, and bounce back to `/sign-in`
+ *  with no explanation. */
 export async function signup(input: {
   email: string;
   password: string;
   display_name?: string;
-}): Promise<AuthUser> {
+}): Promise<SignupResult> {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
       data: input.display_name ? { display_name: input.display_name } : undefined,
+      emailRedirectTo:
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : undefined,
     },
   });
   if (error) throw new Error(error.message);
   if (!data.user) throw new Error("Sign-up succeeded but no user returned.");
-  return toAuthUser(data.user);
+  return { user: toAuthUser(data.user), signedIn: data.session !== null };
 }
 
 /** Sign in with email + password. */
@@ -90,19 +108,4 @@ export async function logout(): Promise<void> {
   });
   resetLocalUserState();
   await supabase.auth.signOut();
-}
-
-/** Return the current session's access token synchronously from localStorage,
- *  or null if not signed in. Used by lib/api.ts which is sync. */
-export function getTokenSync(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-    const ref = url.replace("https://", "").split(".")[0];
-    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
-    if (!raw) return null;
-    return (JSON.parse(raw) as { access_token?: string }).access_token ?? null;
-  } catch {
-    return null;
-  }
 }

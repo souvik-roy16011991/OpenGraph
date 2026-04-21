@@ -24,10 +24,12 @@ function SignInPageInner() {
   const params = useSearchParams();
   const rawReturn = params.get("return_to");
   const returnTo = rawReturn && rawReturn.startsWith("/") ? rawReturn : "/";
+  const prefillEmail = params.get("email") ?? "";
+  const urlError = params.get("error");
 
-  const [email, setEmail] = React.useState("");
+  const [email, setEmail] = React.useState(prefillEmail);
   const [password, setPassword] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(urlError);
   const [submitting, setSubmitting] = React.useState(false);
   const [oauthPending, setOauthPending] = React.useState<"google" | "github" | null>(null);
 

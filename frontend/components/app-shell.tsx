@@ -210,6 +210,16 @@ function NavRow({
   );
 }
 
+// Unauthenticated / full-screen routes render without the sidebar chrome so
+// the sign-in form isn't stacked next to a broken workspace switcher firing
+// 401s. Keep in sync with middleware's auth-page list.
+const CHROMELESS_PREFIXES = ["/sign-in", "/sign-up", "/auth/"];
+
+function isChromeless(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return CHROMELESS_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const collapsed = useSidebarStore((s) => s.collapsed);
@@ -222,6 +232,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const mql = window.matchMedia("(max-width: 767px)");
     if (mql.matches) setCollapsed(true);
   }, [setCollapsed]);
+
+  if (isChromeless(pathname)) {
+    return <>{children}</>;
+  }
 
   const headerLabel =
     PRIMARY_NAV.find((n) => isActive(pathname, n))?.label ?? "Overview";

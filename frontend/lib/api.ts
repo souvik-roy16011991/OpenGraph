@@ -29,7 +29,8 @@ import type {
   WorkspaceLLMResponse,
   WorkspaceSummary,
 } from "./schema";
-import { getCachedAccessToken, primeTokenCache } from "./auth-token";
+import { getCachedAccessToken, primeTokenCache, setCachedAccessToken } from "./auth-token";
+import { getSupabaseBrowserClient } from "./supabase";
 
 // If NEXT_PUBLIC_API_BASE is set (e.g. http://localhost:8000), hit the backend
 // directly — avoids Next.js dev-proxy body-size limits on multipart uploads.
@@ -111,26 +112,82 @@ async function safeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   }
 }
 
+// Paths where a 401 must NOT redirect to /sign-in — the user is already
+// on an auth page, and looping on them would clobber in-progress flows
+// (OAuth callback, sign-in form submission).
+function isAuthLocation(): boolean {
+  if (typeof window === "undefined") return false;
+  const p = window.location.pathname;
+  return p.startsWith("/sign-in") || p.startsWith("/sign-up") || p.startsWith("/auth/");
+}
+
+/** SSO-style fetch: on 401, force a Supabase session refresh (which rotates
+ *  the access token via the refresh token) and retry once with the fresh
+ *  bearer. If the session is genuinely gone or refresh fails, redirect to
+ *  /sign-in with a `return_to` — silently, without surfacing an
+ *  "Authentication required" error to the user.
+ *
+ *  `buildInit` is a closure so the retry picks up the refreshed token from
+ *  the module-level cache via `withHeaders()`.
+ *
+ *  Uses `refreshSession()` rather than `getSession()` so we FORCE a token
+ *  rotation even when the client-side clock thinks the old token is still
+ *  valid — which is the common case when the server has rejected it (e.g.
+ *  clock skew, remote revocation, rotated JWT secret).
+ */
+async function apiFetch(url: string, buildInit: () => RequestInit): Promise<Response> {
+  let res = await safeFetch(url, buildInit());
+  if (res.status !== 401) return res;
+
+  let refreshed = false;
+  try {
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error) {
+      const fresh = data.session?.access_token ?? null;
+      setCachedAccessToken(fresh);
+      refreshed = !!fresh;
+    }
+  } catch {
+    /* fall through to redirect */
+  }
+
+  if (refreshed) {
+    res = await safeFetch(url, buildInit());
+    if (res.status !== 401) return res;
+  }
+
+  // Genuine auth failure — clear the cached token so stale headers aren't
+  // re-sent and bounce to sign-in (unless we're already there, to prevent
+  // a redirect loop).
+  setCachedAccessToken(null);
+  if (typeof window !== "undefined" && !isAuthLocation()) {
+    const returnTo = window.location.pathname + window.location.search;
+    window.location.replace(`/sign-in?return_to=${encodeURIComponent(returnTo)}`);
+  }
+  return res;
+}
+
 async function get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
   const qs = query
     ? "?" + new URLSearchParams(
         Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       ).toString()
     : "";
-  const res = await safeFetch(`${BASE}${path}${qs}`, {
+  const res = await apiFetch(`${BASE}${path}${qs}`, () => ({
     cache: "no-store",
     headers: withHeaders(),
-  });
+  }));
   return handle<T>(res);
 }
 
 async function json<T>(path: string, method: "POST" | "PUT" | "DELETE" | "PATCH", body?: unknown): Promise<T> {
-  const res = await safeFetch(`${BASE}${path}`, {
+  const res = await apiFetch(`${BASE}${path}`, () => ({
     method,
     headers: withHeaders({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
-  });
+  }));
   return handle<T>(res);
 }
 
@@ -143,14 +200,15 @@ async function jsonWithWorkspace<T>(
   body: unknown,
   workspaceIdOverride: string,
 ): Promise<T> {
-  const base = withHeaders({ "Content-Type": "application/json" });
-  const h = new Headers(base);
-  h.set("X-Workspace-Id", workspaceIdOverride);
-  const res = await safeFetch(`${BASE}${path}`, {
-    method,
-    headers: h,
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: "no-store",
+  const res = await apiFetch(`${BASE}${path}`, () => {
+    const h = new Headers(withHeaders({ "Content-Type": "application/json" }));
+    h.set("X-Workspace-Id", workspaceIdOverride);
+    return {
+      method,
+      headers: h,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: "no-store",
+    };
   });
   return handle<T>(res);
 }
@@ -168,9 +226,11 @@ async function getWithWorkspace<T>(
         Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       ).toString()
     : "";
-  const h = new Headers(withHeaders());
-  h.set("X-Workspace-Id", workspaceIdOverride);
-  const res = await safeFetch(`${BASE}${path}${qs}`, { cache: "no-store", headers: h });
+  const res = await apiFetch(`${BASE}${path}${qs}`, () => {
+    const h = new Headers(withHeaders());
+    h.set("X-Workspace-Id", workspaceIdOverride);
+    return { cache: "no-store", headers: h };
+  });
   return handle<T>(res);
 }
 
@@ -182,12 +242,12 @@ export const api = {
 
   // upload — accepts multiple `knowledge_files` + multiple `tool_files`
   uploadKB: async (form: FormData): Promise<UploadResponse> => {
-    const res = await safeFetch(`${BASE}/api/v1/kb/upload`, {
+    const res = await apiFetch(`${BASE}/api/v1/kb/upload`, () => ({
       method: "POST",
       body: form,
       cache: "no-store",
-      headers: withMultipartHeaders(), // don't set Content-Type on multipart
-    });
+      headers: withMultipartHeaders(),
+    }));
     return handle<UploadResponse>(res);
   },
 

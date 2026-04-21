@@ -34,6 +34,7 @@ function SignUpPageInner() {
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [oauthPending, setOauthPending] = React.useState<"google" | "github" | null>(null);
+  const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
 
   const density =
     (email.length > 3 ? 0.2 : 0) +
@@ -54,11 +55,18 @@ function SignUpPageInner() {
     }
     setSubmitting(true);
     try {
-      await signup({
-        email: email.trim().toLowerCase(),
+      const normalizedEmail = email.trim().toLowerCase();
+      const result = await signup({
+        email: normalizedEmail,
         password,
         display_name: displayName.trim() || undefined,
       });
+      if (!result.signedIn) {
+        // Supabase is configured to require email confirmation. Tell the
+        // user to check their inbox instead of silently bouncing them.
+        setVerifyEmail(normalizedEmail);
+        return;
+      }
       router.replace(returnTo);
       router.refresh();
     } catch (err) {
@@ -110,6 +118,24 @@ function SignUpPageInner() {
             <CardDescription>Each email is its own private workspace tenant.</CardDescription>
           </CardHeader>
           <CardContent className="px-0">
+            {verifyEmail ? (
+              <div className="space-y-4">
+                <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-4">
+                  <p className="text-sm font-medium">Check your inbox</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    We sent a confirmation link to{" "}
+                    <span className="font-mono">{verifyEmail}</span>. Click it
+                    to activate your account, then sign in.
+                  </p>
+                </div>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={`/sign-in?email=${encodeURIComponent(verifyEmail)}`}>
+                    Go to sign in
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <>
             {/* OAuth buttons */}
             <div className="space-y-2 mb-4">
               <Button
@@ -211,6 +237,8 @@ function SignUpPageInner() {
                 </Link>
               </p>
             </form>
+              </>
+            )}
           </CardContent>
         </Card>
       </section>
