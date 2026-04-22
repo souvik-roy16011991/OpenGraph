@@ -55,6 +55,11 @@ export function clearSession(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
+  // Also drop the persisted zustand workspace selection. Leaving it behind
+  // means the next user to sign in on this browser inherits the previous
+  // user's active workspace id, which the backend then 404s as "Workspace X
+  // not found" (same response as cross-tenant access — see src/api/deps.py).
+  window.localStorage.removeItem("kb-active-workspace");
   clearCookie(TOKEN_KEY);
 }
 
