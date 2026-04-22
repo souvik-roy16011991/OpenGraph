@@ -269,6 +269,20 @@ async def run_build_async(job: ClaimedJob, worker_id: str | None = None) -> None
             domain_snapshot=domain_snap,
             graph_snapshot=graph_snap,
         )
+        # Billing deduction (post-commit). Look up workspace owner, check
+        # BYOK status, compute cost from the final stats.usage payload, and
+        # write a ledger entry. Best-effort — a billing failure MUST NOT
+        # mark an otherwise-successful build as errored.
+        try:
+            await _debit_build_completion(
+                job=job,
+                stats=final_stats,
+                failed=False,
+            )
+        except Exception as bill_exc:
+            logger.warning(
+                "billing debit for build %s failed: %s", job.job_id, bill_exc,
+            )
     except Exception as exc:
         err = f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
         logger.exception("Build job %s failed", job.job_id)
@@ -292,6 +306,19 @@ async def run_build_async(job: ClaimedJob, worker_id: str | None = None) -> None
             logger.error(
                 "Failed to record error state for %s: %s", job.job_id, persist_exc
             )
+        # Billing deduction on failed build — forgives small failures and
+        # drops the baseline fee, but charges for tokens actually burned.
+        try:
+            await _debit_build_completion(
+                job=job,
+                stats=partial_stats or {},
+                failed=True,
+            )
+        except Exception as bill_exc:
+            logger.warning(
+                "billing debit for failed build %s failed: %s",
+                job.job_id, bill_exc,
+            )
     finally:
         try:
             build_metrics_var.reset(metrics_token)
@@ -311,6 +338,71 @@ async def run_build_async(job: ClaimedJob, worker_id: str | None = None) -> None
 # Module-level because the semaphore ensures only one build runs at a
 # time — no concurrent writers.
 _LAST_BUILD_RESULT: dict = {}
+
+
+async def _debit_build_completion(
+    job: ClaimedJob,
+    stats: dict,
+    failed: bool,
+) -> None:
+    """Compute cost from final stats + BYOK status + workspace owner, then
+    write a ledger entry and (for trial users) bump the trial build counter.
+
+    Called from ``run_build_async`` on both success and failure paths.
+    BYOK detection: checks ``workspace_api_keys`` row existence. When
+    present, LLM+embedding tokens are waived. Baseline + storage fees are
+    independent of BYOK.
+    """
+    import uuid as _uuid
+
+    from sqlalchemy import select
+    from src.billing import cost_build, debit
+    from src.billing.ledger import bump_trial_counter, get_account
+    from src.infra.db import get_session
+    from src.infra.db_models import Workspace, WorkspaceApiKey
+
+    ws_uuid = _uuid.UUID(job.workspace_id)
+
+    async with get_session() as s:
+        owner_id = (await s.execute(
+            select(Workspace.user_id).where(Workspace.id == ws_uuid)
+        )).scalar_one_or_none()
+        if owner_id is None:
+            logger.warning(
+                "billing: workspace %s has no owner — skipping debit",
+                job.workspace_id,
+            )
+            return
+        has_byok = (await s.execute(
+            select(WorkspaceApiKey.workspace_id).where(
+                WorkspaceApiKey.workspace_id == ws_uuid
+            )
+        )).scalar_one_or_none() is not None
+
+    usage = (stats or {}).get("usage") or {}
+    credits = cost_build(usage=usage, has_byok=has_byok, failed=failed)
+
+    await debit(
+        owner_id,
+        credits,
+        reason="build" if not failed else "build_failed",
+        source_type="build_job",
+        source_id=job.job_id,
+        actor_type="system",
+        metadata={
+            "workspace_id": job.workspace_id,
+            "has_byok": has_byok,
+            "failed": failed,
+            "status": "error" if failed else "done",
+        },
+    )
+    if not failed:
+        # Trial users: increment the successful-build counter. No-op for
+        # non-trial; atomic UPDATE scoped by ``plan_tier='trial'``.
+        try:
+            await bump_trial_counter(owner_id, kind="build")
+        except Exception as exc:
+            logger.debug("trial build counter bump failed: %s", exc)
 
 
 def _run_sync_build(job: ClaimedJob, metrics, state: _WorkerLogState) -> None:
@@ -439,6 +531,10 @@ async def worker_main() -> None:
 
     last_sweep_ts = 0.0
     sweep_interval = 30.0
+    # Storage proration runs much less often — once per ~30 minutes is
+    # plenty since the sweeper is idempotent (dedupe by workspace_id+date).
+    last_storage_sweep_ts = 0.0
+    storage_sweep_interval = 30 * 60.0  # 30 minutes
 
     while not _draining:
         async with _build_semaphore:
@@ -466,6 +562,19 @@ async def worker_main() -> None:
             except Exception as exc:
                 logger.warning("sweep_stale failed: %s", exc)
             last_sweep_ts = now
+
+        # Daily storage proration. Idempotent via per-(workspace, day)
+        # dedupe; running every 30 min means we pick up new workspaces
+        # within half an hour of their first completed build.
+        if now - last_storage_sweep_ts >= storage_sweep_interval:
+            try:
+                from src.billing.storage_sweeper import sweep_daily_storage
+                emitted = await sweep_daily_storage()
+                if emitted:
+                    logger.info("storage sweep emitted %d debit(s)", emitted)
+            except Exception as exc:
+                logger.warning("storage sweep failed: %s", exc)
+            last_storage_sweep_ts = now
 
         try:
             await asyncio.sleep(CLAIM_POLL_INTERVAL_SECONDS)

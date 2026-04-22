@@ -19,6 +19,7 @@ from sqlalchemy import select
 from src.api import build_queue
 from src.api.auth import require_user
 from src.api.deps import require_workspace_id
+from src.billing import check_build_allowed
 from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import BuildJobRow, User, Workspace
@@ -53,6 +54,10 @@ async def start_build(
     workspace_id: str = Depends(require_workspace_id),
     user: User = Depends(require_user),
 ):
+    # Billing gate — raises HTTP 402 with structured detail on trial-cap
+    # hit or PAYG/Team overdraft.
+    await check_build_allowed(user.id)
+
     try:
         created = await build_queue.enqueue(
             workspace_id=workspace_id,

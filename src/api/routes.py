@@ -263,10 +263,14 @@ async def query_graph(
     import time
     import uuid
     from src.agent.graph import KBGraphAgent
+    from src.billing import check_chat_allowed
     from src.config import LLM_MODEL, USE_NEON
     from src.infra.workspace_llm import get_workspace_llm_model
 
     from src.observability.usage import ChatMetrics, chat_metrics_var
+
+    # Billing gate — raises HTTP 402 on trial-cap hit or overdraft.
+    await check_chat_allowed(user.id)
 
     kg = _get_kg(workspace_id)
     agent = KBGraphAgent.from_graph(kg)
@@ -359,6 +363,43 @@ async def query_graph(
             "query_preview": (req.query[:80] + "…") if len(req.query) > 80 else req.query,
         },
     )
+
+    # Billing deduction — post-commit so a failure here never blocks the
+    # user's response. BYOK detection: presence of a row in
+    # ``workspace_api_keys`` for this workspace waives LLM/embedding tokens.
+    try:
+        from src.billing import cost_chat, debit
+        from src.billing.ledger import bump_trial_counter
+        from src.infra.db_models import WorkspaceApiKey
+        import uuid as _uuid
+        ws_uuid = _uuid.UUID(workspace_id)
+        async with get_session() as _s:
+            from sqlalchemy import select as _select
+            has_byok = (await _s.execute(
+                _select(WorkspaceApiKey.workspace_id).where(
+                    WorkspaceApiKey.workspace_id == ws_uuid
+                )
+            )).scalar_one_or_none() is not None
+        usage_dict = usage_payload.model_dump() if usage_payload else {}
+        credits = cost_chat(usage=usage_dict, has_byok=has_byok)
+        await debit(
+            user.id,
+            credits,
+            reason="chat",
+            source_type="chat_session",
+            source_id=session_id,
+            actor_type="system",
+            metadata={
+                "workspace_id": workspace_id,
+                "has_byok": has_byok,
+                "model": effective_model,
+            },
+        )
+        # Trial users: bump lifetime chat counter. No-op for non-trial.
+        await bump_trial_counter(user.id, kind="chat")
+    except Exception as bill_exc:
+        logger.warning("chat billing debit failed for session %s: %s", session_id, bill_exc)
+
     return resp
 
 
