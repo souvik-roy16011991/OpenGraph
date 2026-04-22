@@ -121,6 +121,20 @@ services:
       - key: PASSWORD_MIN_LENGTH
         value: "8"
 
+      # --- GitHub OAuth (optional; leave unset to disable the button) ---
+      # Register a PROD OAuth app at https://github.com/settings/applications/new
+      # Homepage: https://opengraph.tech
+      # Callback: https://opengraph-backend.onrender.com/api/v1/auth/github/callback
+      # Paste client id + secret into the Render dashboard (sync: false).
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_OAUTH_REDIRECT_URI
+        value: https://opengraph-backend.onrender.com/api/v1/auth/github/callback
+      - key: FRONTEND_URL
+        value: https://opengraph.tech
+
       # --- Guardrails ---------------------------------------------------
       # Caps each user at this many workspaces — prevents template-
       # instantiation abuse.
@@ -135,7 +149,7 @@ services:
       # `Origin: https://<host>` header. Keep this literal; update if the
       # frontend service is renamed or moved to a custom domain.
       - key: CORS_ALLOW_ORIGINS
-        value: https://opengraph-frontend.onrender.com
+        value: https://opengraph.tech,https://opengraph-frontend.onrender.com
 
       # --- Process mode -------------------------------------------------
       # src/entrypoint.py inspects APP_MODE and starts uvicorn (api) or the

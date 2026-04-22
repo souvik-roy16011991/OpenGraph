@@ -14,6 +14,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 const INFRA_PREFIXES = ["/_next", "/favicon", "/opengraph-mark.svg"];
 const AUTH_PAGE_PREFIXES = ["/sign-in", "/sign-up"];
+// `/auth/complete` is the landing page for the backend OAuth callback. It
+// receives the JWT as a query param, stores it, and navigates away — so it
+// MUST run without the cookie-based auth gate (which would otherwise bounce
+// the visitor to /sign-in and lose the token).
+const OAUTH_HANDOFF_PREFIXES = ["/auth/"];
 
 function startsWithAny(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname.startsWith(p));
@@ -27,6 +32,7 @@ export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
   if (startsWithAny(pathname, INFRA_PREFIXES)) return NextResponse.next();
+  if (startsWithAny(pathname, OAUTH_HANDOFF_PREFIXES)) return NextResponse.next();
 
   const isAuthPage = startsWithAny(pathname, AUTH_PAGE_PREFIXES);
   const signedIn = hasSession(req);

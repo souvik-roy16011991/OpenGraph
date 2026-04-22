@@ -59,6 +59,11 @@ class User(Base):
     # Retained for historical rows from the Neon Auth era. New signups leave
     # this NULL. Kept nullable to avoid a destructive migration on upgrade.
     stack_user_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, unique=True)
+    # GitHub OAuth identity. NULL for users who signed up with email/password.
+    # Stored as the numeric id from GitHub (stable across username changes).
+    github_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True)
+    # Cached avatar URL from the OAuth provider (GitHub today).
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
