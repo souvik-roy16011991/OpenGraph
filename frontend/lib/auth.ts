@@ -76,7 +76,13 @@ export function getStoredUser(): StoredUser | null {
 
 export type AuthResponse = { token: string; token_type: string; user: StoredUser };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+// Render's `fromService.property: host` yields a bare hostname — prepend
+// https:// when the scheme is missing so the fetch URL is absolute (otherwise
+// the browser resolves it as a relative path and returns the host's HTML).
+const RAW_API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+const API_BASE = RAW_API_BASE && !/^https?:\/\//i.test(RAW_API_BASE)
+  ? `https://${RAW_API_BASE}`
+  : RAW_API_BASE;
 
 async function authFetch(path: string, body: unknown): Promise<AuthResponse> {
   let res: Response;
