@@ -13,7 +13,7 @@ queries that graph in natural language. Every runtime artifact — uploads,
 vectors, graph, chat history, config — lives in managed cloud stores. No
 local disk. No per-tenant state in the container.
 
-## What it does
+## What it does 
 
 1. **Pick a template** (or start blank) from a 29-template catalog
    spanning healthcare, finance, legal, engineering, people, ops,
