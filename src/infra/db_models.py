@@ -165,6 +165,17 @@ class BuildJobRow(Base):
     graph_snapshot: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     stats: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     backends: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    # Written by the worker every ~10s while a build is running. The sweeper
+    # treats rows with ``status='running' AND heartbeat_at < now()-90s`` as
+    # crashed-worker zombies and flips them to 'error' (or re-queues if
+    # attempt_count < 3). Nullable so pre-feature rows stay valid.
+    heartbeat_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Host+pid+uuid of the worker that last claimed the row — invaluable
+    # when debugging stuck jobs across a fleet.
+    worker_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Incremented by the sweeper each time a job is re-queued from a zombie
+    # state. After 3 attempts, the row is left as permanent 'error'.
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
