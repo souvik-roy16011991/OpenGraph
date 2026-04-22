@@ -36,7 +36,6 @@ router = APIRouter()
 # against ``MAX(finished_at)`` for completed builds on that workspace, and
 # reload on mismatch. The freshness check is itself cached for
 # ``_FRESHNESS_TTL_SECONDS`` to avoid hitting Neon on every chat query.
-import asyncio as _asyncio
 import time as _time
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -106,33 +105,18 @@ async def _latest_done_build_unix(workspace_id: str) -> _Optional[float]:
         return None
 
 
-def _sync_latest_done_build_unix(workspace_id: str) -> _Optional[float]:
-    """Sync wrapper around the async freshness query, safe to call from
-    the request path. Runs the coroutine to completion on a fresh loop."""
-    try:
-        return _asyncio.run(_latest_done_build_unix(workspace_id))
-    except RuntimeError:
-        # Already in an event loop — fall back to running on that loop.
-        loop = _asyncio.get_event_loop()
-        return loop.run_until_complete(_latest_done_build_unix(workspace_id))
-
-
-async def _freshness_check(cached: _CachedKG, workspace_id: str) -> bool:
-    """Return True if the cached entry is still fresh (no newer build)."""
-    latest = await _latest_done_build_unix(workspace_id)
-    cached.freshness_checked_at = _time.monotonic()
-    if latest is None:
-        return True
-    return latest <= cached.latest_build_unix
-
-
-def _get_kg(workspace_id: str) -> KnowledgeGraph:
+async def _get_kg(workspace_id: str) -> KnowledgeGraph:
     """Return the live KnowledgeGraph for *workspace_id*, loading from Memgraph if needed.
 
     Cache miss path: hydrate from Memgraph and store in the per-worker LRU.
     Cache hit path: check freshness against Neon's build history (debounced
     to ``_FRESHNESS_TTL_SECONDS``) and reload if a newer build has landed
     on another worker.
+
+    Must be async because FastAPI route handlers run inside an already-
+    active event loop — attempting ``asyncio.run`` / ``loop.run_until_complete``
+    from within an async request throws ``RuntimeError: this event loop is
+    already running``. All callers are async route handlers; they ``await``.
     """
     cached = _kg_by_ws.get(workspace_id)
     if cached is not None:
@@ -140,8 +124,8 @@ def _get_kg(workspace_id: str) -> KnowledgeGraph:
         if now_mono - cached.freshness_checked_at < _FRESHNESS_TTL_SECONDS:
             _kg_by_ws.move_to_end(workspace_id)
             return cached.kg
-        # Debounce window elapsed — check Neon.
-        latest = _sync_latest_done_build_unix(workspace_id)
+        # Debounce window elapsed — check Neon directly (already in a loop).
+        latest = await _latest_done_build_unix(workspace_id)
         cached.freshness_checked_at = now_mono
         if latest is None or latest <= cached.latest_build_unix:
             _kg_by_ws.move_to_end(workspace_id)
@@ -165,7 +149,7 @@ def _get_kg(workspace_id: str) -> KnowledgeGraph:
             ),
         )
 
-    latest = _sync_latest_done_build_unix(workspace_id) or _time.time()
+    latest = await _latest_done_build_unix(workspace_id) or _time.time()
     _kg_by_ws[workspace_id] = _CachedKG(
         kg=kg,
         loaded_at_unix=_time.time(),
@@ -272,7 +256,7 @@ async def query_graph(
     # Billing gate — raises HTTP 402 on trial-cap hit or overdraft.
     await check_chat_allowed(user.id)
 
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
     agent = KBGraphAgent.from_graph(kg)
 
     session_id = req.session_id or str(uuid.uuid4())
@@ -469,7 +453,7 @@ async def _persist_chat_turn(
 @router.get("/graph/node/{node_id}", summary="Get node details and edges")
 async def get_node(node_id: str, workspace_id: str = Depends(require_workspace_id)):
     """Return a node's data along with its incoming and outgoing edges."""
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
     node = kg.get_node(node_id)
     if not node:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found.")
@@ -491,7 +475,7 @@ async def get_tree(
     workspace_id: str = Depends(require_workspace_id),
 ):
     """Return the root domain nodes with their subtrees for UI navigation."""
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
     tree = kg.full_tree()
     return {"tree": tree}
 
@@ -509,7 +493,7 @@ async def get_tools(
     """
     from src.models.nodes import ToolNode
 
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
     tools = [
         node.to_dict()
         for node in kg.nodes.values()
@@ -544,7 +528,7 @@ async def traverse_from_node(
     BFS traverse from a given node with optional edge-type filter.
     Returns ordered list of visited nodes with their data.
     """
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
     if req.node_id not in kg.G:
         raise HTTPException(status_code=404, detail=f"Node '{req.node_id}' not found.")
 
@@ -584,7 +568,7 @@ async def search_nodes(
     workspace_id: str = Depends(require_workspace_id),
 ):
     """Search for nodes using hybrid semantic + keyword search."""
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
 
     node_types = None
     if node_type:
@@ -612,7 +596,7 @@ async def search_nodes(
 @router.get("/graph/stats", summary="Graph statistics")
 async def get_stats(workspace_id: str = Depends(require_workspace_id)):
     """Return node/edge counts by type."""
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
     return kg.stats()
 
 
@@ -621,7 +605,7 @@ async def get_chapters(workspace_id: str = Depends(require_workspace_id)):
     """Return all ChapterNode objects from both KBs."""
     from src.models.nodes import ChapterNode
 
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
     chapters = [
         node.to_dict()
         for node in kg.nodes.values()

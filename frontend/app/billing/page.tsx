@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Coins,
   CreditCard,
+  Download,
   Loader2,
   Receipt,
   ShieldCheck,
@@ -338,9 +339,52 @@ export default function BillingPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium flex items-center gap-2">
-          <Receipt className="h-4 w-4" /> Recent activity
-        </h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-medium flex items-center gap-2">
+            <Receipt className="h-4 w-4" /> Recent activity
+          </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              // Authenticated download: fetch with Bearer, turn the body
+              // into a Blob URL, click a hidden anchor. Avoids exposing
+              // the token in a URL query param.
+              try {
+                const token =
+                  typeof window !== "undefined"
+                    ? window.localStorage.getItem("auth_token")
+                    : null;
+                if (!token) return;
+                // `window.location.origin` falls back safely when
+                // NEXT_PUBLIC_API_BASE is relative. Use the explicit base
+                // so the download works in the split-domain deploy.
+                const base = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+                const url = `${base && !/^https?:\/\//i.test(base) ? `https://${base}` : base}/api/v1/me/billing/transactions.csv`;
+                const res = await fetch(url, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = objectUrl;
+                // Match the filename the server sends in Content-Disposition;
+                // browsers will honour the response header when present.
+                a.download = `billing-transactions.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(objectUrl);
+              } catch (err) {
+                console.error("CSV download failed:", err);
+              }
+            }}
+            className="text-xs"
+          >
+            <Download className="h-3 w-3 mr-1" /> Download CSV
+          </Button>
+        </div>
         {txQ.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading transactions…

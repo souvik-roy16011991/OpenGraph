@@ -31,7 +31,7 @@ async def get_visualization(
     max_nodes: int = Query(default=2000, ge=1, le=20000),
     workspace_id: str = Depends(require_workspace_id),
 ):
-    kg = _get_kg(workspace_id)
+    kg = await _get_kg(workspace_id)
 
     node_type_filter = _csv_list(node_types)
     edge_type_filter = _csv_list(edge_types)

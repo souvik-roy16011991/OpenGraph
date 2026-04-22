@@ -585,3 +585,31 @@ class WorkspaceApiKey(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+# Fractional daily storage accumulator. A workspace that costs 0.05 credits
+# per day (small graph + vectors) would otherwise round to 0 every single
+# day and never be billed. This table carries the sub-credit remainder as
+# micro-credits (1 credit = 1_000_000 micros) and flushes whole credits to
+# the user's balance only when remainder >= 1_000_000.
+
+class WorkspaceStorageMeter(Base):
+    __tablename__ = "workspace_storage_meters"
+
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    # Fractional credit remainder, 0 <= value < 1_000_000. Whole-credit
+    # portions are flushed to ``billing_accounts`` as ledger entries.
+    remainder_micro: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    # Last day the sweeper incremented this row (UTC date, serialised as
+    # TIMESTAMPTZ at 00:00 of that day for the dedupe check). Replaces
+    # the per-(workspace,day) existence check the old sweeper used.
+    last_charged_on: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
