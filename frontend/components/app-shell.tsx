@@ -12,6 +12,7 @@ import {
   GitCompareArrows,
   History as HistoryIcon,
   CircleUser,
+  CreditCard,
   CheckCircle2,
   Moon,
   Sun,
@@ -51,6 +52,7 @@ const PRIMARY_NAV: NavItem[] = [
   { href: "/workspaces", label: "My Graphs", icon: GitBranch, matchPrefixes: GRAPH_MATCH_PREFIXES },
   { href: "/playground", label: "Playground", icon: GitCompareArrows },
   { href: "/history", label: "History", icon: HistoryIcon },
+  { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 

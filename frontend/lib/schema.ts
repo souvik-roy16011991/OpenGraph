@@ -334,6 +334,24 @@ export interface SearchResponse {
 }
 
 // ---------- Current user / audit ----------
+
+// Lifetime caps still available on the trial tier. Fields become ``null``
+// once the user moves off the trial — they represent caps, not usage.
+export interface TrialRemaining {
+  workspaces: number | null;
+  builds: number | null;
+  chats: number | null;
+}
+
+export interface BillingSummary {
+  plan_tier: "trial" | "payg" | "team";
+  subscription_credits: number;
+  topup_credits: number;
+  total_credits: number;
+  overdraft_limit: number;
+  trial_remaining: TrialRemaining;
+}
+
 export interface MeResponse {
   id: string;
   email: string | null;
@@ -343,6 +361,25 @@ export interface MeResponse {
   workspace_count: number;
   build_count: number;
   chat_count: number;
+  billing: BillingSummary;
+}
+
+export interface CreditTransactionEntry {
+  id: number;
+  delta_credits: number;
+  bucket: "subscription" | "topup";
+  reason: string;
+  source_type: string | null;
+  source_id: string | null;
+  actor_type: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface CreditTransactionListResponse {
+  entries: CreditTransactionEntry[];
+  has_more: boolean;
+  next_before_id: number | null;
 }
 export interface AuditEntry {
   id: number;

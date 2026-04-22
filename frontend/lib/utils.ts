@@ -37,6 +37,20 @@ export function formatDurationMs(ms: number | null | undefined): string {
   return formatDuration(ms / 1000);
 }
 
+/** Map internal backend identifiers (as written into ``BuildJobRow.backends``
+ *  and ``stats.backends``) to user-facing labels. Keeps the data layer stable
+ *  — internal names like "memgraph" / "qdrant" / "neo4j" stay in the JSONB
+ *  while the UI always reads "graph store" / "vector DB".
+ */
+export function backendLabel(raw: string | null | undefined): string {
+  if (!raw) return "—";
+  const key = String(raw).toLowerCase();
+  if (["memgraph", "neo4j"].includes(key)) return "graph store";
+  if (["qdrant", "pinecone"].includes(key)) return "vector DB";
+  if (["networkx", "faiss"].includes(key)) return "in-memory";
+  return raw;
+}
+
 /** Extract a clean user-facing message from an unknown thrown value.
  *  `String(new Error("x"))` returns "Error: x" — we want just "x". */
 export function errorMessage(err: unknown): string {

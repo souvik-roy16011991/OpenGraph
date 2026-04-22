@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, XCircle, Loader2, Clock, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDuration, formatNumber } from "@/lib/utils";
+import { backendLabel, formatDuration, formatNumber } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { parseBuildStats, type BuildHistoryRow } from "@/lib/schema";
 import { BuildDetailDrawer } from "./build-detail-drawer";
@@ -110,8 +110,8 @@ export function BuildsTable() {
                   <Badge variant={r.status === "done" ? "success" : r.status === "error" ? "destructive" : "secondary"} className="text-[10px]">
                     {r.status}
                   </Badge>
-                  {r.backends?.graph && <Badge variant="outline" className="text-[10px] font-mono">graph: {r.backends.graph}</Badge>}
-                  {r.backends?.vectors && <Badge variant="outline" className="text-[10px] font-mono">vec: {r.backends.vectors}</Badge>}
+                  {r.backends?.graph && <Badge variant="outline" className="text-[10px]">{backendLabel(r.backends.graph)}</Badge>}
+                  {r.backends?.vectors && <Badge variant="outline" className="text-[10px]">{backendLabel(r.backends.vectors)}</Badge>}
                   {r.skip_embeddings && <Badge variant="outline" className="text-[10px]">no-embed</Badge>}
                 </div>
                 <MetricsStrip row={r} />

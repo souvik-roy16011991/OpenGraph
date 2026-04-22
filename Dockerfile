@@ -34,8 +34,10 @@ EXPOSE ${PORT}
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -fsS "http://127.0.0.1:${PORT}/health" || exit 1
 
-# Single uvicorn worker — the build-job runner keeps per-workspace state in
-# memory (build_jobs._jobs). Multiple workers would each have their own
-# dict and the /build/{job_id} route could land on the wrong worker.
-# Horizontal scaling requires moving _jobs into Neon (future work).
-CMD uvicorn src.api.server:app --host 0.0.0.0 --port ${PORT} --workers 1
+# Single image, two run modes. The entrypoint inspects APP_MODE:
+#   APP_MODE=api     → uvicorn (WEB_CONCURRENCY workers; default 2)
+#   APP_MODE=worker  → src.worker.build_worker (one build per process)
+# Build state lives in Neon (see src/api/build_queue.py); there is no
+# longer any in-memory job registry, so multiple API workers/instances
+# and a pool of build workers all coexist safely.
+CMD ["python", "-m", "src.entrypoint"]

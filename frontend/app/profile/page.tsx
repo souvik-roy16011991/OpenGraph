@@ -144,6 +144,30 @@ function ProfileCard({ me }: { me: MeResponse }) {
                 {me.email && (
                   <p className="text-sm text-muted-foreground truncate">{me.email}</p>
                 )}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span
+                    className={
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium " +
+                      (me.billing.plan_tier === "team"
+                        ? "bg-violet-500/15 text-violet-700 dark:text-violet-400"
+                        : me.billing.plan_tier === "payg"
+                        ? "bg-sky-500/15 text-sky-700 dark:text-sky-400"
+                        : "bg-amber-500/15 text-amber-700 dark:text-amber-400")
+                    }
+                  >
+                    {me.billing.plan_tier === "team"
+                      ? "Team"
+                      : me.billing.plan_tier === "payg"
+                      ? "Pay-as-you-go"
+                      : "Free trial"}
+                  </span>
+                  <a
+                    href="/billing"
+                    className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
+                    {me.billing.total_credits} credits · manage billing →
+                  </a>
+                </div>
               </div>
             </div>
 

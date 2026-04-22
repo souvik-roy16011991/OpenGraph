@@ -104,20 +104,40 @@ def _init_engine():
             "disabling asyncpg prepared-statement cache."
         )
 
+    # Per-process pool sized for horizontal fleet safety. At N API workers
+    # × M instances × pool_size=2 (+ max_overflow=10 headroom) we stay well
+    # under Neon's connection ceiling (Launch plan allows ~901 direct,
+    # thousands via pooler). Worker processes use the same per-process
+    # pool; one build runs concurrently per worker.
+    #
+    # Tunable via env vars so operators can drop pool_size to 1 when
+    # running many instances without a code deploy:
+    #   DB_POOL_SIZE=2         (steady-state connections per process)
+    #   DB_MAX_OVERFLOW=10     (burst headroom)
+    #   DB_POOL_RECYCLE=1800   (seconds; Neon idle-kills at ~2h)
+    #   DB_POOL_TIMEOUT=30     (seconds; fail fast when pool saturated)
+    import os as _os
+    pool_size = int(_os.environ.get("DB_POOL_SIZE", "2"))
+    max_overflow = int(_os.environ.get("DB_MAX_OVERFLOW", "10"))
+    pool_recycle = int(_os.environ.get("DB_POOL_RECYCLE", "1800"))
+    pool_timeout = int(_os.environ.get("DB_POOL_TIMEOUT", "30"))
+
     _engine = create_async_engine(
         url,
-        pool_size=5,
-        max_overflow=10,
-        pool_pre_ping=True,   # drop dead connections (Neon idle-kills eventually)
-        pool_recycle=1800,    # recycle every 30m, under Neon's idle limit
-        pool_timeout=30,      # fail fast instead of hanging when the pool is saturated
+        pool_size=pool_size,
+        max_overflow=max_overflow,
+        pool_pre_ping=True,          # drop dead connections (Neon idle-kills eventually)
+        pool_recycle=pool_recycle,
+        pool_timeout=pool_timeout,
         connect_args=connect_args,
     )
     _session_maker = async_sessionmaker(_engine, expire_on_commit=False)
     logger.info(
-        "Neon async engine initialised for %s (ssl=%s)",
+        "Neon async engine initialised for %s (ssl=%s, pool_size=%d, max_overflow=%d)",
         url.split("@")[-1].split("?")[0],
         bool(connect_args.get("ssl")),
+        pool_size,
+        max_overflow,
     )
 
 
@@ -154,7 +174,57 @@ async def init_db() -> None:
         await conn.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"
         ))
-    logger.info("Neon tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit).")
+        # --- build_jobs durable-queue additions ---------------------------
+        # Support for the Postgres-as-queue build pipeline: workers write
+        # ``heartbeat_at`` every 10s, claim rows via SELECT FOR UPDATE SKIP
+        # LOCKED, and rely on the unique partial index to enforce per-
+        # workspace single-flight. All idempotent.
+        await conn.execute(text(
+            "ALTER TABLE build_jobs ADD COLUMN IF NOT EXISTS heartbeat_at TIMESTAMPTZ"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE build_jobs ADD COLUMN IF NOT EXISTS worker_id TEXT"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE build_jobs ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 1"
+        ))
+        # Fast claim path — covers the worker's dequeue and the sweeper.
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_build_jobs_claim "
+            "ON build_jobs (status, created_at) "
+            "WHERE status IN ('queued','running')"
+        ))
+        # Enforce per-workspace single-flight: only one queued-or-running
+        # row per workspace at a time. INSERT that violates → IntegrityError
+        # → 409 from the enqueue endpoint. Replaces the old in-memory
+        # ``_running_by_ws`` dict + threading.Lock.
+        await conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_build_jobs_active_per_ws "
+            "ON build_jobs (workspace_id) "
+            "WHERE status IN ('queued','running')"
+        ))
+        # --- billing_accounts: grandfather existing users -----------------
+        # First-deploy protection: every ``users`` row that predates billing
+        # would otherwise get a ``plan_tier='trial'`` row on first /me call
+        # and immediately hit the 1-workspace / 1-build / 5-chat caps.
+        # Seed pre-existing users at ``plan_tier='payg'`` instead so they
+        # keep working. New accounts (created AFTER this migration ran)
+        # still start on trial via the signup path's default.
+        #
+        # Raw SQL must provide values for every NOT NULL column explicitly
+        # — SQLAlchemy's ``default=`` only applies through the ORM layer.
+        # Safe to run on every startup: INSERT ... ON CONFLICT DO NOTHING
+        # only fires for users without a billing row. Idempotent.
+        await conn.execute(text("""
+            INSERT INTO billing_accounts (
+              user_id, plan_tier,
+              trial_build_count, trial_chat_count,
+              subscription_credits, topup_credits, overdraft_limit
+            )
+            SELECT id, 'payg', 0, 0, 0, 0, -200 FROM users
+            ON CONFLICT (user_id) DO NOTHING
+        """))
+    logger.info("Neon tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit, billing_accounts).")
 
 
 # ---------------------------------------------------------------------------

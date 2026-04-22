@@ -259,7 +259,7 @@ class EmbeddingPipeline:
         vecs = np.array([embeddings[nid] for nid in self._node_ids], dtype=np.float32)
         dim = vecs.shape[1]
 
-        logger.info(f"Building FAISS index (dim={dim}, n={len(vecs)})…")
+        logger.info(f"Building in-memory vector index (dim={dim}, n={len(vecs)})…")
         index = faiss.IndexFlatIP(dim)  # cosine similarity (vectors are already normalised)
         index.add(vecs)
         self._index = index
@@ -440,20 +440,20 @@ def run_embedding_pipeline(
     embeddings = pipeline.generate_embeddings()
 
     if USE_QDRANT:
-        logger.info("USE_QDRANT=True – upserting vectors to Qdrant Cloud (collection=%s)…",
+        logger.info("Upserting vectors to vector DB (collection=%s)…",
                     qdrant_collection or "default")
         vector_store = pipeline.upsert_to_qdrant(embeddings, collection_name=qdrant_collection)
         related_edges = pipeline.build_related_edges(embeddings, remote_store=vector_store)
         return embeddings, related_edges, vector_store
 
     if USE_PINECONE:
-        logger.info("USE_PINECONE=True – upserting vectors to Pinecone…")
+        logger.info("Upserting vectors to vector DB…")
         vector_store = pipeline.upsert_to_pinecone(embeddings)
         related_edges = pipeline.build_related_edges(embeddings, pinecone_store=vector_store)
         return embeddings, related_edges, vector_store
 
     # Offline / CLI path: build an in-memory FAISS index only. Not persisted.
-    logger.info("USE_QDRANT=False, USE_PINECONE=False – building in-memory FAISS index (not persisted)…")
+    logger.info("Building in-memory vector DB (not persisted)…")
     index = pipeline.build_faiss_index(embeddings)
     related_edges = pipeline.build_related_edges(embeddings)
     return embeddings, related_edges, index
