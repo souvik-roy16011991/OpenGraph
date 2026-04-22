@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import {
+  backendLabel,
   formatBytes,
   formatDuration,
   formatDurationMs,
@@ -139,13 +140,13 @@ function DrawerBody({ row }: { row: BuildHistoryDetail }) {
           {row.status}
         </Badge>
         {row.backends?.graph && (
-          <Badge variant="outline" className="text-[10px] font-mono">
-            graph: {row.backends.graph}
+          <Badge variant="outline" className="text-[10px]">
+            {backendLabel(row.backends.graph)}
           </Badge>
         )}
         {row.backends?.vectors && (
-          <Badge variant="outline" className="text-[10px] font-mono">
-            vec: {row.backends.vectors}
+          <Badge variant="outline" className="text-[10px]">
+            {backendLabel(row.backends.vectors)}
           </Badge>
         )}
       </div>

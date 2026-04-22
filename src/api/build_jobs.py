@@ -1,120 +1,49 @@
 """
-Background build-job runner.
+Shared build-pipeline helpers.
 
-Wraps src.graph_builder.builder.build_graph() in a background thread so the
-HTTP /build endpoint can return immediately with a job_id and the frontend
-can poll GET /build/{job_id} for progress.
+Previously this module ran the build inside the API process (in-memory
+``_jobs`` dict + daemon ``threading.Thread``). That's incompatible with
+horizontal scaling — see the horizontal-scaling plan.
 
-Design:
-  - Single-flight: only one build runs at a time; additional POSTs return 409.
-  - Progress reporting: a logging.Handler installed on the `src.graph_builder`
-    logger captures each line, tails the last 50 into job.log_tail, and parses
-    "Step N/5" markers to update job.stage / job.percent.
-  - Completion: on success the newly built graph is loaded into the live API
-    server via src.api.routes.set_knowledge_graph().
+Now the build runs in a dedicated worker process (``src.worker.build_worker``)
+and this module only holds the three helpers the worker still calls:
+
+- :func:`_collect_workspace_sources` — pull active KB files from Vercel Blob
+  (one per active row in ``WorkspaceFile``). Runs from the build thread
+  (``asyncio.to_thread``) and hops to the worker's event loop via
+  ``run_coroutine_threadsafe``. The worker registers its loop as the
+  "main loop" on startup so ``get_main_loop()`` works transparently.
+- :func:`_snapshot_configs` — freeze the workspace's active domain + graph
+  config into audit snapshots, written onto ``BuildJobRow`` at completion.
+- :func:`_merge_metrics_into_stats` — fold the ``BuildMetrics`` accumulator
+  into the graph stats payload (used by both the worker and any legacy
+  CLI that runs the build in-process).
+
+Everything else — ``BuildJob`` dataclass, ``_jobs`` registry, single-flight
+lock, ``_JobLogHandler``, ``_run_build``, ``start_build`` — has been
+replaced by :mod:`src.api.build_queue` + :mod:`src.worker.build_worker`.
+Routes that used to import ``start_build`` now call ``build_queue.enqueue``.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
-import threading
 import time
-import traceback
 import uuid
-from collections import deque
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from typing import Literal, Optional
 
 logger = logging.getLogger(__name__)
 
-BuildStatus = Literal["queued", "running", "done", "error"]
-
-_STAGE_NAMES = {
-    0: "Queued",
-    1: "Parse KB files",
-    2: "Extract nodes",
-    3: "Build structural edges",
-    4: "Generate embeddings",
-    5: "Persist graph",
-}
-
-
-@dataclass
-class BuildJob:
-    job_id: str
-    workspace_id: str
-    status: BuildStatus = "queued"
-    stage: int = 0
-    stage_name: str = _STAGE_NAMES[0]
-    percent: int = 0
-    started_at: float = field(default_factory=time.time)
-    finished_at: Optional[float] = None
-    error: Optional[str] = None
-    log_tail: deque = field(default_factory=lambda: deque(maxlen=50))
-    skip_embeddings: bool = False
-    skip_llm_cross_links: bool = False
-
-    def to_dict(self) -> dict:
-        d = asdict(self)
-        d["log_tail"] = list(self.log_tail)
-        return d
-
-
-_jobs: dict[str, BuildJob] = {}
-_state_lock = threading.Lock()
-# Per-workspace single-flight: workspace_id → job_id currently running.
-_running_by_ws: dict[str, str] = {}
-
-
-def get_job(job_id: str) -> Optional[BuildJob]:
-    return _jobs.get(job_id)
-
-
-def current_running_job_id(workspace_id: str | None = None) -> Optional[str]:
-    """If workspace_id given, return that workspace's running job; else any."""
-    if workspace_id is None:
-        return next(iter(_running_by_ws.values()), None)
-    return _running_by_ws.get(workspace_id)
-
-
-def _set_stage(job: BuildJob, stage: int) -> None:
-    job.stage = stage
-    job.stage_name = _STAGE_NAMES.get(stage, f"Stage {stage}")
-    # Roughly even-weighted: 5 stages → 20% each. Stage 1..5 => 20,40,60,80,100.
-    job.percent = min(100, stage * 20)
-    # Record the transition into the per-build metrics accumulator. When the
-    # contextvar isn't set (e.g. CLI-driven builds with no observability
-    # installed) this is a no-op.
-    try:
-        from src.observability.usage import mark_stage
-        mark_stage(job.stage_name)
-    except Exception:
-        pass
-    _persist_job(job)
-
 
 # ---------------------------------------------------------------------------
-# Neon persistence (write-through)
+# Snapshotting (audit) + metrics fold-in
 # ---------------------------------------------------------------------------
-
-def _persist_job(job: BuildJob, stats: dict | None = None, backends: dict | None = None) -> None:
-    """Schedule an async UPSERT of *job* onto the main event loop. Non-blocking."""
-    from src.config import USE_NEON
-    if not USE_NEON:
-        return
-    try:
-        from src.infra.db import fire_and_forget
-        fire_and_forget(_upsert_job_async(job, stats=stats, backends=backends))
-    except Exception as exc:
-        logger.debug("build-job persistence skipped: %s", exc)
-
 
 def _snapshot_configs() -> tuple[dict | None, dict | None]:
     """Best-effort snapshot of current domain + graph config at build time."""
     try:
-        from src.kb_config import get_active_kb_config
         from src.graph_config import get_graph_config
+        from src.kb_config import get_active_kb_config
         cfg = get_active_kb_config()
         p = cfg.profile
         domain = {
@@ -147,88 +76,6 @@ def _snapshot_configs() -> tuple[dict | None, dict | None]:
         return None, None
 
 
-async def _upsert_job_async(job: BuildJob, stats: dict | None = None, backends: dict | None = None) -> None:
-    """INSERT...ON CONFLICT UPDATE for build_jobs row."""
-    try:
-        from sqlalchemy.dialects.postgresql import insert
-        from src.infra.db import get_session
-        from src.infra.db_models import BuildJobRow
-
-        domain_snap, graph_snap = _snapshot_configs()
-
-        async with get_session() as s:
-            stmt = insert(BuildJobRow).values(
-                job_id=job.job_id,
-                workspace_id=uuid.UUID(job.workspace_id),
-                status=job.status,
-                stage=job.stage,
-                stage_name=job.stage_name,
-                percent=job.percent,
-                started_at=datetime.fromtimestamp(job.started_at, tz=timezone.utc),
-                finished_at=(
-                    datetime.fromtimestamp(job.finished_at, tz=timezone.utc)
-                    if job.finished_at else None
-                ),
-                error=job.error,
-                log_tail=list(job.log_tail),
-                skip_embeddings=job.skip_embeddings,
-                skip_llm_cross_links=job.skip_llm_cross_links,
-                domain_snapshot=domain_snap,
-                graph_snapshot=graph_snap,
-                stats=stats,
-                backends=backends,
-            )
-            from sqlalchemy import func as _func
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["job_id"],
-                set_={
-                    "status": stmt.excluded.status,
-                    "stage": stmt.excluded.stage,
-                    "stage_name": stmt.excluded.stage_name,
-                    "percent": stmt.excluded.percent,
-                    "finished_at": stmt.excluded.finished_at,
-                    "error": stmt.excluded.error,
-                    "log_tail": stmt.excluded.log_tail,
-                    # COALESCE so a later progress update with NULL stats
-                    # cannot clobber stats/backends already written at terminal state.
-                    "stats": _func.coalesce(stmt.excluded.stats, BuildJobRow.stats),
-                    "backends": _func.coalesce(stmt.excluded.backends, BuildJobRow.backends),
-                },
-            )
-            await s.execute(stmt)
-            await s.commit()
-    except Exception as exc:
-        logger.warning("Neon upsert for build job %s failed: %s", job.job_id, exc)
-
-
-class _JobLogHandler(logging.Handler):
-    """Captures log lines into job.log_tail and derives stage/percent."""
-
-    def __init__(self, job: BuildJob) -> None:
-        super().__init__(level=logging.INFO)
-        self.job = job
-
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            msg = self.format(record)
-        except Exception:
-            msg = record.getMessage()
-        self.job.log_tail.append(msg)
-
-        # Match "Step N/5" markers from builder.py
-        raw = record.getMessage()
-        if "Step 1/5" in raw:
-            _set_stage(self.job, 1)
-        elif "Step 2/5" in raw:
-            _set_stage(self.job, 2)
-        elif "Step 3/5" in raw:
-            _set_stage(self.job, 3)
-        elif "Step 4/5" in raw:
-            _set_stage(self.job, 4)
-        elif "Step 5/5" in raw:
-            _set_stage(self.job, 5)
-
-
 def _merge_metrics_into_stats(base: dict | None, metrics) -> dict:
     """Fold a ``BuildMetrics`` into the existing ``kg.stats()`` payload.
 
@@ -250,138 +97,9 @@ def _merge_metrics_into_stats(base: dict | None, metrics) -> dict:
     return out
 
 
-def _run_build(job: BuildJob) -> None:
-    # Attach a log handler so we capture all graph_builder + related output
-    handler = _JobLogHandler(job)
-    handler.setFormatter(logging.Formatter("%(asctime)s [%(name)s] %(message)s", "%H:%M:%S"))
-
-    targets = [
-        logging.getLogger("src.graph_builder"),
-        logging.getLogger("src.graph_builder.builder"),
-        logging.getLogger("src.graph_builder.embeddings"),
-        logging.getLogger("src.graph_builder.edges"),
-        logging.getLogger("src.graph_builder.extractor"),
-        logging.getLogger("src.graph_builder.parser"),
-        logging.getLogger("src.graph_builder.cross_kb_mapper"),
-    ]
-    for t in targets:
-        t.addHandler(handler)
-        t.setLevel(logging.INFO)
-
-    job.status = "running"
-    job.started_at = time.time()
-    job.log_tail.append(f"[job {job.job_id}] build started")
-    _persist_job(job)
-
-    # Install the per-build metrics accumulator. ContextVar is set INSIDE the
-    # build thread: ``threading.Thread`` does not propagate context from the
-    # parent coroutine, so setting it in the calling /build endpoint would
-    # have no effect here. The ``finally`` block below resets the var and
-    # flushes accumulated metrics into stats.
-    from src.observability.usage import (
-        BuildMetrics,
-        build_metrics_var,
-        finalize_stages,
-    )
-    metrics = BuildMetrics(build_started_perf=time.perf_counter())
-    metrics_token = build_metrics_var.set(metrics)
-
-    kg = None
-    try:
-        # Ensure config caches are fresh so edits to yaml take effect.
-        from src.graph_config import get_graph_config
-        from src.kb_config import reset_active_kb_config
-        get_graph_config.cache_clear()
-        reset_active_kb_config()
-
-        # Install workspace context for the pipeline to pick up.
-        from src.workspace_context import set_current_workspace
-        set_current_workspace(job.workspace_id)
-
-        # Capture the workspace-chosen LLM + embedding models for the
-        # ``models`` section of the final stats payload. Best-effort — a
-        # failure here shouldn't break the build.
-        try:
-            from src.config import EMBEDDING_MODEL, LLM_MODEL
-            from src.infra.workspace_llm import get_workspace_llm_model_sync
-            ws_llm = get_workspace_llm_model_sync(job.workspace_id)
-            metrics.llm_model = ws_llm or LLM_MODEL
-            cfg = get_graph_config()
-            metrics.embedding_model = cfg.embeddings.model or EMBEDDING_MODEL
-        except Exception as exc:
-            logger.debug("model capture for stats failed: %s", exc)
-
-        # Collect the list of active knowledge + tool files from Neon and
-        # download their bytes from Vercel Blob. Nothing is read from local
-        # disk — the Blob is the authoritative store.
-        knowledge_sources, tool_sources = _collect_workspace_sources(job.workspace_id)
-        if not knowledge_sources and not tool_sources:
-            raise RuntimeError(
-                f"Workspace {job.workspace_id} has no uploaded files. "
-                "Upload at least one knowledge or tool JSON before building."
-            )
-
-        metrics.inputs_knowledge_files = len(knowledge_sources)
-        metrics.inputs_tool_files = len(tool_sources)
-        metrics.inputs_total_bytes = sum(
-            len(b) for _n, b in knowledge_sources + tool_sources
-        )
-
-        from src.graph_builder.builder import build_graph
-        kg = build_graph(
-            use_llm_cross_links=not job.skip_llm_cross_links,
-            skip_embeddings=job.skip_embeddings,
-            workspace_id=job.workspace_id,
-            knowledge_sources=knowledge_sources,
-            tool_sources=tool_sources,
-        )
-
-        # Cache the live kg for this workspace so the API can serve queries.
-        try:
-            from src.api.routes import set_knowledge_graph
-            set_knowledge_graph(kg, workspace_id=job.workspace_id)
-        except Exception as exc:
-            job.log_tail.append(f"[warn] failed to cache kg into API: {exc}")
-
-        _set_stage(job, 5)
-        job.percent = 100
-        job.status = "done"
-        job.finished_at = time.time()
-        elapsed = job.finished_at - job.started_at
-        job.log_tail.append(f"[job {job.job_id}] build complete in {elapsed:.1f}s")
-
-        # Capture final stats + backends, then fold in usage metrics.
-        try:
-            base_stats = kg.stats() if kg is not None else None
-            backends = (base_stats or {}).get("backends")
-        except Exception:
-            base_stats, backends = None, None
-        finalize_stages()
-        stats = _merge_metrics_into_stats(base_stats, metrics)
-        _persist_job(job, stats=stats, backends=backends)
-    except Exception as exc:
-        job.error = f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
-        job.status = "error"
-        job.finished_at = time.time()
-        job.log_tail.append(f"[error] {exc}")
-        logger.exception("Build job %s failed", job.job_id)
-        # Flush partial metrics so users can see tokens burned on failed builds.
-        try:
-            finalize_stages()
-            partial_stats = _merge_metrics_into_stats(None, metrics)
-            _persist_job(job, stats=partial_stats)
-        except Exception:
-            _persist_job(job)
-    finally:
-        try:
-            build_metrics_var.reset(metrics_token)
-        except Exception:
-            pass
-        for t in targets:
-            t.removeHandler(handler)
-        with _state_lock:
-            _running_by_ws.pop(job.workspace_id, None)
-
+# ---------------------------------------------------------------------------
+# Blob fetcher
+# ---------------------------------------------------------------------------
 
 def _collect_workspace_sources(workspace_id: str):
     """Fetch active KB files for a workspace from Vercel Blob.
@@ -390,12 +108,11 @@ def _collect_workspace_sources(workspace_id: str):
     kb_source. Every file row must carry a ``blob_url`` — rows without one
     are skipped with a warning since local disk is no longer an option.
 
-    Runs from the build THREAD, so async SQLAlchemy work is scheduled onto
-    the main event loop via ``run_coroutine_threadsafe`` (using
-    ``asyncio.run`` here would spin up a new loop whose Futures don't match
-    the engine's loop).
+    Runs from the build THREAD (``asyncio.to_thread`` in the worker), so
+    async SQLAlchemy work is scheduled onto the event loop via
+    ``run_coroutine_threadsafe`` (using ``asyncio.run`` here would spin up
+    a new loop whose Futures don't match the engine's loop).
     """
-    import asyncio
     from sqlalchemy import select
     from src.infra.blob_loader import download_bytes_by_url
     from src.infra.db import get_main_loop, get_session
@@ -443,35 +160,3 @@ def _collect_workspace_sources(workspace_id: str):
         elif r.kb_source == "tool":
             tool_sources.append((r.filename, data))
     return knowledge_sources, tool_sources
-
-
-def start_build(
-    workspace_id: str,
-    skip_embeddings: bool = False,
-    skip_llm_cross_links: bool = False,
-) -> BuildJob:
-    """Start a background build for *workspace_id*.
-
-    Raises RuntimeError if this workspace already has a running build.
-    Builds for other workspaces run concurrently.
-    """
-    with _state_lock:
-        if workspace_id in _running_by_ws:
-            raise RuntimeError(
-                f"A build is already running for workspace {workspace_id} "
-                f"(job_id={_running_by_ws[workspace_id]}). "
-                "Wait for it to finish before starting another."
-            )
-        job_id = uuid.uuid4().hex[:12]
-        job = BuildJob(
-            job_id=job_id,
-            workspace_id=workspace_id,
-            skip_embeddings=skip_embeddings,
-            skip_llm_cross_links=skip_llm_cross_links,
-        )
-        _jobs[job_id] = job
-        _running_by_ws[workspace_id] = job_id
-
-    thread = threading.Thread(target=_run_build, args=(job,), daemon=True, name=f"build-{job_id}")
-    thread.start()
-    return job

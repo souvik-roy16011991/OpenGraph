@@ -104,9 +104,14 @@ def _init_engine():
             "disabling asyncpg prepared-statement cache."
         )
 
+    # Per-process pool sized for horizontal fleet safety. At N API workers
+    # × M instances × pool_size=2 (+ max_overflow=10 headroom) we stay well
+    # under Neon's connection ceiling (Launch plan allows ~901 direct,
+    # thousands via pooler). Worker processes use the same per-process
+    # pool; one build runs concurrently per worker.
     _engine = create_async_engine(
         url,
-        pool_size=5,
+        pool_size=2,
         max_overflow=10,
         pool_pre_ping=True,   # drop dead connections (Neon idle-kills eventually)
         pool_recycle=1800,    # recycle every 30m, under Neon's idle limit
@@ -153,6 +158,35 @@ async def init_db() -> None:
         ))
         await conn.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"
+        ))
+        # --- build_jobs durable-queue additions ---------------------------
+        # Support for the Postgres-as-queue build pipeline: workers write
+        # ``heartbeat_at`` every 10s, claim rows via SELECT FOR UPDATE SKIP
+        # LOCKED, and rely on the unique partial index to enforce per-
+        # workspace single-flight. All idempotent.
+        await conn.execute(text(
+            "ALTER TABLE build_jobs ADD COLUMN IF NOT EXISTS heartbeat_at TIMESTAMPTZ"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE build_jobs ADD COLUMN IF NOT EXISTS worker_id TEXT"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE build_jobs ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 1"
+        ))
+        # Fast claim path — covers the worker's dequeue and the sweeper.
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_build_jobs_claim "
+            "ON build_jobs (status, created_at) "
+            "WHERE status IN ('queued','running')"
+        ))
+        # Enforce per-workspace single-flight: only one queued-or-running
+        # row per workspace at a time. INSERT that violates → IntegrityError
+        # → 409 from the enqueue endpoint. Replaces the old in-memory
+        # ``_running_by_ws`` dict + threading.Lock.
+        await conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_build_jobs_active_per_ws "
+            "ON build_jobs (workspace_id) "
+            "WHERE status IN ('queued','running')"
         ))
     logger.info("Neon tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit).")
 

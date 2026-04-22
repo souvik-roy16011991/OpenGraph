@@ -25,9 +25,39 @@ router = APIRouter()
 # Sub-routers (config, upload, build, viz) are included at the bottom of this
 # module after _get_kg is defined so they can import it safely.
 
-# Per-workspace KG cache. Populated by /build completion and by lazy-load
-# on the first scoped request for an already-built workspace.
-_kg_by_ws: dict[str, KnowledgeGraph] = {}
+# Per-workspace KG cache — bounded LRU for horizontal-scaling safety.
+#
+# Each API worker / instance holds its own cache. On a cache miss the
+# worker lazy-loads the graph from Memgraph (authoritative store).
+#
+# Cache coherence across workers: when any build completes on any worker,
+# other workers still hold a stale ``KnowledgeGraph`` object for that
+# workspace. We detect this by comparing the cached entry's ``loaded_at``
+# against ``MAX(finished_at)`` for completed builds on that workspace, and
+# reload on mismatch. The freshness check is itself cached for
+# ``_FRESHNESS_TTL_SECONDS`` to avoid hitting Neon on every chat query.
+import asyncio as _asyncio
+import time as _time
+from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Optional as _Optional
+
+_KG_CACHE_MAX = 50                  # evict oldest when >50 workspaces cached
+_FRESHNESS_TTL_SECONDS = 30.0       # debounce build-freshness checks
+
+@dataclass
+class _CachedKG:
+    kg: KnowledgeGraph
+    loaded_at_unix: float            # wall-clock time the KG was hydrated
+    latest_build_unix: float         # MAX(finished_at) at load-time (epoch seconds)
+    freshness_checked_at: float      # monotonic clock of last freshness check
+
+_kg_by_ws: "OrderedDict[str, _CachedKG]" = OrderedDict()
+
+
+def _evict_lru_if_needed() -> None:
+    while len(_kg_by_ws) > _KG_CACHE_MAX:
+        _kg_by_ws.popitem(last=False)
 
 
 def set_knowledge_graph(kg: KnowledgeGraph, workspace_id: str | None = None) -> None:
@@ -39,15 +69,91 @@ def set_knowledge_graph(kg: KnowledgeGraph, workspace_id: str | None = None) -> 
     wid = workspace_id or getattr(kg, "workspace_id", None)
     if not wid:
         raise ValueError("set_knowledge_graph: workspace_id is required.")
-    _kg_by_ws[wid] = kg
+    now = _time.time()
+    _kg_by_ws[wid] = _CachedKG(
+        kg=kg,
+        loaded_at_unix=now,
+        # latest_build_unix unknown at set time — treat as now.
+        latest_build_unix=now,
+        freshness_checked_at=_time.monotonic(),
+    )
+    _kg_by_ws.move_to_end(wid)
+    _evict_lru_if_needed()
+
+
+async def _latest_done_build_unix(workspace_id: str) -> _Optional[float]:
+    """Read MAX(finished_at) of completed builds for this workspace.
+
+    Returns the epoch-seconds float, or None if no done build exists.
+    """
+    from sqlalchemy import func as _func
+    from sqlalchemy import select as _select
+    from src.infra.db import get_session as _get_session
+    from src.infra.db_models import BuildJobRow as _BuildJobRow
+    import uuid as _uuid
+    try:
+        async with _get_session() as s:
+            r = (await s.execute(
+                _select(_func.max(_BuildJobRow.finished_at))
+                .where(_BuildJobRow.workspace_id == _uuid.UUID(workspace_id))
+                .where(_BuildJobRow.status == "done")
+            )).scalar_one_or_none()
+            if r is None:
+                return None
+            return r.timestamp()
+    except Exception as exc:
+        logger.debug("latest_done_build lookup failed for %s: %s", workspace_id, exc)
+        return None
+
+
+def _sync_latest_done_build_unix(workspace_id: str) -> _Optional[float]:
+    """Sync wrapper around the async freshness query, safe to call from
+    the request path. Runs the coroutine to completion on a fresh loop."""
+    try:
+        return _asyncio.run(_latest_done_build_unix(workspace_id))
+    except RuntimeError:
+        # Already in an event loop — fall back to running on that loop.
+        loop = _asyncio.get_event_loop()
+        return loop.run_until_complete(_latest_done_build_unix(workspace_id))
+
+
+async def _freshness_check(cached: _CachedKG, workspace_id: str) -> bool:
+    """Return True if the cached entry is still fresh (no newer build)."""
+    latest = await _latest_done_build_unix(workspace_id)
+    cached.freshness_checked_at = _time.monotonic()
+    if latest is None:
+        return True
+    return latest <= cached.latest_build_unix
 
 
 def _get_kg(workspace_id: str) -> KnowledgeGraph:
-    """Return the live KnowledgeGraph for *workspace_id*, loading from disk if needed."""
-    kg = _kg_by_ws.get(workspace_id)
-    if kg is not None:
-        return kg
-    # Lazy load from the on-disk cache if a build artifact exists
+    """Return the live KnowledgeGraph for *workspace_id*, loading from Memgraph if needed.
+
+    Cache miss path: hydrate from Memgraph and store in the per-worker LRU.
+    Cache hit path: check freshness against Neon's build history (debounced
+    to ``_FRESHNESS_TTL_SECONDS``) and reload if a newer build has landed
+    on another worker.
+    """
+    cached = _kg_by_ws.get(workspace_id)
+    if cached is not None:
+        now_mono = _time.monotonic()
+        if now_mono - cached.freshness_checked_at < _FRESHNESS_TTL_SECONDS:
+            _kg_by_ws.move_to_end(workspace_id)
+            return cached.kg
+        # Debounce window elapsed — check Neon.
+        latest = _sync_latest_done_build_unix(workspace_id)
+        cached.freshness_checked_at = now_mono
+        if latest is None or latest <= cached.latest_build_unix:
+            _kg_by_ws.move_to_end(workspace_id)
+            return cached.kg
+        # Newer build on another worker → evict and fall through to reload.
+        logger.info(
+            "KG cache stale for ws=%s (newer build at %.0f); reloading.",
+            workspace_id, latest,
+        )
+        _kg_by_ws.pop(workspace_id, None)
+
+    # Cache miss — lazy load from Memgraph (authoritative store).
     try:
         kg = KnowledgeGraph.load(workspace_id)
     except FileNotFoundError:
@@ -58,7 +164,16 @@ def _get_kg(workspace_id: str) -> KnowledgeGraph:
                 "Upload KB files and POST /api/v1/build first."
             ),
         )
-    _kg_by_ws[workspace_id] = kg
+
+    latest = _sync_latest_done_build_unix(workspace_id) or _time.time()
+    _kg_by_ws[workspace_id] = _CachedKG(
+        kg=kg,
+        loaded_at_unix=_time.time(),
+        latest_build_unix=latest,
+        freshness_checked_at=_time.monotonic(),
+    )
+    _kg_by_ws.move_to_end(workspace_id)
+    _evict_lru_if_needed()
     return kg
 
 
@@ -148,10 +263,14 @@ async def query_graph(
     import time
     import uuid
     from src.agent.graph import KBGraphAgent
+    from src.billing import check_chat_allowed
     from src.config import LLM_MODEL, USE_NEON
     from src.infra.workspace_llm import get_workspace_llm_model
 
     from src.observability.usage import ChatMetrics, chat_metrics_var
+
+    # Billing gate — raises HTTP 402 on trial-cap hit or overdraft.
+    await check_chat_allowed(user.id)
 
     kg = _get_kg(workspace_id)
     agent = KBGraphAgent.from_graph(kg)
@@ -244,6 +363,43 @@ async def query_graph(
             "query_preview": (req.query[:80] + "…") if len(req.query) > 80 else req.query,
         },
     )
+
+    # Billing deduction — post-commit so a failure here never blocks the
+    # user's response. BYOK detection: presence of a row in
+    # ``workspace_api_keys`` for this workspace waives LLM/embedding tokens.
+    try:
+        from src.billing import cost_chat, debit
+        from src.billing.ledger import bump_trial_counter
+        from src.infra.db_models import WorkspaceApiKey
+        import uuid as _uuid
+        ws_uuid = _uuid.UUID(workspace_id)
+        async with get_session() as _s:
+            from sqlalchemy import select as _select
+            has_byok = (await _s.execute(
+                _select(WorkspaceApiKey.workspace_id).where(
+                    WorkspaceApiKey.workspace_id == ws_uuid
+                )
+            )).scalar_one_or_none() is not None
+        usage_dict = usage_payload.model_dump() if usage_payload else {}
+        credits = cost_chat(usage=usage_dict, has_byok=has_byok)
+        await debit(
+            user.id,
+            credits,
+            reason="chat",
+            source_type="chat_session",
+            source_id=session_id,
+            actor_type="system",
+            metadata={
+                "workspace_id": workspace_id,
+                "has_byok": has_byok,
+                "model": effective_model,
+            },
+        )
+        # Trial users: bump lifetime chat counter. No-op for non-trial.
+        await bump_trial_counter(user.id, kind="chat")
+    except Exception as bill_exc:
+        logger.warning("chat billing debit failed for session %s: %s", session_id, bill_exc)
+
     return resp
 
 

@@ -137,6 +137,13 @@ async def list_workspaces(user: User = Depends(require_user)):
 @router.post("/workspaces", summary="Create a new workspace", status_code=201)
 async def create_workspace(body: WorkspaceCreate, user: User = Depends(require_user)):
     _require_neon()
+
+    # Billing gate — per-tier workspace cap. Trial=1, PAYG=25, Team=50.
+    # Raises HTTP 402 when the user already owns the maximum they're
+    # allowed on their current tier.
+    from src.billing import check_workspace_create_allowed
+    await check_workspace_create_allowed(user.id)
+
     async with get_session() as s:
         existing = await s.execute(
             select(Workspace).where(Workspace.user_id == user.id, Workspace.name == body.name)

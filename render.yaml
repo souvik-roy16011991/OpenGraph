@@ -1,14 +1,18 @@
 # ---------------------------------------------------------------------------
 # Render Blueprint — KB Knowledge Graph Engine
 # ---------------------------------------------------------------------------
-# Two stateless Docker services:
+# Three stateless Docker services (all share the same image):
 #
-#   1. kb-backend   FastAPI (uvicorn, 1 worker — build jobs keep in-memory
-#                   state, scaling workers would split that state). All
-#                   runtime artefacts live in cloud stores (Memgraph,
-#                   Qdrant, Vercel Blob, Neon, Upstash) — no Render disk.
-#   2. kb-frontend  Next.js 15 production server. NEXT_PUBLIC_* values are
-#                   baked into the client bundle at build time via --build-arg.
+#   1. opengraph-backend        FastAPI (APP_MODE=api). Stateless — build
+#                               state lives in Neon, so WEB_CONCURRENCY>1
+#                               and multiple instances are safe.
+#   2. opengraph-build-worker   Async worker (APP_MODE=worker). Polls Neon
+#                               via SELECT ... FOR UPDATE SKIP LOCKED,
+#                               runs one build per process. Scale by
+#                               adding instances, not concurrency.
+#   3. opengraph-frontend       Next.js 15 production server. NEXT_PUBLIC_*
+#                               values are baked into the client bundle at
+#                               build time via --build-arg.
 #
 # -- First-deploy secret checklist -------------------------------------------
 # In the Render dashboard set these with `sync: false` before the first deploy.
@@ -133,6 +137,90 @@ services:
       - key: CORS_ALLOW_ORIGINS
         value: https://opengraph-frontend.onrender.com
 
+      # --- Process mode -------------------------------------------------
+      # src/entrypoint.py inspects APP_MODE and starts uvicorn (api) or the
+      # build-worker loop (worker). WEB_CONCURRENCY controls the number of
+      # uvicorn processes per instance; safe to raise now that build state
+      # lives in Neon.
+      - key: APP_MODE
+        value: api
+      - key: WEB_CONCURRENCY
+        value: "2"
+
+      # --- Misc --------------------------------------------------------
+      - key: KMP_DUPLICATE_LIB_OK
+        value: "TRUE"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  # =========================================================================
+  # Build worker — claims + runs builds from the Neon-backed queue
+  # =========================================================================
+  # Same Docker image as opengraph-backend; entrypoint branches on APP_MODE.
+  # Scale by increasing instance count (one build per process invariant —
+  # the graph_config/kb_config module caches are cache_clear()ed per build
+  # and would race if concurrent). All env vars mirror the backend so the
+  # worker can reach Memgraph, Qdrant, Blob, Upstash, and Neon.
+  - type: worker
+    name: opengraph-build-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    plan: starter
+    envVars:
+      # --- OpenRouter ---------------------------------------------------
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: LLM_MODEL
+        value: qwen/qwen3-235b-a22b
+      - key: LLM_TEMPERATURE
+        value: "0.1"
+      - key: LLM_MAX_TOKENS
+        value: "4096"
+      - key: EMBEDDING_MODEL
+        value: qwen/qwen3-embedding-8b
+      - key: KB_FORCE_TFIDF
+        value: "0"
+      - key: OPENROUTER_ALLOWED_MODELS
+        value: ""
+      # --- Memgraph -----------------------------------------------------
+      - key: MEMGRAPH_URI
+        sync: false
+      - key: MEMGRAPH_USERNAME
+        sync: false
+      - key: MEMGRAPH_PASSWORD
+        sync: false
+      - key: MEMGRAPH_DATABASE
+        value: memgraph
+      # --- Qdrant -------------------------------------------------------
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: QDRANT_COLLECTION_NAME
+        value: kb-knowledge-graph
+      # --- Neon (required — the queue lives here) -----------------------
+      - key: DATABASE_URL
+        sync: false
+      # --- Vercel Blob --------------------------------------------------
+      - key: BLOB_READ_WRITE_TOKEN
+        sync: false
+      - key: BLOB_STORE_PATH
+        value: v0-it-support-automation-blob/kb-config
+      # --- Upstash Redis ------------------------------------------------
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      # --- Auth (workers don't mint tokens, but some helpers import it) -
+      - key: JWT_SECRET
+        sync: false
+      # --- Process mode -------------------------------------------------
+      - key: APP_MODE
+        value: worker
       # --- Misc --------------------------------------------------------
       - key: KMP_DUPLICATE_LIB_OK
         value: "TRUE"

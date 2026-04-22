@@ -29,9 +29,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _db.set_main_loop(asyncio.get_running_loop())
 
     # Initialise Neon tables (no-op when DATABASE_URL is blank).
+    # NOTE: We deliberately do NOT call mark_orphaned_running_jobs() anymore.
+    # With horizontal scaling + a dedicated worker pool, the API is no
+    # longer the source of truth for build state — the worker's heartbeat
+    # sweeper owns liveness. An API restart must not touch rows owned by
+    # a still-healthy worker elsewhere.
     try:
         await _db.init_db()
-        await _db.mark_orphaned_running_jobs()
     except Exception as exc:
         logger.warning("Neon init failed (continuing without persistence): %s", exc)
 

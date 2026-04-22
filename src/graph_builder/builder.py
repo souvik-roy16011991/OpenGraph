@@ -141,17 +141,17 @@ def build_graph(
 
     logger.info("=== KB Knowledge Graph Build Pipeline (ws=%s) ===", workspace_id)
     if USE_MEMGRAPH:
-        logger.info("  Graph backend: Memgraph (workspace-scoped)")
+        logger.info("  Graph store (workspace-scoped)")
     elif USE_NEO4J:
-        logger.info("  Graph backend: Neo4j (workspace-scoped)")
+        logger.info("  Graph store (workspace-scoped)")
     else:
-        logger.info("  Graph backend: NetworkX (in-memory only)")
+        logger.info("  Graph store (in-memory only)")
     if USE_QDRANT:
-        logger.info("  Vector backend: Qdrant Cloud — collection %s", qdrant_collection)
+        logger.info("  Vector DB — collection %s", qdrant_collection)
     elif USE_PINECONE:
-        logger.info("  Vector backend: Pinecone")
+        logger.info("  Vector DB")
     else:
-        logger.info("  Vector backend: FAISS (in-memory only)")
+        logger.info("  Vector DB (in-memory only)")
 
     # 1. Parse — multi-source aware (bytes-from-Blob or legacy Paths)
     logger.info("Step 1/5 – Parsing KB files…")
@@ -217,7 +217,7 @@ def build_graph(
     G: nx.DiGraph | None = None
 
     if USE_MEMGRAPH:
-        logger.info("Step 5/5 – Writing graph to Memgraph (ws=%s)…", workspace_id)
+        logger.info("Step 5/5 – Writing to graph store (ws=%s)…", workspace_id)
         from src.infra.memgraph_store import MemgraphGraphStore
         neo4j_store = MemgraphGraphStore(
             MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
@@ -227,21 +227,21 @@ def build_graph(
         neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
         ws_stats = neo4j_store.stats(workspace_id=workspace_id)
         logger.info(
-            "  Memgraph ws=%s: %d nodes, %d edges",
+            "  Graph store ws=%s: %d nodes, %d edges",
             workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"],
         )
         G = _build_networkx_graph(nodes, edges)
         logger.info("  NetworkX cache (in-memory): %d nodes, %d edges",
                     G.number_of_nodes(), G.number_of_edges())
     elif USE_NEO4J:
-        logger.info("Step 5/5 – Writing graph to Neo4j (ws=%s)…", workspace_id)
+        logger.info("Step 5/5 – Writing to graph store (ws=%s)…", workspace_id)
         from src.infra.neo4j_store import Neo4jGraphStore
         neo4j_store = Neo4jGraphStore(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE)
         neo4j_store.clear_workspace(workspace_id)
         neo4j_store.bulk_create_nodes_no_apoc(nodes, workspace_id=workspace_id)
         neo4j_store.bulk_create_edges(edges, workspace_id=workspace_id)
         ws_stats = neo4j_store.stats(workspace_id=workspace_id)
-        logger.info("  Neo4j ws=%s: %d nodes, %d edges",
+        logger.info("  Graph store ws=%s: %d nodes, %d edges",
                     workspace_id, ws_stats["total_nodes"], ws_stats["total_edges"])
         G = _build_networkx_graph(nodes, edges)
         logger.info("  NetworkX cache (in-memory): %d nodes, %d edges",
@@ -409,13 +409,13 @@ class KnowledgeGraph:
         # --- Graph backend (required for cloud-only loads) ---
         neo4j_store = None
         if USE_MEMGRAPH:
-            logger.info("USE_MEMGRAPH=True — connecting to Memgraph (ws=%s)", workspace_id)
+            logger.info("Connecting to graph store (ws=%s)", workspace_id)
             from src.infra.memgraph_store import MemgraphGraphStore
             neo4j_store = MemgraphGraphStore(
                 MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
             )
         elif USE_NEO4J:
-            logger.info("USE_NEO4J=True — connecting to Neo4j (ws=%s)", workspace_id)
+            logger.info("Connecting to graph store (ws=%s)", workspace_id)
             from src.infra.neo4j_store import Neo4jGraphStore
             neo4j_store = Neo4jGraphStore(
                 NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE
@@ -438,7 +438,7 @@ class KnowledgeGraph:
         qdrant_collection = f"kb-{_short_wid(workspace_id)}"
 
         if USE_QDRANT:
-            logger.info("USE_QDRANT=True — connecting to Qdrant collection %s", qdrant_collection)
+            logger.info("Connecting to vector DB (collection %s)", qdrant_collection)
             from src.infra.qdrant_store import QdrantVectorStore
             pinecone_store = QdrantVectorStore(
                 url=QDRANT_URL,
@@ -447,7 +447,7 @@ class KnowledgeGraph:
                 dimension=EMBEDDING_DIM,
             )
         elif USE_PINECONE:
-            logger.info("USE_PINECONE=True — connecting to Pinecone for semantic search…")
+            logger.info("Connecting to vector DB for semantic search…")
             from src.infra.pinecone_store import PineconeVectorStore
             pinecone_store = PineconeVectorStore(
                 api_key=PINECONE_API_KEY,

@@ -286,6 +286,8 @@ export const api = {
     json<MeResponse>("/api/v1/me", "PATCH", body),
   myAudit: (opts?: { limit?: number; before_id?: number; workspace_id?: string; action?: string }) =>
     get<AuditListResponse>("/api/v1/me/audit", opts),
+  myBillingTransactions: (opts?: { limit?: number; before_id?: number }) =>
+    get<import("./schema").CreditTransactionListResponse>("/api/v1/me/billing/transactions", opts),
 
   // Templates (stock + user-custom; `id` is a slug for stock, UUID for custom)
   listTemplates: (opts?: { q?: string; category?: string }) =>

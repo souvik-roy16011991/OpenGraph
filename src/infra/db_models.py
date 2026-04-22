@@ -165,6 +165,17 @@ class BuildJobRow(Base):
     graph_snapshot: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     stats: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     backends: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    # Written by the worker every ~10s while a build is running. The sweeper
+    # treats rows with ``status='running' AND heartbeat_at < now()-90s`` as
+    # crashed-worker zombies and flips them to 'error' (or re-queues if
+    # attempt_count < 3). Nullable so pre-feature rows stay valid.
+    heartbeat_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Host+pid+uuid of the worker that last claimed the row — invaluable
+    # when debugging stuck jobs across a fleet.
+    worker_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Incremented by the sweeper each time a job is re-queued from a zombie
+    # state. After 3 attempts, the row is left as permanent 'error'.
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -402,3 +413,175 @@ class UserTemplate(Base):
         UniqueConstraint("user_id", "name", name="uq_user_templates_user_name"),
         Index("ix_user_templates_user_id", "user_id"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Billing — trial / PAYG credits / Team subscription / BYOK
+# ---------------------------------------------------------------------------
+# One row per user. Denormalized trial counters + credit balances so the
+# enforcement fast-path reads a single row on every /build and /query.
+# Ledger-source-of-truth is ``CreditTransaction``; this table caches the
+# running balance for cheap reads.
+
+class BillingAccount(Base):
+    __tablename__ = "billing_accounts"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    plan_tier: Mapped[str] = mapped_column(String(16), nullable=False, default="trial")
+    # Lifetime trial counters — reset only by support action, never by time.
+    trial_build_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    trial_chat_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Two buckets: subscription_credits reset monthly on Stripe renewal,
+    # topup_credits persist indefinitely. Debit subscription first.
+    subscription_credits: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    topup_credits: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    # Negative balance is allowed down to this floor so a single in-flight
+    # build doesn't fail mid-stream on post-commit deduction. New builds /
+    # chats are rejected once total balance falls below this value.
+    overdraft_limit: Mapped[int] = mapped_column(BigInteger, nullable=False, default=-200)
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "plan_tier IN ('trial','payg','team')",
+            name="ck_billing_accounts_plan_tier",
+        ),
+    )
+
+
+# Append-only ledger. Every credit motion — grant from Stripe, spend from a
+# build, storage proration tick, admin adjustment — writes exactly one row.
+# This table IS the audit log for money movement; don't duplicate into
+# ``user_audit_log``.
+
+class CreditTransaction(Base):
+    __tablename__ = "credit_transactions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Positive = grant, negative = spend. Matches accounting sign convention.
+    delta_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    bucket: Mapped[str] = mapped_column(String(16), nullable=False)  # subscription | topup
+    reason: Mapped[str] = mapped_column(String(64), nullable=False)
+    # Free-form reference back to the action that caused the ledger entry.
+    source_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    source_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    actor_type: Mapped[str] = mapped_column(String(16), nullable=False, default="system")
+    actor_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    # Stripe idempotency — a duplicate webhook hits the UNIQUE and rolls back,
+    # never double-crediting a user. Nullable for non-Stripe sources.
+    stripe_event_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    metadata_json: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_credit_tx_user_created", "user_id", "created_at"),
+        UniqueConstraint("stripe_event_id", name="uq_credit_tx_stripe_event"),
+        CheckConstraint(
+            "bucket IN ('subscription','topup')",
+            name="ck_credit_tx_bucket",
+        ),
+        CheckConstraint(
+            "actor_type IN ('user','system','stripe_webhook','admin')",
+            name="ck_credit_tx_actor_type",
+        ),
+    )
+
+
+# Stripe-backed subscriptions (Team tier). One active row per user; we keep
+# canceled rows for audit.
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    tier: Mapped[str] = mapped_column(String(16), nullable=False)  # team (future: enterprise)
+    stripe_subscription_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    current_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    canceled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # During Stripe's smart-retry dunning window (3-21 days by default), the
+    # subscription stays ``team`` tier even though the last invoice failed.
+    grace_period_ends_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (Index("ix_subscriptions_user", "user_id"),)
+
+
+# Team-tier member roster. Owner's workspaces become accessible to accepted
+# members via a JOIN in ``require_workspace_id`` (Phase 3).
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Null until the invited email completes signup + accept.
+    member_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    invited_email: Mapped[str] = mapped_column(String(256), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False, default="member")
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_team_members_owner", "owner_user_id"),
+        Index("ix_team_members_member", "member_user_id"),
+        CheckConstraint("role IN ('owner','admin','member')", name="ck_team_members_role"),
+    )
+
+
+# Per-workspace OpenRouter API key (BYOK). Stored as Fernet ciphertext;
+# fingerprint is last 4 chars of plaintext for UI display without decrypt.
+
+class WorkspaceApiKey(Base):
+    __tablename__ = "workspace_api_keys"
+
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    encrypted_openrouter_key: Mapped[str] = mapped_column(Text, nullable=False)
+    key_fingerprint: Mapped[str] = mapped_column(String(8), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
