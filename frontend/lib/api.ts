@@ -85,10 +85,43 @@ function withMultipartHeaders(headers: HeadersInit = {}): HeadersInit {
   return withHeaders(headers);
 }
 
+/** Backend returns 404 with detail "Workspace <uuid> not found." when the
+ *  X-Workspace-Id header points at a workspace that doesn't exist OR belongs
+ *  to a different user (deps.py returns the same 404 for both to avoid tenant
+ *  enumeration). Either way, the persisted active id is stale — drop it and
+ *  send the user to the workspace picker instead of spamming failed requests.
+ */
+function isStaleWorkspaceError(status: number, detail: unknown): boolean {
+  return (
+    status === 404 &&
+    typeof detail === "string" &&
+    /^Workspace\s.+\snot found\.?$/i.test(detail)
+  );
+}
+
+function clearActiveWorkspace(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem("kb-active-workspace");
+  } catch { /* ignore */ }
+}
+
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail: unknown = res.statusText;
     try { detail = (await res.json()).detail ?? detail; } catch { /* ignore */ }
+    if (isStaleWorkspaceError(res.status, detail)) {
+      clearActiveWorkspace();
+      // Don't bounce if we're already on a route that can handle a missing
+      // workspace — those pages render the picker inline. Avoids redirect
+      // loops on /workspaces itself.
+      if (typeof window !== "undefined") {
+        const here = window.location.pathname;
+        if (here !== "/workspaces" && here !== "/sign-in" && here !== "/sign-up") {
+          window.location.assign("/workspaces");
+        }
+      }
+    }
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
   return res.json() as Promise<T>;
