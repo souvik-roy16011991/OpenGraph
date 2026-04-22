@@ -148,6 +148,34 @@ JWT_EXPIRES_MINUTES: int = int(os.environ.get("JWT_EXPIRES_MINUTES", "43200"))  
 JWT_ISSUER: str = os.environ.get("JWT_ISSUER", "kb-graph-engine")
 PASSWORD_MIN_LENGTH: int = int(os.environ.get("PASSWORD_MIN_LENGTH", "8"))
 
+# ---------------------------------------------------------------------------
+# GitHub OAuth — optional "Sign in with GitHub". Disabled unless both the
+# client id and secret are set. Callback flow is stateless: the backend signs
+# a short-lived JWT as the OAuth `state` param (no server-side session store),
+# exchanges the code, mints an app JWT, and 302-redirects to
+# ${FRONTEND_URL}/auth/complete?token=... so the browser can store it.
+#
+# GitHub OAuth app config (dev):  http://localhost:3000 → callback
+#                                 http://localhost:8000/api/v1/auth/github/callback
+# GitHub OAuth app config (prod): https://opengraph.tech → callback
+#                                 https://opengraph-backend.onrender.com/api/v1/auth/github/callback
+# ---------------------------------------------------------------------------
+GITHUB_CLIENT_ID: str = os.environ.get("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET: str = os.environ.get("GITHUB_CLIENT_SECRET", "")
+# Public base URL of the backend. Used to build the OAuth redirect URI when
+# GITHUB_OAUTH_REDIRECT_URI is not set explicitly. Defaults to localhost.
+BACKEND_URL: str = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
+GITHUB_OAUTH_REDIRECT_URI: str = (
+    os.environ.get("GITHUB_OAUTH_REDIRECT_URI")
+    or f"{BACKEND_URL}/api/v1/auth/github/callback"
+)
+# Where to redirect the browser after a successful OAuth exchange. Must be
+# an absolute URL of the frontend app.
+FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+# Secret for signing the short-lived OAuth `state` JWT. Falls back to
+# JWT_SECRET so operators don't need to manage a second secret.
+OAUTH_STATE_SECRET: str = os.environ.get("OAUTH_STATE_SECRET", "") or JWT_SECRET
+
 # Optional allowlist of OpenRouter models exposed to end-users. Comma-separated
 # list of model ids (e.g. "anthropic/claude-3-7-sonnet,openai/gpt-4o-mini").
 # When unset/empty, the full OpenRouter catalog is exposed via /api/v1/llm/models.
@@ -162,3 +190,4 @@ USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
 USE_NEON: bool = bool(DATABASE_URL)
 USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
 USE_AUTH: bool = bool(JWT_SECRET)
+USE_GITHUB_OAUTH: bool = bool(GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET and OAUTH_STATE_SECRET)
