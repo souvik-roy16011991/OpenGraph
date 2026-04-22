@@ -183,6 +183,51 @@ export interface GraphStats {
 }
 
 // ---------- History ----------
+
+// Typed slices of the `stats` JSONB bag populated by build_jobs.py after each
+// build. The bag is still typed as Record<string,unknown> on the row so the
+// server can evolve the shape without breaking the FE compile — use the
+// `parseBuildStats` helper below to extract a typed view.
+export interface BuildUsage {
+  llm_prompt_tokens: number;
+  llm_completion_tokens: number;
+  llm_total_tokens: number;
+  llm_calls: number;
+  embedding_prompt_tokens: number;
+  embedding_vectors: number;
+  embedding_dimension: number;
+  graph_payload_bytes: number;
+}
+export interface BuildInputs {
+  knowledge_files: number;
+  tool_files: number;
+  total_bytes: number;
+}
+export interface BuildTimings {
+  total_ms: number | null;
+  stages_ms: Record<string, number>;
+}
+export interface BuildModels {
+  llm: string | null;
+  embedding: string | null;
+}
+export interface BuildStatsTyped {
+  total_nodes?: number;
+  total_edges?: number;
+  nodes_by_type?: Record<string, number>;
+  edges_by_type?: Record<string, number>;
+  usage?: BuildUsage;
+  inputs?: BuildInputs;
+  timings?: BuildTimings;
+  models?: BuildModels;
+}
+
+export function parseBuildStats(stats: Record<string, unknown> | null | undefined): BuildStatsTyped {
+  if (!stats || typeof stats !== "object") return {};
+  // The server writes the shape; we just cast. Unknown keys survive.
+  return stats as BuildStatsTyped;
+}
+
 export interface BuildHistoryRow {
   job_id: string;
   status: "queued" | "running" | "done" | "error";
@@ -204,12 +249,22 @@ export interface BuildHistoryDetail extends BuildHistoryRow {
   domain_snapshot: Record<string, unknown> | null;
   graph_snapshot: Record<string, unknown> | null;
 }
+
+// Per-session usage rollup summed across assistant messages on the server
+// (history_routes.list_chats). Null for pre-feature sessions; UI renders "—".
+export interface ChatSessionUsage {
+  llm_prompt_tokens: number;
+  llm_completion_tokens: number;
+  llm_total_tokens: number;
+  llm_calls: number;
+}
 export interface ChatHistoryRow {
   session_id: string;
   title: string | null;
   message_count: number;
   created_at: string;
   last_activity_at: string;
+  usage: ChatSessionUsage | null;
 }
 export interface ChatHistoryDetail {
   session_id: string;

@@ -76,6 +76,17 @@ class QueryRequest(BaseModel):
     llm_model: Optional[str] = None
 
 
+class ChatUsage(BaseModel):
+    """Per-turn LLM usage rollup surfaced on ``QueryResponse``. Sums across
+    every ``llm_invoke`` that fired during the turn (intent classify + answer
+    synthesis + any future tool-reasoning nodes)."""
+    llm_prompt_tokens: int = 0
+    llm_completion_tokens: int = 0
+    llm_total_tokens: int = 0
+    llm_calls: int = 0
+    model: Optional[str] = None
+
+
 class QueryResponse(BaseModel):
     query: str
     intent: str
@@ -96,6 +107,10 @@ class QueryResponse(BaseModel):
     # "which model said this?" must come from the server, not from whatever
     # the user has selected in the dropdown right now.
     llm_model: Optional[str] = None
+    # Token usage for this turn. Written by the chat handler after the agent
+    # completes from the per-turn ``chat_metrics_var`` accumulator. Absent
+    # (None) for pre-feature rows — the UI renders "—".
+    usage: Optional[ChatUsage] = None
 
 
 class TraverseRequest(BaseModel):
@@ -136,6 +151,8 @@ async def query_graph(
     from src.config import LLM_MODEL, USE_NEON
     from src.infra.workspace_llm import get_workspace_llm_model
 
+    from src.observability.usage import ChatMetrics, chat_metrics_var
+
     kg = _get_kg(workspace_id)
     agent = KBGraphAgent.from_graph(kg)
 
@@ -151,25 +168,40 @@ async def query_graph(
     # response is self-describing.
     effective_model = resolved_model or LLM_MODEL
 
+    # Install the per-turn accumulator before the agent runs. Reset in
+    # ``finally`` so even a failing agent call doesn't leak the var.
+    chat_metrics = ChatMetrics(model=effective_model)
+    chat_token = chat_metrics_var.set(chat_metrics)
+
     start = time.perf_counter()
     try:
-        state = agent.query(req.query, llm_model=resolved_model)
-    except Exception as exc:
-        logger.error(f"Agent query failed: {exc}", exc_info=True)
-        # best-effort record the failure turn
-        if USE_NEON:
-            try:
-                await _persist_chat_turn(
-                    session_id=session_id,
-                    query=req.query,
-                    resp=None,
-                    duration_ms=int((time.perf_counter() - start) * 1000),
-                    error=str(exc),
-                )
-            except Exception:
-                pass
-        raise HTTPException(status_code=500, detail=str(exc))
+        try:
+            state = agent.query(req.query, llm_model=resolved_model)
+        except Exception as exc:
+            logger.error(f"Agent query failed: {exc}", exc_info=True)
+            # best-effort record the failure turn
+            if USE_NEON:
+                try:
+                    await _persist_chat_turn(
+                        session_id=session_id,
+                        query=req.query,
+                        resp=None,
+                        duration_ms=int((time.perf_counter() - start) * 1000),
+                        error=str(exc),
+                    )
+                except Exception:
+                    pass
+            raise HTTPException(status_code=500, detail=str(exc))
+    finally:
+        try:
+            chat_metrics_var.reset(chat_token)
+        except Exception:
+            pass
     duration_ms = int((time.perf_counter() - start) * 1000)
+
+    usage_payload = ChatUsage(**chat_metrics.usage_dict()) if (
+        chat_metrics.llm_calls or chat_metrics.llm_prompt_tokens or chat_metrics.llm_completion_tokens
+    ) else None
 
     resp = QueryResponse(
         query=state["query"],
@@ -186,6 +218,7 @@ async def query_graph(
         duration_ms=duration_ms,
         error=state.get("error"),
         llm_model=effective_model,
+        usage=usage_payload,
     )
 
     if USE_NEON:

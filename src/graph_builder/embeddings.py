@@ -144,6 +144,24 @@ class _OpenRouterEmbedder:
             ]
             all_vecs.extend(batch_vecs)
 
+            # Feed the active build accumulator (no-op outside build context).
+            # Token counts only arrive on the response for some OpenRouter
+            # models — best-effort read.
+            try:
+                from src.observability.usage import record_embedding_batch
+                prompt_tokens = 0
+                usage = getattr(resp, "usage", None)
+                if usage is not None:
+                    prompt_tokens = int(
+                        getattr(usage, "prompt_tokens", None)
+                        or getattr(usage, "total_tokens", 0)
+                        or 0
+                    )
+                dim = len(batch_vecs[0]) if batch_vecs else (self._dimensions or 0)
+                record_embedding_batch(prompt_tokens, len(batch_vecs), dim)
+            except Exception:
+                pass
+
         arr = np.array(all_vecs, dtype=np.float32)
         if normalize_embeddings:
             norms = np.linalg.norm(arr, axis=1, keepdims=True)

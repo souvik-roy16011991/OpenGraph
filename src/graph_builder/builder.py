@@ -199,6 +199,19 @@ def build_graph(
     else:
         logger.info("Step 4/5 – Skipping embeddings (skip_embeddings=True)")
 
+    # Record an approximate payload-bytes number into the per-build metrics
+    # accumulator (no-op if no build is observing). Done here — after all
+    # edges (including RELATED_TO) are final — so the number reflects what
+    # actually gets written to Memgraph.
+    try:
+        from src.observability.usage import (
+            measure_graph_payload_bytes,
+            record_graph_payload_bytes,
+        )
+        record_graph_payload_bytes(measure_graph_payload_bytes(nodes, edges))
+    except Exception:
+        pass
+
     # 5. Persist graph (per-workspace) — cloud only; no local pickle/JSON.
     neo4j_store = None
     G: nx.DiGraph | None = None
