@@ -128,6 +128,45 @@ export async function login(input: { email: string; password: string }): Promise
   return out;
 }
 
+/**
+ * Build the URL that kicks off the GitHub OAuth flow. Returning a string (not
+ * navigating here) keeps this SSR-safe and lets the caller choose between a
+ * full-page `window.location.href = ...` and a Link/Button.
+ *
+ * The browser navigates to this backend URL; the backend 302-redirects to
+ * GitHub, GitHub calls back to the backend with the OAuth code, the backend
+ * mints a JWT and 302-redirects to `/auth/complete?token=...` — the callback
+ * page (`app/auth/complete/page.tsx`) stores the token and navigates to
+ * `returnTo` (or `/`).
+ */
+export function githubLoginUrl(returnTo?: string | null): string {
+  const qs = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : "";
+  return `${API_BASE}/api/v1/auth/github/login${qs}`;
+}
+
+/**
+ * Fetch /me with an explicit token — used by the OAuth callback page where
+ * ``setSession`` hasn't run yet, so ``lib/api.ts`` can't read the token from
+ * ``localStorage``. On success returns the same shape as ``signup``/``login``.
+ */
+export async function fetchMeWithToken(token: string): Promise<StoredUser> {
+  const res = await fetch(`${API_BASE}/api/v1/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    let detail: unknown = res.statusText;
+    try { detail = (await res.json()).detail ?? detail; } catch { /* ignore */ }
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  const data = await res.json();
+  return {
+    id: String(data.id),
+    email: String(data.email ?? ""),
+    display_name: data.display_name ?? null,
+  };
+}
+
 export function logout(): void {
   // Fire-and-forget the server audit; clear local session either way.
   const token = getToken();
