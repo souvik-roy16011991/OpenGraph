@@ -15,6 +15,7 @@ import logging
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
@@ -250,6 +251,62 @@ async def get_my_billing_transactions(
         entries=entries,
         has_more=has_more,
         next_before_id=entries[-1].id if has_more and entries else None,
+    )
+
+
+@router.get(
+    "/me/billing/transactions.csv",
+    summary="Downloadable CSV of the credit-ledger history",
+)
+async def export_my_billing_transactions_csv(user: User = Depends(require_user)):
+    """Export every credit_transactions row for the caller as RFC-4180 CSV.
+
+    Served with a ``Content-Disposition: attachment`` header so browsers
+    save the file rather than rendering it. No pagination — users will
+    typically have hundreds of rows, not millions; if that changes we can
+    switch to ``StreamingResponse`` with chunked generation.
+    """
+    import csv
+    import io
+
+    _require_neon()
+    async with get_session() as s:
+        rows = (await s.execute(
+            select(CreditTransaction)
+            .where(CreditTransaction.user_id == user.id)
+            .order_by(CreditTransaction.id.desc())
+        )).scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow([
+        "id", "created_at", "delta_credits", "bucket", "reason",
+        "source_type", "source_id", "actor_type", "metadata_json",
+    ])
+    for r in rows:
+        writer.writerow([
+            r.id,
+            r.created_at.isoformat() if r.created_at else "",
+            int(r.delta_credits),
+            r.bucket,
+            r.reason,
+            r.source_type or "",
+            r.source_id or "",
+            r.actor_type,
+            # ``metadata_json`` is a JSONB dict — render as a compact JSON
+            # string so Excel / accounting software can at least ingest it.
+            __import__("json").dumps(r.metadata_json) if r.metadata_json else "",
+        ])
+
+    # Filename carries the user id so exports from different accounts don't
+    # collide in a downloads folder.
+    filename = f"billing-transactions-{str(user.id)[:8]}.csv"
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
     )
 
 
