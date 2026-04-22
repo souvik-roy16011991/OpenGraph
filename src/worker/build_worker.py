@@ -99,12 +99,18 @@ class _WorkerLogHandler(logging.Handler):
     """Captures log lines from the graph_builder loggers into the shared
     log-state object. Parses "Step N/5" markers to update stage. Called
     from the build thread (``asyncio.to_thread``), not the main loop.
+
+    Dedups stage transitions: a given stage N only fires once per build,
+    even if the same log line reaches the handler twice (e.g. via logger
+    hierarchy propagation). Without this, ``mark_stage`` would be called
+    twice per transition, scrambling ``stage_timings_ms``.
     """
 
     def __init__(self, state: _WorkerLogState, schedule_stage_update) -> None:
         super().__init__(level=logging.INFO)
         self.state = state
         self._schedule_stage_update = schedule_stage_update
+        self._last_triggered_stage: int = 0
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
@@ -116,10 +122,26 @@ class _WorkerLogHandler(logging.Handler):
         raw = record.getMessage()
         for i in range(1, 6):
             if f"Step {i}/5" in raw:
+                # Dedup: ignore a stage that has already been announced.
+                # Stages can only advance, never go backwards.
+                if i <= self._last_triggered_stage:
+                    break
+                self._last_triggered_stage = i
+                stage_name = _STAGE_NAMES[i]
                 self.state.set_stage(i)
+                # Record the transition into the BuildMetrics accumulator
+                # so ``stats.timings.stages_ms`` is populated at finalize.
+                # This runs in the build thread (``asyncio.to_thread``)
+                # whose context inherits ``build_metrics_var`` from the
+                # main loop via copy_context().
+                try:
+                    from src.observability.usage import mark_stage
+                    mark_stage(stage_name)
+                except Exception:
+                    pass
                 # Schedule a stage-boundary DB write (non-blocking).
                 try:
-                    self._schedule_stage_update(i, _STAGE_NAMES[i], min(100, i * 20))
+                    self._schedule_stage_update(i, stage_name, min(100, i * 20))
                 except Exception:
                     pass
                 break
@@ -167,7 +189,7 @@ async def _heartbeat_loop(
 # Build execution
 # ---------------------------------------------------------------------------
 
-async def run_build_async(job: ClaimedJob) -> None:
+async def run_build_async(job: ClaimedJob, worker_id: str | None = None) -> None:
     """Run the (synchronous) build pipeline for a claimed job.
 
     - Installs the per-build metrics contextvar (from usage.py).
@@ -197,15 +219,11 @@ async def run_build_async(job: ClaimedJob) -> None:
     handler = _WorkerLogHandler(state, schedule_stage_update)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(name)s] %(message)s", "%H:%M:%S"))
 
-    targets = [
-        logging.getLogger("src.graph_builder"),
-        logging.getLogger("src.graph_builder.builder"),
-        logging.getLogger("src.graph_builder.embeddings"),
-        logging.getLogger("src.graph_builder.edges"),
-        logging.getLogger("src.graph_builder.extractor"),
-        logging.getLogger("src.graph_builder.parser"),
-        logging.getLogger("src.graph_builder.cross_kb_mapper"),
-    ]
+    # Attach ONLY to the parent logger — children propagate up the
+    # hierarchy, so a log from ``src.graph_builder.builder`` still reaches
+    # this handler. Attaching to both parent and children would make the
+    # handler fire twice per message (double-counting stage transitions).
+    targets = [logging.getLogger("src.graph_builder")]
     for t in targets:
         t.addHandler(handler)
         t.setLevel(logging.INFO)
@@ -223,7 +241,7 @@ async def run_build_async(job: ClaimedJob) -> None:
     metrics = BuildMetrics(build_started_perf=time.perf_counter())
     metrics_token = build_metrics_var.set(metrics)
 
-    state.append(f"[job {job.job_id}] build started on worker {make_worker_id()}")
+    state.append(f"[job {job.job_id}] build started on worker {worker_id or make_worker_id()}")
 
     try:
         await asyncio.to_thread(_run_sync_build, job, metrics, state)
@@ -435,7 +453,7 @@ async def worker_main() -> None:
                     "Claimed job %s for workspace %s (attempt %d)",
                     job.job_id, job.workspace_id, job.attempt_count,
                 )
-                await run_build_async(job)
+                await run_build_async(job, worker_id=worker_id)
                 continue
 
         # No job to run — opportunistic sweep of stale runners, then sleep.
