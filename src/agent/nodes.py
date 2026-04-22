@@ -98,7 +98,8 @@ def classify_intent(state: GraphAgentState, kg: KnowledgeGraph) -> dict[str, Any
     ]
 
     try:
-        result = llm.invoke(messages)
+        from src.observability.usage import llm_invoke
+        result = llm_invoke(llm, messages)
         text = result.content if hasattr(result, "content") else str(result)
 
         # Strip thinking tags if present (some Qwen models include <think>...</think>)
@@ -516,7 +517,8 @@ def synthesize_response(state: GraphAgentState, kg: KnowledgeGraph) -> dict[str,
     ]
 
     try:
-        result = llm.invoke(messages)
+        from src.observability.usage import llm_invoke
+        result = llm_invoke(llm, messages)
         response_text = result.content if hasattr(result, "content") else str(result)
         # Strip thinking tags
         response_text = re.sub(r"<think>.*?</think>", "", response_text, flags=re.DOTALL).strip()

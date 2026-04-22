@@ -140,6 +140,7 @@ async def list_chats(
 
         # Count messages per session in a single roll-up query
         counts: dict[str, int] = {}
+        usage_by_session: dict[str, dict[str, int]] = {}
         if sessions:
             from sqlalchemy import func
             ids = [s_.session_id for s_ in sessions]
@@ -151,6 +152,32 @@ async def list_chats(
             for sid, cnt in cnt_res.all():
                 counts[str(sid)] = int(cnt)
 
+            # Pull assistant messages' JSONB ``response`` so we can sum their
+            # ``usage`` across each session. Kept in Python (rather than a
+            # SQL jsonb_path sum) because the JSONB shape may evolve and
+            # message counts per session are bounded (≤50 sessions here).
+            msg_res = await s.execute(
+                select(ChatMessage.session_id, ChatMessage.response)
+                .where(ChatMessage.session_id.in_(ids))
+                .where(ChatMessage.role == "assistant")
+            )
+            for sid, response_json in msg_res.all():
+                if not isinstance(response_json, dict):
+                    continue
+                u = response_json.get("usage")
+                if not isinstance(u, dict):
+                    continue
+                bucket = usage_by_session.setdefault(str(sid), {
+                    "llm_prompt_tokens": 0,
+                    "llm_completion_tokens": 0,
+                    "llm_total_tokens": 0,
+                    "llm_calls": 0,
+                })
+                bucket["llm_prompt_tokens"] += int(u.get("llm_prompt_tokens") or 0)
+                bucket["llm_completion_tokens"] += int(u.get("llm_completion_tokens") or 0)
+                bucket["llm_total_tokens"] += int(u.get("llm_total_tokens") or 0)
+                bucket["llm_calls"] += int(u.get("llm_calls") or 0)
+
     return {
         "chats": [
             {
@@ -159,6 +186,10 @@ async def list_chats(
                 "message_count": counts.get(str(r.session_id), 0),
                 "created_at": r.created_at.isoformat(),
                 "last_activity_at": r.last_activity_at.isoformat(),
+                # ``usage`` is null when no assistant message in this session
+                # carried a usage payload (pre-feature rows). Frontend
+                # renders "—" in that case.
+                "usage": usage_by_session.get(str(r.session_id)),
             }
             for r in sessions
         ]
