@@ -33,7 +33,12 @@ import type {
 // If NEXT_PUBLIC_API_BASE is set (e.g. http://localhost:8000), hit the backend
 // directly — avoids Next.js dev-proxy body-size limits on multipart uploads.
 // Empty string = same-origin, relying on next.config.ts rewrites().
-const BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+// Render's `fromService.property: host` yields a bare hostname — prepend
+// https:// when the scheme is missing so the fetch URL is absolute.
+const RAW_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+const BASE = RAW_BASE && !/^https?:\/\//i.test(RAW_BASE)
+  ? `https://${RAW_BASE}`
+  : RAW_BASE;
 
 /** Read the active workspace id from the persisted zustand store at call time. */
 function activeWorkspaceId(): string | null {
