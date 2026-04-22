@@ -174,6 +174,19 @@ async def init_db() -> None:
         await conn.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"
         ))
+        # --- GitHub OAuth columns (idempotent, nullable) ------------------
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id VARCHAR(64)"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(512)"
+        ))
+        # Partial unique index — each GitHub account maps to at most one user,
+        # but NULLs (email/password-only users) are excluded from the constraint.
+        await conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_github_id "
+            "ON users (github_id) WHERE github_id IS NOT NULL"
+        ))
         # --- build_jobs durable-queue additions ---------------------------
         # Support for the Postgres-as-queue build pipeline: workers write
         # ``heartbeat_at`` every 10s, claim rows via SELECT FOR UPDATE SKIP

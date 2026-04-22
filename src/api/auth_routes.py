@@ -29,6 +29,7 @@ from src.api.auth import (
     get_user_by_email,
     hash_password,
     invalidate_user_cache,
+    normalize_email,
     require_user,
     verify_password,
 )
@@ -80,10 +81,6 @@ def _guard() -> None:
         raise HTTPException(status_code=503, detail="DATABASE_URL (Neon) is required for auth.")
 
 
-def _normalize_email(email: str) -> str:
-    return email.strip().lower()
-
-
 def _user_payload(user: User) -> UserPayload:
     return UserPayload(
         id=str(user.id),
@@ -105,7 +102,7 @@ async def signup(body: SignupRequest) -> TokenResponse:
             detail=f"Password must be at least {PASSWORD_MIN_LENGTH} characters.",
         )
 
-    email = _normalize_email(body.email)
+    email = normalize_email(body.email)
     # Case-insensitive duplicate check — prevents `Foo@x.com` vs `foo@x.com`
     # collisions.
     existing = await get_user_by_email(email)
@@ -146,7 +143,7 @@ async def signup(body: SignupRequest) -> TokenResponse:
 @router.post("/login", response_model=TokenResponse, summary="Log in with email + password")
 async def login(body: LoginRequest) -> TokenResponse:
     _guard()
-    email = _normalize_email(body.email)
+    email = normalize_email(body.email)
     user = await get_user_by_email(email)
     if user is None or not verify_password(body.password, user.password_hash):
         # Uniform 401 so callers can't tell apart "no such user" vs "wrong pw".

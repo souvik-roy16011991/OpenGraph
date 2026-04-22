@@ -44,6 +44,20 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Email helpers
+# ---------------------------------------------------------------------------
+
+def normalize_email(email: str) -> str:
+    """Lowercase + strip whitespace. The canonical form stored in ``users.email``.
+
+    Shared between password signup (``auth_routes``) and OAuth signup
+    (``oauth_github``) so both paths collapse ``Foo@x.com`` to ``foo@x.com``
+    and hit the same unique-index row.
+    """
+    return email.strip().lower()
+
+
+# ---------------------------------------------------------------------------
 # Password hashing (bcrypt)
 # ---------------------------------------------------------------------------
 
