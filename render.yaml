@@ -124,14 +124,14 @@ services:
         value: "25"
 
       # --- CORS --------------------------------------------------------
-      # Point this at the frontend host once Render issues it. fromService
-      # resolves to the live frontend URL so the backend exact-matches the
-      # origin (required for Authorization headers + cookies).
+      # Hard-coded to the frontend's full origin (scheme + host). `fromService`
+      # with `property: host` has been observed returning the service *name*
+      # (`opengraph-frontend`) instead of the hostname on Docker blueprints,
+      # which breaks every preflight because browsers send the full
+      # `Origin: https://<host>` header. Keep this literal; update if the
+      # frontend service is renamed or moved to a custom domain.
       - key: CORS_ALLOW_ORIGINS
-        fromService:
-          type: web
-          name: opengraph-frontend
-          property: host
+        value: https://opengraph-frontend.onrender.com
 
       # --- Misc --------------------------------------------------------
       - key: KMP_DUPLICATE_LIB_OK
@@ -156,17 +156,18 @@ services:
     # Next's `--build-arg` path — these bake into the client bundle at
     # `npm run build`. Render passes envVars as build args automatically
     # when dockerContext is set.
+    #
+    # These are hard-coded to the backend's full URL (scheme + host).
+    # `fromService` with `property: host` was observed returning the service
+    # *name* (`opengraph-backend`) instead of the hostname on Docker
+    # blueprints, leading the client bundle to fetch a relative path and get
+    # back HTML. Keep these literal; update if the backend is renamed or
+    # moved to a custom domain.
     envVars:
       - key: NEXT_PUBLIC_API_BASE
-        fromService:
-          type: web
-          name: opengraph-backend
-          property: host     # e.g. https://kb-backend-xxxx.onrender.com
+        value: https://opengraph-backend.onrender.com
       - key: BACKEND_URL
-        fromService:
-          type: web
-          name: opengraph-backend
-          property: host
+        value: https://opengraph-backend.onrender.com
       - key: NODE_ENV
         value: production
       # Auth is first-party JWT; the browser stores the token in localStorage
