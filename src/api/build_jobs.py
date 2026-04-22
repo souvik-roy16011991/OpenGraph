@@ -83,6 +83,14 @@ def _set_stage(job: BuildJob, stage: int) -> None:
     job.stage_name = _STAGE_NAMES.get(stage, f"Stage {stage}")
     # Roughly even-weighted: 5 stages → 20% each. Stage 1..5 => 20,40,60,80,100.
     job.percent = min(100, stage * 20)
+    # Record the transition into the per-build metrics accumulator. When the
+    # contextvar isn't set (e.g. CLI-driven builds with no observability
+    # installed) this is a no-op.
+    try:
+        from src.observability.usage import mark_stage
+        mark_stage(job.stage_name)
+    except Exception:
+        pass
     _persist_job(job)
 
 
@@ -221,6 +229,27 @@ class _JobLogHandler(logging.Handler):
             _set_stage(self.job, 5)
 
 
+def _merge_metrics_into_stats(base: dict | None, metrics) -> dict:
+    """Fold a ``BuildMetrics`` into the existing ``kg.stats()`` payload.
+
+    Never drops existing keys. Added keys: ``usage``, ``inputs``, ``models``,
+    ``timings``. Called on both success and error paths so partial runs still
+    surface the tokens they burned.
+    """
+    out: dict = dict(base or {})
+    out["usage"] = metrics.usage_dict()
+    out["inputs"] = metrics.inputs_dict()
+    out["models"] = metrics.models_dict()
+    total_ms = None
+    if metrics.build_started_perf is not None:
+        total_ms = int((time.perf_counter() - metrics.build_started_perf) * 1000)
+    out["timings"] = {
+        "total_ms": total_ms,
+        "stages_ms": dict(metrics.stage_timings_ms),
+    }
+    return out
+
+
 def _run_build(job: BuildJob) -> None:
     # Attach a log handler so we capture all graph_builder + related output
     handler = _JobLogHandler(job)
@@ -244,6 +273,20 @@ def _run_build(job: BuildJob) -> None:
     job.log_tail.append(f"[job {job.job_id}] build started")
     _persist_job(job)
 
+    # Install the per-build metrics accumulator. ContextVar is set INSIDE the
+    # build thread: ``threading.Thread`` does not propagate context from the
+    # parent coroutine, so setting it in the calling /build endpoint would
+    # have no effect here. The ``finally`` block below resets the var and
+    # flushes accumulated metrics into stats.
+    from src.observability.usage import (
+        BuildMetrics,
+        build_metrics_var,
+        finalize_stages,
+    )
+    metrics = BuildMetrics(build_started_perf=time.perf_counter())
+    metrics_token = build_metrics_var.set(metrics)
+
+    kg = None
     try:
         # Ensure config caches are fresh so edits to yaml take effect.
         from src.graph_config import get_graph_config
@@ -255,6 +298,19 @@ def _run_build(job: BuildJob) -> None:
         from src.workspace_context import set_current_workspace
         set_current_workspace(job.workspace_id)
 
+        # Capture the workspace-chosen LLM + embedding models for the
+        # ``models`` section of the final stats payload. Best-effort — a
+        # failure here shouldn't break the build.
+        try:
+            from src.config import EMBEDDING_MODEL, LLM_MODEL
+            from src.infra.workspace_llm import get_workspace_llm_model_sync
+            ws_llm = get_workspace_llm_model_sync(job.workspace_id)
+            metrics.llm_model = ws_llm or LLM_MODEL
+            cfg = get_graph_config()
+            metrics.embedding_model = cfg.embeddings.model or EMBEDDING_MODEL
+        except Exception as exc:
+            logger.debug("model capture for stats failed: %s", exc)
+
         # Collect the list of active knowledge + tool files from Neon and
         # download their bytes from Vercel Blob. Nothing is read from local
         # disk — the Blob is the authoritative store.
@@ -264,6 +320,12 @@ def _run_build(job: BuildJob) -> None:
                 f"Workspace {job.workspace_id} has no uploaded files. "
                 "Upload at least one knowledge or tool JSON before building."
             )
+
+        metrics.inputs_knowledge_files = len(knowledge_sources)
+        metrics.inputs_tool_files = len(tool_sources)
+        metrics.inputs_total_bytes = sum(
+            len(b) for _n, b in knowledge_sources + tool_sources
+        )
 
         from src.graph_builder.builder import build_graph
         kg = build_graph(
@@ -288,12 +350,14 @@ def _run_build(job: BuildJob) -> None:
         elapsed = job.finished_at - job.started_at
         job.log_tail.append(f"[job {job.job_id}] build complete in {elapsed:.1f}s")
 
-        # Capture final stats + backends for the audit row
+        # Capture final stats + backends, then fold in usage metrics.
         try:
-            stats = kg.stats() if kg is not None else None
-            backends = (stats or {}).get("backends")
+            base_stats = kg.stats() if kg is not None else None
+            backends = (base_stats or {}).get("backends")
         except Exception:
-            stats, backends = None, None
+            base_stats, backends = None, None
+        finalize_stages()
+        stats = _merge_metrics_into_stats(base_stats, metrics)
         _persist_job(job, stats=stats, backends=backends)
     except Exception as exc:
         job.error = f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
@@ -301,8 +365,18 @@ def _run_build(job: BuildJob) -> None:
         job.finished_at = time.time()
         job.log_tail.append(f"[error] {exc}")
         logger.exception("Build job %s failed", job.job_id)
-        _persist_job(job)
+        # Flush partial metrics so users can see tokens burned on failed builds.
+        try:
+            finalize_stages()
+            partial_stats = _merge_metrics_into_stats(None, metrics)
+            _persist_job(job, stats=partial_stats)
+        except Exception:
+            _persist_job(job)
     finally:
+        try:
+            build_metrics_var.reset(metrics_token)
+        except Exception:
+            pass
         for t in targets:
             t.removeHandler(handler)
         with _state_lock:

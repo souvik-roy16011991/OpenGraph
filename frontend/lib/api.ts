@@ -99,6 +99,19 @@ function isStaleWorkspaceError(status: number, detail: unknown): boolean {
   );
 }
 
+/** Backend returns 400 "Missing X-Workspace-Id header." when a workspace-
+ *  scoped request is made without a selected workspace. That's a page-guard
+ *  oversight — the user just hasn't picked one yet. Redirect to /workspaces
+ *  to let them, instead of rendering a broken page full of error toasts.
+ */
+function isMissingWorkspaceHeaderError(status: number, detail: unknown): boolean {
+  return (
+    status === 400 &&
+    typeof detail === "string" &&
+    /missing\s+x-workspace-id\s+header/i.test(detail)
+  );
+}
+
 function clearActiveWorkspace(): void {
   if (typeof window === "undefined") return;
   try {
@@ -110,8 +123,12 @@ async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail: unknown = res.statusText;
     try { detail = (await res.json()).detail ?? detail; } catch { /* ignore */ }
-    if (isStaleWorkspaceError(res.status, detail)) {
-      clearActiveWorkspace();
+    const stale = isStaleWorkspaceError(res.status, detail);
+    const missing = isMissingWorkspaceHeaderError(res.status, detail);
+    if (stale || missing) {
+      // Stale id is in localStorage: wipe it. Missing header just means
+      // nothing is selected yet — no-op clear is harmless.
+      if (stale) clearActiveWorkspace();
       // Don't bounce if we're already on a route that can handle a missing
       // workspace — those pages render the picker inline. Avoids redirect
       // loops on /workspaces itself.

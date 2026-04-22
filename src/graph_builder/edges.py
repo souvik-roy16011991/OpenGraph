@@ -262,7 +262,8 @@ class EdgeBuilder:
             temperature=LLM_TEMPERATURE,
             max_tokens=get_graph_config().cross_kb.llm_max_tokens,
         )
-        result = llm.invoke(prompt)
+        from src.observability.usage import llm_invoke
+        result = llm_invoke(llm, prompt)
         text = result.content if hasattr(result, "content") else str(result)
 
         # Extract JSON

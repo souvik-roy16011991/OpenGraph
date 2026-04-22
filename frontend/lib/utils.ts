@@ -18,6 +18,25 @@ export function formatDuration(sec: number) {
   return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
 
+/** Human-friendly number formatting: 980 -> "980", 12340 -> "12.3K",
+ *  1_234_567 -> "1.23M". Used for token counts and vector counts where
+ *  raw numbers eat horizontal space. */
+export function formatNumber(n: number | null | undefined): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}K`;
+  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  return `${(n / 1_000_000_000).toFixed(2)}B`;
+}
+
+/** Like formatDuration but takes milliseconds and returns sub-second precision.
+ *  45000 -> "45.0s", 1_200 -> "1.20s", 120 -> "120ms". */
+export function formatDurationMs(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined || Number.isNaN(ms)) return "—";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return formatDuration(ms / 1000);
+}
+
 /** Extract a clean user-facing message from an unknown thrown value.
  *  `String(new Error("x"))` returns "Error: x" — we want just "x". */
 export function errorMessage(err: unknown): string {
