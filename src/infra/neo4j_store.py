@@ -304,7 +304,7 @@ class Neo4jGraphStore:
                     """
                     s.run(cypher, rows=etype_rows, wid=workspace_id)
 
-        logger.info("Neo4j: created %d edges in ws=%s.", total, workspace_id)
+        logger.info("Graph storage: created %d edges in ws=%s.", total, workspace_id)
 
     # ------------------------------------------------------------------
     # Read path
