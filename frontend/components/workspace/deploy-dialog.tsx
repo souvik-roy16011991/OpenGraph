@@ -531,14 +531,18 @@ function ApiKeySection({
       )}
 
       {hasKeys && selectedKey && (
-        <p className="text-[11px] text-muted-foreground">
-          Using <span className="font-mono">{selectedKey.prefix}</span>{" "}
+        // ``Badge`` renders as a ``<div>``; wrapping in ``<p>`` triggers the
+        // Next.js "<div> cannot be a descendant of <p>" hydration error. Use
+        // a ``<div>`` with the same typography.
+        <div className="text-[11px] text-muted-foreground flex items-center gap-1 flex-wrap">
+          <span>Using</span>
+          <span className="font-mono">{selectedKey.prefix}</span>
           <Badge variant="outline" className="text-[9px] h-4 px-1 ml-0.5">
             {selectedKey.workspace_id ? "workspace" : "account"}-scoped
           </Badge>
-          {" · "}
-          {selectedKey.rate_limit_rpm} rpm
-        </p>
+          <span>·</span>
+          <span>{selectedKey.rate_limit_rpm} rpm</span>
+        </div>
       )}
     </div>
   );
