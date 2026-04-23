@@ -210,6 +210,12 @@ class QueryResponse(BaseModel):
     # completes from the per-turn ``chat_metrics_var`` accumulator. Absent
     # (None) for pre-feature rows — the UI renders "—".
     usage: Optional[ChatUsage] = None
+    # True if both the user and assistant turn were written to Neon
+    # ``chat_messages``. When False the answer was served successfully but
+    # the server could not record the turn — the UI should surface a subtle
+    # "history not saved" hint so the user knows to retry if they want a
+    # durable record.
+    history_persisted: bool = True
 
 
 class TraverseRequest(BaseModel):
@@ -325,16 +331,32 @@ async def query_graph(
     )
 
     if USE_NEON:
-        try:
-            await _persist_chat_turn(
-                workspace_id=workspace_id,
-                session_id=session_id,
-                query=req.query,
-                resp=resp,
-                duration_ms=duration_ms,
+        # Persist before returning, with one quick retry on transient failure
+        # (connection reset, pool timeout, etc.). If both attempts fail we
+        # still return the answer but mark ``history_persisted=False`` so the
+        # UI can surface a warning — losing history silently is worse than
+        # telling the user to retry.
+        persisted = False
+        last_err: Optional[Exception] = None
+        for _attempt in range(2):
+            try:
+                await _persist_chat_turn(
+                    workspace_id=workspace_id,
+                    session_id=session_id,
+                    query=req.query,
+                    resp=resp,
+                    duration_ms=duration_ms,
+                )
+                persisted = True
+                break
+            except Exception as exc:
+                last_err = exc
+        if not persisted:
+            logger.warning(
+                "Neon chat persistence failed after retry for session %s: %s",
+                session_id, last_err,
             )
-        except Exception as exc:
-            logger.warning("Neon chat persistence failed: %s", exc)
+            resp.history_persisted = False
 
     record_audit(
         user.id, "chat.query",

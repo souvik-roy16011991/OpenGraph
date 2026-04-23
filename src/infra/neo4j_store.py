@@ -18,12 +18,90 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 _NODE_BATCH = 500
 _EDGE_BATCH = 500
+
+# Runtime tenant-isolation guard. Multi-tenant graph correctness depends on
+# every read / write / delete carrying a ``workspace_id`` filter. A forgotten
+# filter leaks another tenant's graph data. The guard scans each Cypher
+# string before execution: statements that read or mutate KBNode data must
+# bind either ``$wid`` / ``$workspace_id`` as a parameter and reference it
+# in the cypher, or be explicitly marked ``_unscoped_ok=True`` for schema
+# operations (CREATE INDEX, SHOW CONSTRAINT, etc.).
+#
+# Default: enabled in all envs. Failing loud on missed scoping is strictly
+# better than a silent cross-tenant leak; set ``GRAPH_FILTER_GUARD=0`` to
+# turn it off only if a specific statement demonstrably trips a false
+# positive in production and you need to ship the fix.
+_GUARD_ENABLED = os.environ.get("GRAPH_FILTER_GUARD", "1") != "0"
+
+# Commands that touch tenant data. Anything starting with one of these
+# keywords must either be scoped or marked ``_unscoped_ok``.
+_TENANT_DATA_KEYWORDS = ("MATCH", "MERGE", "CREATE (", "DELETE", "DETACH DELETE")
+# Schema / infra statements that legitimately run without a workspace_id.
+_SCHEMA_KEYWORDS = (
+    "CREATE INDEX",
+    "CREATE CONSTRAINT",
+    "DROP INDEX",
+    "DROP CONSTRAINT",
+    "SHOW",
+    "CALL DB.",
+    "CALL DBMS.",
+)
+
+
+def _assert_ws_scoped(cypher: str, params: dict | None) -> None:
+    """Raise on a Cypher that mutates KBNode data without a workspace_id scope.
+
+    This is a linter, not a proof — a sufficiently obfuscated statement can
+    still slip through. It catches the common failure mode (someone writing
+    a new query method and forgetting to add ``WHERE n.workspace_id = $wid``)
+    which is the actual leakage risk at 1M tenants.
+    """
+    if not _GUARD_ENABLED:
+        return
+    stripped = cypher.strip()
+    upper = stripped.upper()
+    # Skip schema-only commands.
+    for kw in _SCHEMA_KEYWORDS:
+        if upper.startswith(kw):
+            return
+    # Only assert on statements that touch tenant data. Literal CREATE
+    # statements without a relationship pattern (e.g. CREATE INDEX) are
+    # already caught above.
+    if not any(re.search(r"(^|\s)" + re.escape(kw), upper) for kw in _TENANT_DATA_KEYWORDS):
+        return
+    params = params or {}
+    has_param = "wid" in params or "workspace_id" in params
+    mentions_ws = (
+        "WORKSPACE_ID" in upper
+        or "$WID" in upper
+        or "$WORKSPACE_ID" in upper
+    )
+    if not (has_param and mentions_ws):
+        raise RuntimeError(
+            "Graph tenant-isolation guard tripped: cypher touches tenant "
+            "data without binding workspace_id. First 200 chars: "
+            + stripped[:200]
+        )
+
+
+def _run_scoped(session, cypher: str, **params) -> Any:
+    """``session.run`` wrapper that enforces the tenant-isolation guard.
+
+    All new read / write paths should funnel through this helper. Existing
+    callers that pass ``_unscoped_ok=True`` opt out for schema statements.
+    """
+    if params.pop("_unscoped_ok", False):
+        return session.run(cypher, **params)
+    _assert_ws_scoped(cypher, params)
+    return session.run(cypher, **params)
 
 
 _TYPE_TO_LABEL: dict[str, str] = {

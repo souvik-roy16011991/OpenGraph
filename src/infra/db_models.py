@@ -30,6 +30,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -96,6 +97,18 @@ class Workspace(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+    # Delete saga. ``DELETE /workspaces/{id}`` sets ``deleted_at`` and kicks
+    # off the cross-store cascade (Memgraph / Qdrant / Blob). On full success
+    # the row is hard-deleted. On partial failure the row persists with
+    # ``deleted_at`` set and ``deletion_failure_count`` incremented; a
+    # background sweeper retries every minute. All read paths filter
+    # ``deleted_at IS NULL`` so the user stops seeing the workspace the
+    # moment the HTTP delete returns.
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deletion_failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deletion_last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="workspaces")
     files: Mapped[list["WorkspaceFile"]] = relationship(
@@ -105,6 +118,14 @@ class Workspace(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "name", name="uq_workspace_user_name"),
         Index("ix_workspaces_user_id", "user_id"),
+        # Partial index keeps the sweeper's scan cheap: only rows currently
+        # mid-deletion hit the index, so at 1M workspaces the sweeper reads
+        # ~N-in-flight rows instead of a full table scan.
+        Index(
+            "ix_workspaces_deleted_at",
+            "deleted_at",
+            postgresql_where=text("deleted_at IS NOT NULL"),
+        ),
     )
 
 

@@ -250,10 +250,12 @@ async def heartbeat(
     stage_name: str,
     percent: int,
 ) -> None:
-    """Write a progress + liveness update. Called every ~2s while building.
+    """Write a progress + liveness update. Called from the worker loop
+    whenever log_tail / stage / percent have actually changed.
 
-    Touches only the fields that change frequently; stage/backends/stats
-    are written by :func:`record_stage_transition` and :func:`complete`.
+    Full-row update — for liveness-only ticks (nothing changed since the
+    last successful heartbeat) use :func:`touch_heartbeat` instead to keep
+    write volume proportional to genuine progress, not wallclock.
     """
     async with get_session() as s:
         await s.execute(
@@ -266,6 +268,25 @@ async def heartbeat(
                 stage_name=stage_name,
                 percent=percent,
             )
+        )
+        await s.commit()
+
+
+async def touch_heartbeat(job_id: str) -> None:
+    """Bump only ``heartbeat_at`` — proves the worker is still alive without
+    rewriting log_tail or stage columns.
+
+    At 500 concurrent builds a 10s full-row heartbeat would be 50 writes/s
+    to the same Postgres table; a touch-only update is a narrower UPDATE
+    and (because nothing else in the row changes) is cheaper for autovacuum
+    to ignore. The sweeper checks ``heartbeat_at`` alone to decide if a
+    worker died, so this is functionally equivalent for zombie detection.
+    """
+    async with get_session() as s:
+        await s.execute(
+            update(BuildJobRow)
+            .where(BuildJobRow.job_id == job_id)
+            .values(heartbeat_at=datetime.now(timezone.utc))
         )
         await s.commit()
 

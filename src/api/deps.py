@@ -58,12 +58,17 @@ async def require_workspace_id(
     from src.infra.db_models import Workspace
     async with get_session() as s:
         ws = (await s.execute(
-            select(Workspace).where(Workspace.id == uuid.UUID(x_workspace_id))
+            select(Workspace).where(
+                Workspace.id == uuid.UUID(x_workspace_id),
+                Workspace.deleted_at.is_(None),
+            )
         )).scalar_one_or_none()
         if ws is None:
             # 404 (not 403) even though the caller isn't the owner: leaking
             # "exists but not yours" is strictly worse than leaking "doesn't
             # exist". This matches how e.g. GitHub responds to foreign repo ids.
+            # Soft-deleted workspaces also route here so late-arriving
+            # requests after DELETE return a clean 404.
             raise HTTPException(status_code=404, detail=f"Workspace {x_workspace_id} not found.")
         if ws.user_id != user.id:
             # Intentionally 404 to avoid existence leakage across tenants.
