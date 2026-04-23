@@ -301,25 +301,41 @@ class EmbeddingPipeline:
         self,
         embeddings: dict[str, list[float]],
         collection_name: str | None = None,
+        workspace_id: str | None = None,
     ) -> Any:
         """
         Upsert all node embeddings into Qdrant Cloud.
 
+        When ``workspace_id`` is set AND env ``QDRANT_SHARED_COLLECTION``
+        is non-empty, all tenants share one collection and this workspace's
+        points are filter-scoped. Otherwise the legacy per-collection mode
+        is used and the caller's ``collection_name`` is the tenant boundary.
+
         Returns the QdrantVectorStore instance.
         """
+        from src.config import QDRANT_SHARED_COLLECTION
         from src.infra.qdrant_store import QdrantVectorStore
 
         node_ids = self._node_ids
         # Dimension must match what we actually generated (not the configured default)
         actual_dim = len(next(iter(embeddings.values()))) if embeddings else EMBEDDING_DIM
 
+        shared_mode = bool(QDRANT_SHARED_COLLECTION) and workspace_id is not None
+        if shared_mode:
+            effective_collection = QDRANT_SHARED_COLLECTION
+            effective_ws = workspace_id
+        else:
+            effective_collection = collection_name or QDRANT_COLLECTION_NAME
+            effective_ws = None
+
         store = QdrantVectorStore(
             url=QDRANT_URL,
             api_key=QDRANT_API_KEY,
-            collection_name=collection_name or QDRANT_COLLECTION_NAME,
+            collection_name=effective_collection,
             dimension=actual_dim,
+            workspace_id=effective_ws,
         )
-        store.delete_namespace()  # clean slate for rebuild
+        store.delete_namespace()  # clean slate for rebuild (filter-delete in shared mode)
 
         vectors = [embeddings[nid] for nid in node_ids]
         metadata = [
@@ -442,7 +458,11 @@ def run_embedding_pipeline(
     if USE_QDRANT:
         logger.info("Upserting vectors to vector DB (collection=%s)…",
                     qdrant_collection or "default")
-        vector_store = pipeline.upsert_to_qdrant(embeddings, collection_name=qdrant_collection)
+        vector_store = pipeline.upsert_to_qdrant(
+            embeddings,
+            collection_name=qdrant_collection,
+            workspace_id=workspace_id,
+        )
         related_edges = pipeline.build_related_edges(embeddings, remote_store=vector_store)
         return embeddings, related_edges, vector_store
 

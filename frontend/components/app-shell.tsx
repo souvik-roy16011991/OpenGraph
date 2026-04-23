@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import {
@@ -14,6 +14,7 @@ import {
   CircleUser,
   CreditCard,
   CheckCircle2,
+  KeyRound,
   Moon,
   Sun,
   Briefcase,
@@ -22,6 +23,7 @@ import {
   PanelLeftOpen,
   ChevronsLeft,
   ChevronsRight,
+  Plus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { BrandMark } from "@/components/brand";
 import { FlowProgress, isWizardRoute } from "@/components/wizard/flow-progress";
 import { UserMenu } from "@/components/user-menu";
+import { RouteProgress } from "@/components/route-progress";
+import { CommandPalette } from "@/components/command-palette";
+import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
 import { useWorkspaceStore } from "@/store/workspace-store";
 import { useSidebarStore } from "@/store/sidebar-store";
 
@@ -52,6 +57,7 @@ const PRIMARY_NAV: NavItem[] = [
   { href: "/workspaces", label: "My Graphs", icon: GitBranch, matchPrefixes: GRAPH_MATCH_PREFIXES },
   { href: "/playground", label: "Playground", icon: GitCompareArrows },
   { href: "/history", label: "History", icon: HistoryIcon },
+  { href: "/api-keys", label: "API Keys", icon: KeyRound, matchPrefixes: ["/api-keys", "/api-docs"] },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
@@ -65,9 +71,11 @@ function isActive(pathname: string | null, item: NavItem): boolean {
 }
 
 function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
+  const router = useRouter();
   const activeId = useWorkspaceStore((s) => s.activeId);
   const setActiveId = useWorkspaceStore((s) => s.setActiveId);
   const [open, setOpen] = React.useState(false);
+  const [createOpen, setCreateOpen] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -126,32 +134,40 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
         <div
           className={cn(
             "absolute top-full mt-1 rounded-md border bg-popover shadow-lg z-30 max-h-[320px] overflow-auto",
+            "animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 duration-150",
             collapsed ? "left-full ml-2 w-[260px]" : "left-0 right-0",
           )}
         >
-          {list.length === 0 ? (
-            <div className="px-3 py-3 text-xs text-muted-foreground">No workspaces yet.</div>
-          ) : (
-            list.map((w) => (
-              <button
-                key={w.id}
-                onClick={() => {
-                  setActiveId(w.id);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors border-b last:border-b-0",
-                  w.id === activeId && "bg-accent",
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  {w.id === activeId && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
-                  <span className="truncate flex-1">{w.name}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setCreateOpen(true);
+            }}
+            className="w-full text-left px-3 py-2 text-sm font-medium text-primary hover:bg-accent transition-colors border-b flex items-center gap-2"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New workspace
+          </button>
+          {list.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => {
+                setActiveId(w.id);
+                setOpen(false);
+              }}
+              className={cn(
+                "w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors border-b last:border-b-0",
+                w.id === activeId && "bg-accent",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                {w.id === activeId && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+                <span className="truncate flex-1">{w.name}</span>
 
-                </span>
-              </button>
-            ))
-          )}
+              </span>
+            </button>
+          ))}
           <Link
             href="/workspaces"
             onClick={() => setOpen(false)}
@@ -161,6 +177,11 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
           </Link>
         </div>
       )}
+      <CreateWorkspaceDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={() => router.push("/upload")}
+      />
     </div>
   );
 }
@@ -241,7 +262,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [setCollapsed]);
 
   if (isChromeless(pathname)) {
-    return <>{children}</>;
+    return (
+      <>
+        <RouteProgress />
+        {children}
+      </>
+    );
   }
 
   const headerLabel =
@@ -249,6 +275,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      <RouteProgress />
+      <CommandPalette />
       {/* Sidebar */}
       <aside
         className={cn(

@@ -27,6 +27,26 @@ export interface WorkspaceFileInfo {
   created_at: string;
 }
 
+// ---------- Developer API keys ----------
+export interface ApiKeyRow {
+  id: string;
+  name: string;
+  prefix: string;
+  workspace_id?: string | null;
+  rate_limit_rpm: number;
+  scopes: string[];
+  created_at: string;
+  last_used_at?: string | null;
+  revoked_at?: string | null;
+}
+
+export interface CreateApiKeyResponse {
+  key: ApiKeyRow;
+  // Plaintext secret. Shown exactly once on creation; never retrievable
+  // afterward. UI must surface a copy button + one-shot reveal.
+  plaintext: string;
+}
+
 // ---------- Domain ----------
 export const DomainPayloadSchema = z.object({
   domain_name: z.string().min(1, "Required"),

@@ -30,6 +30,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -96,6 +97,18 @@ class Workspace(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+    # Delete saga. ``DELETE /workspaces/{id}`` sets ``deleted_at`` and kicks
+    # off the cross-store cascade (Memgraph / Qdrant / Blob). On full success
+    # the row is hard-deleted. On partial failure the row persists with
+    # ``deleted_at`` set and ``deletion_failure_count`` incremented; a
+    # background sweeper retries every minute. All read paths filter
+    # ``deleted_at IS NULL`` so the user stops seeing the workspace the
+    # moment the HTTP delete returns.
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deletion_failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deletion_last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="workspaces")
     files: Mapped[list["WorkspaceFile"]] = relationship(
@@ -105,6 +118,14 @@ class Workspace(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "name", name="uq_workspace_user_name"),
         Index("ix_workspaces_user_id", "user_id"),
+        # Partial index keeps the sweeper's scan cheap: only rows currently
+        # mid-deletion hit the index, so at 1M workspaces the sweeper reads
+        # ~N-in-flight rows instead of a full table scan.
+        Index(
+            "ix_workspaces_deleted_at",
+            "deleted_at",
+            postgresql_where=text("deleted_at IS NOT NULL"),
+        ),
     )
 
 
@@ -590,6 +611,73 @@ class WorkspaceApiKey(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+# Developer API keys (the /api/v1/ext/* surface).
+#
+# Distinct from ``WorkspaceApiKey`` above — that stores the user's BYOK
+# OpenRouter secret for billing waivers. This table holds the credentials
+# a third-party developer uses to CALL us. The plaintext key is shown to
+# the user ONCE at creation; we persist only a bcrypt hash plus a plaintext
+# ``prefix`` (first 16 chars) used for O(1) lookup.
+#
+# Key wire format: ``og_live_<32-char-base64-urlsafe>``. The ``og_live_``
+# marker is reserved so we can later introduce ``og_test_`` without a
+# schema change.
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Optional workspace scope. When set, the key can only call endpoints
+    # that resolve to this workspace. NULL means "any workspace I own" —
+    # the ext auth dep verifies ownership on every call.
+    workspace_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    # User-visible label. Shown on the dashboard, not used for lookup.
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    # First 16 chars of the plaintext key — safe to show and to index.
+    # ``og_live_`` + the first 8 secret chars. Unique across the table.
+    prefix: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    # bcrypt hash of the full plaintext key. Cannot be recovered.
+    key_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    # JSONB list of scope strings. v1 always ``["ext:read"]``. Kept JSONB
+    # so future writes (``ext:workspace:write``) don't need a migration.
+    scopes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    # Fixed-window rate limit applied to this key, requests per minute.
+    # Default 60; Team-plan users can request higher.
+    rate_limit_rpm: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Soft-delete. All auth paths filter ``revoked_at IS NULL``.
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_api_keys_user_id", "user_id"),
+        # Partial index keeps the auth lookup cheap at 1M keys — only live
+        # rows hit the index; revoked rows stay out of the hot path.
+        Index(
+            "ix_api_keys_prefix_live",
+            "prefix",
+            postgresql_where=text("revoked_at IS NULL"),
+        ),
+    )
 
 
 # Fractional daily storage accumulator. A workspace that costs 0.05 credits

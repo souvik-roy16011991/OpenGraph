@@ -216,6 +216,35 @@ async def init_db() -> None:
             "ON build_jobs (workspace_id) "
             "WHERE status IN ('queued','running')"
         ))
+        # --- api_keys: developer API credentials --------------------------
+        # Shipped with the /api/v1/ext/* public surface. create_all() picks
+        # up the table from the ORM model; these statements are defensive
+        # repeats that keep pre-existing deployments in sync when the model
+        # evolves (e.g. adding columns later).
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_api_keys_prefix_live "
+            "ON api_keys (prefix) WHERE revoked_at IS NULL"
+        ))
+        # --- workspaces: delete-saga columns ------------------------------
+        # ``deleted_at`` IS NULL means live; any non-null value means the
+        # cross-store cascade is in progress or has been retried. The HTTP
+        # DELETE handler sets this column first; a background sweeper
+        # hard-deletes the row once Memgraph + Qdrant + Blob all confirm
+        # cleanup. All read paths filter for ``deleted_at IS NULL``.
+        await conn.execute(text(
+            "ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS "
+            "deletion_failure_count INTEGER NOT NULL DEFAULT 0"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS deletion_last_error TEXT"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_workspaces_deleted_at "
+            "ON workspaces (deleted_at) WHERE deleted_at IS NOT NULL"
+        ))
         # --- billing_accounts: grandfather existing users -----------------
         # First-deploy protection: every ``users`` row that predates billing
         # would otherwise get a ``plan_tier='trial'`` row on first /me call

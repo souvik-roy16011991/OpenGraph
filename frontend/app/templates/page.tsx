@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TemplateCard } from "@/components/templates/template-card";
 import { TemplateFormDialog } from "@/components/templates/template-form-dialog";
 import {
@@ -141,21 +142,23 @@ export default function TemplatesPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[240px] max-w-md">
+      <div className="space-y-3">
+        <div className="relative">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search templates…"
-            className="pl-9"
+            placeholder="Search templates by name, domain, or category…"
+            className="pl-9 h-10"
           />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setCategory(null)}
-            className={`px-2.5 py-1 rounded-md text-xs border ${
-              category === null ? "bg-accent border-accent" : "hover:bg-accent/50"
+            className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+              category === null
+                ? "bg-foreground text-background border-foreground"
+                : "bg-card hover:bg-accent/60"
             }`}
           >
             all
@@ -164,8 +167,10 @@ export default function TemplatesPage() {
             <button
               key={c}
               onClick={() => setCategory(c)}
-              className={`px-2.5 py-1 rounded-md text-xs border ${
-                category === c ? "bg-accent border-accent" : "hover:bg-accent/50"
+              className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                category === c
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-card hover:bg-accent/60"
               }`}
             >
               {c}
@@ -185,14 +190,37 @@ export default function TemplatesPage() {
         </div>
       )}
 
-      {templatesQuery.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading catalog…</p>
-      ) : all.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No templates match that search.
+      {!templatesQuery.isLoading && (
+        <p className="text-xs text-muted-foreground">
+          {all.length} template{all.length === 1 ? "" : "s"}
+          {category ? ` in ${category}` : ""}
+          {query ? ` matching "${query}"` : ""}
         </p>
+      )}
+
+      {templatesQuery.isLoading ? (
+        <div className="space-y-2">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex items-center gap-4 rounded-lg border bg-card px-4 py-3">
+              <Skeleton className="h-10 w-10 rounded-md" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-3 w-4/5" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+      ) : all.length === 0 ? (
+        <div className="rounded-lg border border-dashed bg-card/40 px-6 py-12 text-center">
+          <p className="text-sm font-medium">No templates match that search.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Try a different keyword or clear the category filter.
+          </p>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-2">
           {all.map((t) => (
             <TemplateCard
               key={t.id}

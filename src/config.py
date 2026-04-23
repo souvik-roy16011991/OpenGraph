@@ -103,6 +103,12 @@ PINECONE_NAMESPACE: str = os.environ.get("PINECONE_NAMESPACE", "kb-knowledge-gra
 QDRANT_URL: str = os.environ.get("QDRANT_URL", "")
 QDRANT_API_KEY: str = os.environ.get("QDRANT_API_KEY", "")
 QDRANT_COLLECTION_NAME: str = os.environ.get("QDRANT_COLLECTION_NAME", "kb-knowledge-graph")
+# When set (non-empty), all tenants share this single collection and the
+# builder filters reads/deletes by a ``workspace_id`` payload field. When
+# empty, the legacy one-collection-per-workspace behaviour is kept. At 1M
+# tenants the shared mode is the only option that fits inside Qdrant Cloud's
+# per-account collection cap.
+QDRANT_SHARED_COLLECTION: str = os.environ.get("QDRANT_SHARED_COLLECTION", "")
 
 # Neo4j Aura graph database
 NEO4J_URI: str = os.environ.get("NEO4J_URI", "")

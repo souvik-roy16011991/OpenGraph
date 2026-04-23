@@ -435,16 +435,26 @@ class KnowledgeGraph:
 
         # --- Vector search backend ---
         pinecone_store = None
-        qdrant_collection = f"kb-{_short_wid(workspace_id)}"
+        from src.config import QDRANT_SHARED_COLLECTION as _SHARED
+        # Query-time collection + workspace_id pair mirrors the write path
+        # in ``upsert_to_qdrant``: shared mode uses the single env-configured
+        # collection with a workspace_id filter; legacy mode uses one
+        # collection per workspace.
+        qdrant_collection = _SHARED if _SHARED else f"kb-{_short_wid(workspace_id)}"
+        qdrant_ws = workspace_id if _SHARED else None
 
         if USE_QDRANT:
-            logger.info("Connecting to vector DB (collection %s)", qdrant_collection)
+            logger.info(
+                "Connecting to vector DB (collection %s, ws=%s)",
+                qdrant_collection, qdrant_ws or "<per-collection>",
+            )
             from src.infra.qdrant_store import QdrantVectorStore
             pinecone_store = QdrantVectorStore(
                 url=QDRANT_URL,
                 api_key=QDRANT_API_KEY,
                 collection_name=qdrant_collection,
                 dimension=EMBEDDING_DIM,
+                workspace_id=qdrant_ws,
             )
         elif USE_PINECONE:
             logger.info("Connecting to vector DB for semantic search…")
