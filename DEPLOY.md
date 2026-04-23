@@ -2,7 +2,7 @@
 
 The repo ships with a [`render.yaml`](./render.yaml) Blueprint that
 provisions **two stateless Docker services** — no disks, no stateful
-pods. All runtime state lives in managed cloud stores.
+pods. All runtime state lives in managed cloud stores. 
 
 | Service        | Purpose                                   | Port |
 | -------------- | ----------------------------------------- | ---- |
