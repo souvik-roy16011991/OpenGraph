@@ -18,15 +18,13 @@ export interface WorkspaceSummary {
 }
 
 // ---------- Deploy ----------
+// Deploy is a pure publish action — it stamps the workspace as API-reachable
+// but never mints or returns credentials. API keys are managed separately
+// through /api-keys so users can rotate them independently of deployments.
 export interface DeployResponse {
   workspace_id: string;
   workspace_name: string;
   deployed_at: string;
-  /** Shown exactly once; never recoverable after the success dialog closes. */
-  api_key_plaintext: string;
-  api_key_id: string;
-  api_key_prefix: string;
-  api_key_rate_limit_rpm: number;
   latest_job_id: string;
   first_deploy: boolean;
 }

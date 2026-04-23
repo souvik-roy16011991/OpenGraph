@@ -132,7 +132,7 @@ class Neo4jGraphStore:
         self._driver = GraphDatabase.driver(uri, auth=(username, password))
         self._driver.verify_connectivity()
         self._ensure_constraints()
-        logger.info("Neo4jGraphStore connected: uri='%s', database='%s'", uri, database)
+        logger.info("Graph storage connected: uri='%s', database='%s'", uri, database)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -216,13 +216,13 @@ class Neo4jGraphStore:
                 "MATCH (n:KBNode {workspace_id: $wid}) DETACH DELETE n",
                 wid=workspace_id,
             )
-        logger.info("Memgraph: cleared workspace %s", workspace_id)
+        logger.info("Graph storage: cleared workspace %s", workspace_id)
 
     def clear_graph(self) -> None:
         """Delete *all* KBNode nodes across all workspaces. Used by wipe_all.py."""
         with self._driver.session(database=self._database) as s:
             s.run("MATCH (n:KBNode) DETACH DELETE n")
-        logger.info("Neo4j graph cleared (all KBNode nodes removed).")
+        logger.info("Graph storage cleared (all KBNode nodes removed).")
 
     def bulk_create_nodes_no_apoc(
         self, nodes: dict[str, Any], workspace_id: str
@@ -252,7 +252,7 @@ class Neo4jGraphStore:
                     s.run(cypher, rows=batch)
 
         total = sum(len(v) for v in by_type.values())
-        logger.info("Neo4j (no-APOC): created/merged %d nodes in ws=%s.", total, workspace_id)
+        logger.info("Graph storage: created/merged %d nodes in ws=%s.", total, workspace_id)
 
     @staticmethod
     def _sanitize_props(d: dict[str, Any]) -> dict[str, Any]:
@@ -304,7 +304,7 @@ class Neo4jGraphStore:
                     """
                     s.run(cypher, rows=etype_rows, wid=workspace_id)
 
-        logger.info("Neo4j: created %d edges in ws=%s.", total, workspace_id)
+        logger.info("Graph storage: created %d edges in ws=%s.", total, workspace_id)
 
     # ------------------------------------------------------------------
     # Read path

@@ -87,7 +87,7 @@ def _build_query_embedder(nodes: dict) -> Any:
         model.fit([_node_text(n) for n in nodes.values()])
         return model
     if "/" in EMBEDDING_MODEL:
-        logger.info(f"Loading OpenRouter embedding model: {EMBEDDING_MODEL}")
+        logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
         return _OpenRouterEmbedder(
             EMBEDDING_MODEL, OPENROUTER_API_KEY, OPENROUTER_BASE_URL, EMBEDDING_DIMENSIONS
         )
