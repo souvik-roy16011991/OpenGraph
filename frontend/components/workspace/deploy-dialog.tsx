@@ -92,7 +92,13 @@ export function DeployDialog({ workspace, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl">
+      {/* The SuccessStep stacks ~6 sections (header, deployment facts, key
+       *  picker, language tabs, code snippet, footer) — on laptop-sized
+       *  viewports this exceeds the viewport and clips the Done button.
+       *  Cap height at 90vh and allow internal scroll so the full flow is
+       *  always reachable. Other dialogs in the app fit comfortably and
+       *  don't need the cap — kept scoped here. */}
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         {result === null ? (
           <ConfigureStep
             workspace={workspace}
@@ -531,14 +537,18 @@ function ApiKeySection({
       )}
 
       {hasKeys && selectedKey && (
-        <p className="text-[11px] text-muted-foreground">
-          Using <span className="font-mono">{selectedKey.prefix}</span>{" "}
+        // ``Badge`` renders as a ``<div>``; wrapping in ``<p>`` triggers the
+        // Next.js "<div> cannot be a descendant of <p>" hydration error. Use
+        // a ``<div>`` with the same typography.
+        <div className="text-[11px] text-muted-foreground flex items-center gap-1 flex-wrap">
+          <span>Using</span>
+          <span className="font-mono">{selectedKey.prefix}</span>
           <Badge variant="outline" className="text-[9px] h-4 px-1 ml-0.5">
             {selectedKey.workspace_id ? "workspace" : "account"}-scoped
           </Badge>
-          {" · "}
-          {selectedKey.rate_limit_rpm} rpm
-        </p>
+          <span>·</span>
+          <span>{selectedKey.rate_limit_rpm} rpm</span>
+        </div>
       )}
     </div>
   );

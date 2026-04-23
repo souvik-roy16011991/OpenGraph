@@ -8,10 +8,6 @@ import {
   Plus,
   ArrowRight,
   Trash2,
-  FileJson,
-  Network,
-  CheckCircle2,
-  AlertCircle,
   Pencil,
   Play,
   Loader2,
@@ -20,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
-import { DeployDialog, DeployedBadge } from "@/components/workspace/deploy-dialog";
+import { DeployDialog } from "@/components/workspace/deploy-dialog";
 import { api } from "@/lib/api";
 import type { WorkspaceSummary } from "@/lib/schema";
 import { useWorkspaceStore } from "@/store/workspace-store";
@@ -260,17 +256,40 @@ function WorkspaceCard({
       : "Publish this graph to /api/v1/ext/* and mint an API key";
   const deployLabel = isDeployed ? "Redeploy" : "Deploy";
 
+  // One-line meta: files · nodes · build status · updated-relative. Way
+  // lighter than the old cluster of 4-5 badges; state is conveyed by the
+  // card header's colored dot below rather than a banner of chips.
+  const metaParts: string[] = [];
+  const fileCount = ws.file_counts.knowledge + ws.file_counts.tool;
+  if (fileCount > 0) metaParts.push(`${fileCount} file${fileCount === 1 ? "" : "s"}`);
+  if (ws.stats?.total_nodes !== undefined) metaParts.push(`${ws.stats.total_nodes} nodes`);
+  const metaLine = metaParts.join(" · ");
+
+  // Left-hand status dot: one colored dot replaces "active" + "deployed" +
+  // "built" / "building" / "error" badges. Priority order: building >
+  // error > deployed > built > none.
+  const dot = isBuilding
+    ? { cls: "bg-sky-500 animate-pulse", title: "Build running" }
+    : status === "error"
+      ? { cls: "bg-destructive", title: "Last build failed" }
+      : isDeployed
+        ? { cls: "bg-emerald-500", title: "Deployed to API" }
+        : status === "done"
+          ? { cls: "bg-emerald-500/40", title: "Built (not deployed)" }
+          : { cls: "bg-muted-foreground/40", title: "Not built yet" };
+
   return (
     <Card className={isActive ? "border-primary/60 shadow-md" : undefined}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden
+                title={dot.title}
+                className={cn("h-2 w-2 rounded-full shrink-0", dot.cls)}
+              />
               <CardTitle className="text-base truncate">{ws.name}</CardTitle>
-              {isActive && (
-                <Badge variant="success" className="text-[10px]">active</Badge>
-              )}
-              {isDeployed && <DeployedBadge />}
             </div>
             {ws.description && (
               <CardDescription className="line-clamp-2 mt-1">{ws.description}</CardDescription>
@@ -290,66 +309,48 @@ function WorkspaceCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex flex-wrap gap-1.5 text-[11px]">
-          <Badge variant="secondary" className="gap-1">
-            <FileJson className="h-3 w-3" /> k{ws.file_counts.knowledge} · t{ws.file_counts.tool}
-          </Badge>
-          {ws.stats?.total_nodes !== undefined && (
-            <Badge variant="outline" className="gap-1">
-              <Network className="h-3 w-3" /> {ws.stats.total_nodes} nodes
-            </Badge>
-          )}
-          {status === "done" && (
-            <Badge variant="success" className="gap-1"><CheckCircle2 className="h-3 w-3" /> built</Badge>
-          )}
-          {status === "error" && (
-            <Badge variant="destructive" className="gap-1"><AlertCircle className="h-3 w-3" /> build failed</Badge>
-          )}
-          {isBuilding && (
-            <Badge variant="outline" className="gap-1">
-              <Loader2 className="h-3 w-3 animate-spin" /> building
-            </Badge>
-          )}
-        </div>
-        <p className="text-[10px] text-muted-foreground font-mono">
-          updated {new Date(ws.updated_at).toLocaleString()}
+        <p className="text-xs text-muted-foreground">
+          {metaLine || "No files uploaded yet"}
+          {metaLine && " · "}
+          <span className="tabular-nums">updated {relativeTime(ws.updated_at)}</span>
         </p>
-        <div className="flex items-center gap-1.5 pt-2">
+        <div className="flex items-center gap-1.5 pt-1">
           <Button size="sm" onClick={onOpen} className="flex-1 gap-1.5">
             {openLabel} <ArrowRight className="h-3.5 w-3.5" />
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             onClick={onEdit}
-            className="gap-1.5"
+            aria-label="Edit"
             title="Edit files, domain, or graph config"
             disabled={isBuilding}
+            className="h-8 w-8 p-0"
           >
             <Pencil className="h-3.5 w-3.5" />
-            Edit
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             onClick={onRerun}
-            className="gap-1.5"
+            aria-label={isBuilding ? "Build running" : "Rerun build"}
             title={isBuilding ? "Build already running" : "Run the build pipeline"}
             disabled={isBuilding}
+            className="h-8 w-8 p-0"
           >
             {isBuilding ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Play className="h-3.5 w-3.5" />
             )}
-            {isBuilding ? "Running…" : "Rerun"}
           </Button>
           <Button
             size="sm"
             variant="ghost"
             onClick={onDelete}
             aria-label="Delete graph"
-            className="hover:text-destructive"
+            title="Delete graph"
+            className="h-8 w-8 p-0 hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -357,4 +358,16 @@ function WorkspaceCard({
       </CardContent>
     </Card>
   );
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60_000) return "just now";
+  const m = Math.floor(diff / 60_000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
 }

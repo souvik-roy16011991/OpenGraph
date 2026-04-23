@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { GlobalErrorLogger } from "@/components/global-error-logger";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = React.useState(
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
       <QueryClientProvider client={client}>
         <TooltipProvider delayDuration={250}>
+          <GlobalErrorLogger />
           {children}
           <Toaster position="bottom-right" richColors closeButton />
         </TooltipProvider>
