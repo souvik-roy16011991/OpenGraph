@@ -92,7 +92,13 @@ export function DeployDialog({ workspace, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl">
+      {/* The SuccessStep stacks ~6 sections (header, deployment facts, key
+       *  picker, language tabs, code snippet, footer) — on laptop-sized
+       *  viewports this exceeds the viewport and clips the Done button.
+       *  Cap height at 90vh and allow internal scroll so the full flow is
+       *  always reachable. Other dialogs in the app fit comfortably and
+       *  don't need the cap — kept scoped here. */}
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         {result === null ? (
           <ConfigureStep
             workspace={workspace}
