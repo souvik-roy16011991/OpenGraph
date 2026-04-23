@@ -34,7 +34,7 @@ export const FREE_TRIAL_INCLUDES: readonly string[] = [
 export const ENTERPRISE_INCLUDES: readonly string[] = [
   "Unlimited workspaces, builds, and chats",
   "Higher upload caps + parse concurrency",
-  "Priority OpenRouter routing",
+  "Priority model routing",
   "Dedicated co-founder support channel",
   "Custom SSO / on-prem deploy on request",
 ];
