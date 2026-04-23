@@ -1,0 +1,86 @@
+name: sdk-python
+
+# Two triggers:
+#   - push to main touching sdks/python/**  →  runs the test job only.
+#   - a git tag of the form sdk-python-vX.Y.Z → runs tests AND publishes
+#     to PyPI via trusted publishing (OIDC, no long-lived token).
+#
+# Tag convention: ``git tag sdk-python-v0.1.0 && git push origin
+# sdk-python-v0.1.0``. The version in the tag must match the version in
+# pyproject.toml; the publish step fails fast if they disagree.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/python/**"
+      - ".github/workflows/sdk-python.yml"
+    tags:
+      - "sdk-python-v*"
+  pull_request:
+    paths:
+      - "sdks/python/**"
+      - ".github/workflows/sdk-python.yml"
+
+concurrency:
+  group: sdk-python-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: sdks/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        run: pytest -q
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/sdk-python-v')
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdks/python
+    # Trusted publishing — configure once on PyPI:
+    # https://docs.pypi.org/trusted-publishers/
+    # Repository owner + name + workflow filename + environment all must
+    # match what's configured there. No secrets live in the repo.
+    environment: pypi-release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - name: Verify tag matches pyproject version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#sdk-python-v}"
+          PKG_VERSION="$(python -c 'import tomllib; print(tomllib.loads(open("pyproject.toml","rb").read().decode())["project"]["version"])')"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version $TAG_VERSION does not match pyproject version $PKG_VERSION"
+            exit 1
+          fi
+      - name: Build
+        run: python -m build
+      - name: Check
+        run: twine check dist/*
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdks/python/dist

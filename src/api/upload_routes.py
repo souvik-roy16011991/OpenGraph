@@ -27,6 +27,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from src.api.auth import require_user
 from src.api.deps import require_workspace_id
@@ -159,7 +160,51 @@ async def _persist_one(
             blob_url=blob_url,
             blob_error=None,
         ))
-        await s.commit()
+        try:
+            await s.commit()
+        except IntegrityError:
+            # Two concurrent uploads of the same sha both passed the dedup
+            # SELECT. The unique constraint ``uq_workspace_files_sha`` just
+            # rejected the loser. Both produced identical byte content
+            # (sha matched), so the blob we just uploaded is redundant:
+            # try to delete it to avoid orphaning a named copy, then
+            # re-read the winner's row and return it as a duplicate so
+            # the client sees consistent metadata.
+            await s.rollback()
+            _best_effort_blob_delete(blob_url)
+            r2 = await s.execute(
+                select(WorkspaceFile).where(
+                    WorkspaceFile.workspace_id == uuid.UUID(workspace_id),
+                    WorkspaceFile.kb_source == kb_source,
+                    WorkspaceFile.sha256 == sha,
+                )
+            )
+            winner = r2.scalar_one_or_none()
+            if winner is None:
+                # Extremely unlikely — the unique constraint says someone
+                # has this (ws,kb,sha) tuple, but the winning row isn't
+                # visible. Surface rather than pretending success.
+                raise HTTPException(
+                    status_code=500,
+                    detail="Upload raced but winner row not found",
+                )
+            return UploadedFileInfo(
+                id=winner.id,
+                kb_source=winner.kb_source,
+                filename=winner.filename,
+                size_bytes=winner.size_bytes,
+                chapters=winner.chapters,
+                title=winner.title,
+                sha256=winner.sha256,
+                blob_url=winner.blob_url or "",
+                duplicate=True,
+            )
+        except Exception:
+            # Any other DB failure (connection lost, check constraint,
+            # etc.) leaves our blob orphaned if we don't compensate.
+            await s.rollback()
+            _best_effort_blob_delete(blob_url)
+            raise
         await s.refresh(wf)
 
     return UploadedFileInfo(
@@ -173,6 +218,20 @@ async def _persist_one(
         blob_url=blob_url,
         duplicate=False,
     )
+
+
+def _best_effort_blob_delete(blob_url: str) -> None:
+    """Delete a just-uploaded blob after a failed DB commit.
+
+    Not durable — if this fails the blob is orphaned and will be cleaned
+    up by the reconciler job. We log and move on; the caller's error
+    path already returns a user-visible failure.
+    """
+    try:
+        from src.infra.blob_loader import delete_blob
+        delete_blob(blob_url)
+    except Exception as exc:
+        logger.warning("Compensating blob delete failed for %s: %s", blob_url, exc)
 
 
 @router.post("/kb/upload", response_model=UploadResponse, summary="Upload one or more KB JSON files")

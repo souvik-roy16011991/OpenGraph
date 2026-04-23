@@ -14,6 +14,7 @@ import {
   CircleUser,
   CreditCard,
   CheckCircle2,
+  KeyRound,
   Moon,
   Sun,
   Briefcase,
@@ -56,6 +57,7 @@ const PRIMARY_NAV: NavItem[] = [
   { href: "/workspaces", label: "My Graphs", icon: GitBranch, matchPrefixes: GRAPH_MATCH_PREFIXES },
   { href: "/playground", label: "Playground", icon: GitCompareArrows },
   { href: "/history", label: "History", icon: HistoryIcon },
+  { href: "/api-keys", label: "API Keys", icon: KeyRound, matchPrefixes: ["/api-keys", "/api-docs"] },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];

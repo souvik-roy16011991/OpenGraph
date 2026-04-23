@@ -106,6 +106,67 @@ def create_app() -> FastAPI:
     # Mount API routes
     app.include_router(router, prefix="/api/v1")
 
+    # Developer API: key management (JWT-auth) + public /ext/* surface (API-key auth).
+    # Kept in separate routers from the internal surface so their security
+    # schemes and route prefixes stay isolated in the OpenAPI spec.
+    from src.api.ext_routes import router as ext_router
+    from src.api.keys_routes import router as keys_router
+    app.include_router(keys_router, prefix="/api/v1")
+    app.include_router(ext_router, prefix="/api/v1")
+
+    # ---- Custom OpenAPI override ----
+    # FastAPI's auto-generated spec has no security scheme; we inject one
+    # here so SDK codegen (datamodel-code-generator, openapi-typescript)
+    # understands /ext/* paths require an API-key bearer. Path-level security
+    # is applied only to /ext/* — the rest of the internal surface stays
+    # unauthenticated in the spec (the dashboard passes JWTs via cookie).
+    from fastapi.openapi.utils import get_openapi
+
+    def _custom_openapi() -> dict:
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        schema.setdefault("components", {}).setdefault("securitySchemes", {})["ApiKeyAuth"] = {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "og_live",
+            "description": (
+                "Developer API key in the format ``og_live_<secret>``. "
+                "Mint one at /api-keys in the dashboard."
+            ),
+        }
+        for path, methods in schema.get("paths", {}).items():
+            if "/ext/" not in path:
+                continue
+            for op in methods.values():
+                if not isinstance(op, dict):
+                    continue
+                op.setdefault("security", [{"ApiKeyAuth": []}])
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = _custom_openapi  # type: ignore[method-assign]
+
+    @app.get("/api/v1/ext/openapi.json", include_in_schema=False, tags=["ext"])
+    async def ext_only_openapi():
+        """Return the OpenAPI spec filtered to the public /ext/* surface.
+
+        Used by the dashboard ``/api-docs`` page and by the SDK codegen
+        pipelines so generated types only cover the third-party-safe API,
+        not the internal workspace / billing routes.
+        """
+        full = app.openapi()
+        paths = {k: v for k, v in full.get("paths", {}).items() if "/ext/" in k}
+        return {
+            **{k: v for k, v in full.items() if k != "paths"},
+            "paths": paths,
+        }
+
     # Health check
     @app.get("/health", tags=["health"])
     async def health():

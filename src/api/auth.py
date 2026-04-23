@@ -22,6 +22,7 @@ Scalability:
 from __future__ import annotations
 
 import logging
+import os
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -127,8 +128,12 @@ def _decode_token(token: str) -> Optional[dict[str, Any]]:
 # In-proc user cache (sub -> User)
 # ---------------------------------------------------------------------------
 
-_USER_CACHE_TTL_SECONDS = 300
-_USER_CACHE_MAX = 1024
+_USER_CACHE_TTL_SECONDS = int(os.environ.get("USER_CACHE_TTL_SECONDS", "300"))
+# Default bumped from 1024 to 8192 — at 1M users the steady-state concurrent
+# set is orders of magnitude smaller (typically low thousands), but if two
+# high-traffic tenants push past 1024 the LRU would thrash and re-SELECT
+# on every request. 8192 entries ~= 1-2 MB per worker, negligible cost.
+_USER_CACHE_MAX = int(os.environ.get("USER_CACHE_MAX", "8192"))
 _user_cache: dict[str, tuple[float, User]] = {}
 
 

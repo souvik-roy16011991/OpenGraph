@@ -18,6 +18,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from src.api.auth import require_user
 from src.config import USE_MEMGRAPH, USE_NEON, USE_QDRANT
@@ -66,6 +67,12 @@ class WorkspaceSummary(BaseModel):
 # ---------------------------------------------------------------------------
 
 async def _summary_for(workspace: Workspace, session) -> dict:
+    """Summary for a *single* workspace — two round-trips.
+
+    Used by detail / create / update endpoints that only ever touch one row.
+    The list endpoint uses the batched ``_summaries_for_many`` instead to
+    collapse N+1 into three queries total.
+    """
     counts_res = await session.execute(
         select(WorkspaceFile.kb_source, func.count(WorkspaceFile.id))
         .where(WorkspaceFile.workspace_id == workspace.id)
@@ -97,6 +104,61 @@ async def _summary_for(workspace: Workspace, session) -> dict:
     }
 
 
+async def _summaries_for_many(workspaces: list[Workspace], session) -> list[dict]:
+    """Batched summary for a list of workspaces — 3 queries, not 2N.
+
+    Collapses the list endpoint's N+1 pattern. Expected shape matches
+    ``_summary_for`` exactly so the response stays API-compatible.
+    """
+    if not workspaces:
+        return []
+
+    ws_ids = [w.id for w in workspaces]
+
+    # 1) File counts by (workspace_id, kb_source) across all workspaces.
+    counts_res = await session.execute(
+        select(
+            WorkspaceFile.workspace_id,
+            WorkspaceFile.kb_source,
+            func.count(WorkspaceFile.id),
+        )
+        .where(WorkspaceFile.workspace_id.in_(ws_ids))
+        .where(WorkspaceFile.active.is_(True))
+        .group_by(WorkspaceFile.workspace_id, WorkspaceFile.kb_source)
+    )
+    counts: dict[uuid.UUID, dict[str, int]] = {}
+    for wid, kb_src, cnt in counts_res.all():
+        counts.setdefault(wid, {"knowledge": 0, "tool": 0})[kb_src] = int(cnt)
+
+    # 2) Latest build per workspace via Postgres DISTINCT ON.
+    # ``DISTINCT ON (workspace_id)`` + ``ORDER BY workspace_id, created_at DESC``
+    # yields the newest row per workspace in one pass.
+    last_res = await session.execute(
+        select(BuildJobRow)
+        .where(BuildJobRow.workspace_id.in_(ws_ids))
+        .order_by(BuildJobRow.workspace_id, BuildJobRow.created_at.desc())
+        .distinct(BuildJobRow.workspace_id)
+    )
+    latest: dict[uuid.UUID, BuildJobRow] = {r.workspace_id: r for r in last_res.scalars().all()}
+
+    out: list[dict] = []
+    for w in workspaces:
+        fc = counts.get(w.id, {"knowledge": 0, "tool": 0})
+        last = latest.get(w.id)
+        out.append({
+            "id": str(w.id),
+            "name": w.name,
+            "description": w.description,
+            "created_at": w.created_at.isoformat(),
+            "updated_at": w.updated_at.isoformat(),
+            "file_counts": {"knowledge": fc.get("knowledge", 0), "tool": fc.get("tool", 0)},
+            "last_build_at": last.created_at.isoformat() if last else None,
+            "last_build_status": last.status if last else None,
+            "stats": last.stats if last else None,
+        })
+    return out
+
+
 def _require_neon() -> None:
     if not USE_NEON:
         raise HTTPException(status_code=503, detail="Workspaces require DATABASE_URL (Neon).")
@@ -106,10 +168,17 @@ async def _load_owned_workspace(session, workspace_id: uuid.UUID, user_id: uuid.
     """Load a workspace row, raising 404 if it doesn't exist OR isn't owned.
 
     Returns 404 (not 403) on ownership mismatch so tenant existence isn't
-    leaked across accounts.
+    leaked across accounts. Soft-deleted rows (``deleted_at IS NOT NULL``)
+    are treated as not-found: the HTTP DELETE handler marks a workspace
+    deleted synchronously, and the user should stop seeing it the moment
+    that request returns even while the saga sweeper is still cleaning
+    side stores.
     """
     ws = (await session.execute(
-        select(Workspace).where(Workspace.id == workspace_id)
+        select(Workspace).where(
+            Workspace.id == workspace_id,
+            Workspace.deleted_at.is_(None),
+        )
     )).scalar_one_or_none()
     if ws is None or ws.user_id != user_id:
         raise HTTPException(status_code=404, detail="Workspace not found.")
@@ -126,11 +195,14 @@ async def list_workspaces(user: User = Depends(require_user)):
     async with get_session() as s:
         result = await s.execute(
             select(Workspace)
-            .where(Workspace.user_id == user.id)
+            .where(
+                Workspace.user_id == user.id,
+                Workspace.deleted_at.is_(None),
+            )
             .order_by(Workspace.updated_at.desc())
         )
         workspaces = result.scalars().all()
-        summaries = [await _summary_for(w, s) for w in workspaces]
+        summaries = await _summaries_for_many(list(workspaces), s)
     return {"workspaces": summaries}
 
 
@@ -153,7 +225,17 @@ async def create_workspace(body: WorkspaceCreate, user: User = Depends(require_u
 
         ws = Workspace(user_id=user.id, name=body.name, description=body.description)
         s.add(ws)
-        await s.commit()
+        try:
+            await s.commit()
+        except IntegrityError:
+            # Concurrent create with the same (user_id, name) — two requests
+            # both passed the SELECT check above; the DB unique constraint
+            # just rejected the second. Surface as 409 instead of 500.
+            await s.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail=f"Workspace named {body.name!r} already exists.",
+            )
         await s.refresh(ws)
         summary = await _summary_for(ws, s)
 
@@ -205,13 +287,14 @@ async def update_workspace(
     return summary
 
 
-async def delete_workspace_cascade(workspace_id: uuid.UUID) -> None:
-    """Shared cleanup: purge Memgraph, Qdrant, Vercel Blob, then delete the
-    Neon row (cascading through FKs).
+async def _try_side_store_cleanup(workspace_id: uuid.UUID) -> Optional[str]:
+    """Run the three side-store purges (Memgraph, Qdrant, Blob).
 
-    Exposed as a plain async function (not a FastAPI route) so the anon-
-    migration script can reuse it without needing to synthesize a fake user.
-    Best-effort on the side stores — a dead store never blocks the Neon delete.
+    Returns None on full success, or a human-readable error string on the
+    first failure. Each call is idempotent so repeated invocations by the
+    sweeper are safe: clear_workspace issues a DELETE on workspace-scoped
+    nodes, delete_collection 404 is swallowed, Blob prefix wipe is a
+    best-effort list-and-delete.
     """
     wid_str = str(workspace_id)
 
@@ -222,40 +305,168 @@ async def delete_workspace_cascade(workspace_id: uuid.UUID) -> None:
             store = MemgraphGraphStore(MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE)
             store.clear_workspace(wid_str)
         except Exception as exc:
-            logger.warning("Memgraph cleanup for ws=%s failed: %s", wid_str, exc)
+            return f"Memgraph: {exc}"
 
     if USE_QDRANT:
         try:
-            from src.config import QDRANT_API_KEY, QDRANT_URL
+            from src.config import QDRANT_API_KEY, QDRANT_SHARED_COLLECTION, QDRANT_URL
             from qdrant_client import QdrantClient
             from src.graph_builder.builder import _short_wid
             client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
-            collection = f"kb-{_short_wid(wid_str)}"
-            try:
-                client.delete_collection(collection)
-            except Exception:
-                pass
+            if QDRANT_SHARED_COLLECTION:
+                # Shared-collection mode: only delete this tenant's points;
+                # leave everyone else alone.
+                try:
+                    from qdrant_client.models import (
+                        FieldCondition,
+                        Filter,
+                        FilterSelector,
+                        MatchValue,
+                    )
+                    flt = Filter(
+                        must=[FieldCondition(
+                            key="workspace_id", match=MatchValue(value=wid_str)
+                        )]
+                    )
+                    client.delete(
+                        collection_name=QDRANT_SHARED_COLLECTION,
+                        points_selector=FilterSelector(filter=flt),
+                        wait=True,
+                    )
+                except Exception as exc:
+                    msg = str(exc).lower()
+                    if "not found" not in msg and "doesn't exist" not in msg:
+                        return f"Qdrant filter-delete: {exc}"
+            else:
+                collection = f"kb-{_short_wid(wid_str)}"
+                try:
+                    client.delete_collection(collection)
+                except Exception as exc:
+                    # 404 on collection is fine — means an earlier attempt
+                    # already succeeded or the workspace was never built.
+                    # Anything else is a real failure the sweeper retries.
+                    msg = str(exc).lower()
+                    if "not found" not in msg and "doesn't exist" not in msg:
+                        return f"Qdrant delete_collection: {exc}"
         except Exception as exc:
-            logger.warning("Qdrant cleanup for ws=%s failed: %s", wid_str, exc)
+            return f"Qdrant client: {exc}"
 
     try:
         from src.infra.blob_loader import delete_workspace_blobs
         delete_workspace_blobs(wid_str)
     except Exception as exc:
-        logger.warning("Blob cleanup for ws=%s failed: %s", wid_str, exc)
+        return f"Blob: {exc}"
+
+    return None
+
+
+async def delete_workspace_cascade(workspace_id: uuid.UUID) -> bool:
+    """Soft-delete a workspace and attempt the side-store cascade.
+
+    Flow:
+      1. Set ``deleted_at = now()`` (workspace disappears from all read paths).
+      2. Attempt Memgraph / Qdrant / Blob cleanup.
+      3. On full success, hard-delete the Neon row (FKs cascade).
+      4. On any cleanup failure, keep the soft-deleted row with the error
+         recorded; ``sweep_pending_deletions`` will retry until success.
+
+    Returns True when the row was hard-deleted. False means the saga is
+    still pending and the sweeper will pick it up later.
+    """
+    from datetime import datetime, timezone
 
     async with get_session() as s:
         ws = (await s.execute(
             select(Workspace).where(Workspace.id == workspace_id)
         )).scalar_one_or_none()
-        if ws is not None:
+        if ws is None:
+            return True  # already gone — idempotent
+        if ws.deleted_at is None:
+            ws.deleted_at = datetime.now(timezone.utc)
+            await s.commit()
+
+    error = await _try_side_store_cleanup(workspace_id)
+
+    async with get_session() as s:
+        ws = (await s.execute(
+            select(Workspace).where(Workspace.id == workspace_id)
+        )).scalar_one_or_none()
+        if ws is None:
+            return True
+        if error is None:
             await s.delete(ws)
             await s.commit()
+            return True
+        ws.deletion_failure_count = (ws.deletion_failure_count or 0) + 1
+        ws.deletion_last_error = error[:4096]
+        await s.commit()
+    logger.warning("Workspace %s cascade failed (attempt %d): %s",
+                   workspace_id, (ws.deletion_failure_count or 0), error)
+    return False
+
+
+async def sweep_pending_deletions(max_attempts: int = 20) -> int:
+    """Retry workspace deletions whose side-store cascade previously failed.
+
+    Picks up any row with ``deleted_at IS NOT NULL`` and retries the
+    side-store cleanup. Hard-deletes rows that now succeed. Leaves rows
+    that have exceeded ``max_attempts`` as a permanent "tombstone" for
+    operator inspection (they still don't appear in the user's UI — the
+    ``deleted_at`` filter hides them — but the side-store artifacts need
+    manual review).
+
+    Returns the number of rows hard-deleted on this sweep.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    if not USE_NEON:
+        return 0
+    # Only pick rows whose ``deleted_at`` is at least ~1 minute old, so the
+    # inline cascade from ``delete_workspace_cascade`` gets first shot and
+    # the sweeper isn't racing the request handler on the common path.
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=60)
+
+    async with get_session() as s:
+        rows = (await s.execute(
+            select(Workspace)
+            .where(Workspace.deleted_at.isnot(None))
+            .where(Workspace.deleted_at < cutoff)
+            .where(Workspace.deletion_failure_count < max_attempts)
+            .limit(50)
+        )).scalars().all()
+
+    cleared = 0
+    for ws in rows:
+        error = await _try_side_store_cleanup(ws.id)
+        async with get_session() as s:
+            live = (await s.execute(
+                select(Workspace).where(Workspace.id == ws.id)
+            )).scalar_one_or_none()
+            if live is None:
+                cleared += 1
+                continue
+            if error is None:
+                await s.delete(live)
+                await s.commit()
+                cleared += 1
+            else:
+                live.deletion_failure_count = (live.deletion_failure_count or 0) + 1
+                live.deletion_last_error = error[:4096]
+                await s.commit()
+    if cleared:
+        logger.info("sweep_pending_deletions: cleared %d workspace(s)", cleared)
+    return cleared
 
 
 @router.delete("/workspaces/{workspace_id}", summary="Delete a workspace and all its artifacts")
 async def delete_workspace(workspace_id: uuid.UUID, user: User = Depends(require_user)):
-    """Ownership-checked HTTP wrapper around ``delete_workspace_cascade``."""
+    """Ownership-checked HTTP wrapper around ``delete_workspace_cascade``.
+
+    Returns 200 with ``pending: true`` if the side-store cleanup didn't
+    complete in the request; the sweeper finishes the job asynchronously.
+    The workspace is already hidden from read paths regardless — the user
+    sees it as gone immediately.
+    """
     _require_neon()
     async with get_session() as s:
         ws = await _load_owned_workspace(s, workspace_id, user.id)
@@ -268,8 +479,12 @@ async def delete_workspace(workspace_id: uuid.UUID, user: User = Depends(require
         workspace_id=workspace_id,
         metadata={"name": name},
     )
-    await delete_workspace_cascade(workspace_id)
-    return {"ok": True, "deleted_workspace_id": str(workspace_id)}
+    done = await delete_workspace_cascade(workspace_id)
+    return {
+        "ok": True,
+        "deleted_workspace_id": str(workspace_id),
+        "pending": not done,
+    }
 
 
 @router.get("/workspaces/{workspace_id}/files", summary="List files in a workspace")

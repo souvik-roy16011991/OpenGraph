@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import signal
 import threading
 import time
@@ -151,28 +152,55 @@ class _WorkerLogHandler(logging.Handler):
 # Heartbeat loop
 # ---------------------------------------------------------------------------
 
+# Heartbeat cadence. The original 2s loop was visibility-oriented (UI sees
+# log_tail update quickly) but at 500 concurrent builds = 250 writes/s to
+# a single ``build_jobs`` row-set — enough to starve other writes on small
+# Neon plans. Default bumped to 10s (env-tunable) and writes now only go to
+# Neon when state has actually changed since the last tick — steady-state
+# "still running stage 4" doesn't touch the DB at all. Zombie detection
+# timeout stays at 90s so a 10s heartbeat is still ~9x safety margin.
+_HEARTBEAT_INTERVAL_SECONDS = float(os.environ.get("BUILD_HEARTBEAT_INTERVAL_S", "10"))
+
+
 async def _heartbeat_loop(
     job_id: str,
     state: _WorkerLogState,
     stop: asyncio.Event,
-    interval_seconds: float = 2.0,
+    interval_seconds: float = _HEARTBEAT_INTERVAL_SECONDS,
 ) -> None:
     """Stream log_tail + liveness to Neon every ``interval_seconds``.
 
     Runs on the worker's main asyncio loop alongside the ``to_thread``
-    build. Exits cleanly when ``stop`` is set.
+    build. Exits cleanly when ``stop`` is set. Only writes when the
+    in-memory snapshot has changed since the last successful write — this
+    caps steady-state DB writes per active build to O(N distinct stages),
+    not O(uptime/interval).
     """
+    last_snapshot: tuple | None = None
     try:
         while not stop.is_set():
             try:
-                log_tail, stage, stage_name, percent = state.snapshot()
-                await build_queue.heartbeat(
-                    job_id=job_id,
-                    log_tail=log_tail,
-                    stage=stage,
-                    stage_name=stage_name,
-                    percent=percent,
-                )
+                snap = state.snapshot()
+                # Snapshot is (log_tail_list, stage, stage_name, percent).
+                # Convert log_tail (mutable) to a tuple for fast compare.
+                log_tail, stage, stage_name, percent = snap
+                cmp_key = (tuple(log_tail), stage, stage_name, percent)
+                if cmp_key != last_snapshot:
+                    await build_queue.heartbeat(
+                        job_id=job_id,
+                        log_tail=log_tail,
+                        stage=stage,
+                        stage_name=stage_name,
+                        percent=percent,
+                    )
+                    last_snapshot = cmp_key
+                else:
+                    # Nothing changed — still need the liveness side-effect
+                    # so the sweeper doesn't think we're dead. The cheap
+                    # liveness-only write bumps heartbeat_at without touching
+                    # log_tail / stage columns, so a partial index on
+                    # ``status='running'`` can be exploited.
+                    await build_queue.touch_heartbeat(job_id=job_id)
             except Exception as exc:
                 # A failed heartbeat is not fatal — the sweeper will pick
                 # up the job if the failure persists past HEARTBEAT_TIMEOUT.
@@ -257,6 +285,22 @@ async def run_build_async(job: ClaimedJob, worker_id: str | None = None) -> None
         final_stats = _merge_metrics_into_stats(kg_stats, metrics)
         domain_snap = _LAST_BUILD_RESULT.get("domain_snapshot")
         graph_snap = _LAST_BUILD_RESULT.get("graph_snapshot")
+
+        # Cross-store post-build verification. `_run_sync_build` returning
+        # cleanly means no exception was raised, but an orchestration that
+        # silently skips a backend (e.g. Qdrant timeout swallowed upstream)
+        # would still get us here with partial state. Re-check the expected
+        # invariants; if any fail, treat this like a build failure so the
+        # UI + sweeper see the correct status and retry semantics.
+        verification_error = await asyncio.to_thread(
+            _verify_build_stores,
+            job.workspace_id,
+            final_stats,
+            job.skip_embeddings,
+        )
+        if verification_error:
+            raise RuntimeError(f"post-build verification failed: {verification_error}")
+
         log_tail, _s, _sn, _p = state.snapshot()
         state.append(f"[job {job.job_id}] build complete")
 
@@ -338,6 +382,123 @@ async def run_build_async(job: ClaimedJob, worker_id: str | None = None) -> None
 # Module-level because the semaphore ensures only one build runs at a
 # time — no concurrent writers.
 _LAST_BUILD_RESULT: dict = {}
+
+
+def _verify_build_stores(
+    workspace_id: str,
+    stats: Optional[dict],
+    skip_embeddings: bool,
+) -> Optional[str]:
+    """Assert the side stores actually hold what the build thinks it wrote.
+
+    Runs after ``_run_sync_build`` returns successfully. Returns an error
+    string if any check fails; returns None if everything lines up.
+
+    Two invariants are cheap to verify and cover the common silent-drift
+    failure modes:
+
+      - Memgraph node count for the workspace is > 0 (graph actually wrote).
+      - Qdrant collection has vectors if embeddings were requested (Qdrant
+        accepted the upsert; wasn't silently skipped by a timeout upstream).
+
+    Runs in a worker thread (``asyncio.to_thread``) so the network calls to
+    Memgraph + Qdrant don't block the event loop.
+    """
+    from src.config import USE_MEMGRAPH, USE_NEO4J, USE_QDRANT
+
+    expected_nodes = int((stats or {}).get("total_nodes") or 0)
+
+    if USE_MEMGRAPH:
+        try:
+            from src.config import (
+                MEMGRAPH_DATABASE,
+                MEMGRAPH_PASSWORD,
+                MEMGRAPH_URI,
+                MEMGRAPH_USERNAME,
+            )
+            from src.infra.memgraph_store import MemgraphGraphStore
+
+            store = MemgraphGraphStore(
+                MEMGRAPH_URI, MEMGRAPH_USERNAME, MEMGRAPH_PASSWORD, MEMGRAPH_DATABASE
+            )
+            ws_stats = store.stats(workspace_id=workspace_id)
+            actual_nodes = int(ws_stats.get("total_nodes") or 0)
+        except Exception as exc:
+            return f"Memgraph verification call failed: {exc}"
+        if expected_nodes > 0 and actual_nodes == 0:
+            return (
+                f"Memgraph reports 0 nodes for workspace {workspace_id} "
+                f"but build stats claim {expected_nodes}"
+            )
+    elif USE_NEO4J:
+        # Same check, Neo4j variant. Kept separate so neither driver is
+        # imported when the other is configured.
+        try:
+            from src.config import NEO4J_DATABASE, NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME
+            from src.infra.neo4j_store import Neo4jGraphStore
+
+            store = Neo4jGraphStore(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE)
+            ws_stats = store.stats(workspace_id=workspace_id)
+            actual_nodes = int(ws_stats.get("total_nodes") or 0)
+        except Exception as exc:
+            return f"Neo4j verification call failed: {exc}"
+        if expected_nodes > 0 and actual_nodes == 0:
+            return (
+                f"Neo4j reports 0 nodes for workspace {workspace_id} "
+                f"but build stats claim {expected_nodes}"
+            )
+
+    if USE_QDRANT and not skip_embeddings and expected_nodes > 0:
+        try:
+            from src.config import (
+                QDRANT_API_KEY,
+                QDRANT_SHARED_COLLECTION,
+                QDRANT_URL,
+            )
+            from qdrant_client import QdrantClient
+            from src.graph_builder.builder import _short_wid
+
+            client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
+            if QDRANT_SHARED_COLLECTION:
+                # Shared-collection mode: count points filtered by
+                # workspace_id instead of relying on collection-level total.
+                try:
+                    from qdrant_client.models import (
+                        FieldCondition,
+                        Filter,
+                        MatchValue,
+                    )
+                    flt = Filter(must=[FieldCondition(
+                        key="workspace_id", match=MatchValue(value=workspace_id)
+                    )])
+                    resp = client.count(
+                        collection_name=QDRANT_SHARED_COLLECTION,
+                        count_filter=flt,
+                        exact=True,
+                    )
+                    vectors_count = int(getattr(resp, "count", 0) or 0)
+                    collection = QDRANT_SHARED_COLLECTION
+                except Exception as exc:
+                    return (
+                        f"Qdrant filtered count on '{QDRANT_SHARED_COLLECTION}' "
+                        f"failed: {exc}"
+                    )
+            else:
+                collection = f"kb-{_short_wid(workspace_id)}"
+                try:
+                    info = client.get_collection(collection)
+                    vectors_count = int(getattr(info, "points_count", 0) or 0)
+                except Exception as exc:
+                    return f"Qdrant collection '{collection}' missing after build: {exc}"
+        except Exception as exc:
+            return f"Qdrant verification call failed: {exc}"
+        if vectors_count == 0:
+            return (
+                f"Qdrant collection '{collection}' has 0 points after build "
+                f"(expected ~{expected_nodes})"
+            )
+
+    return None
 
 
 async def _debit_build_completion(
@@ -535,6 +696,12 @@ async def worker_main() -> None:
     # plenty since the sweeper is idempotent (dedupe by workspace_id+date).
     last_storage_sweep_ts = 0.0
     storage_sweep_interval = 30 * 60.0  # 30 minutes
+    # Workspace-deletion saga retries. Picks up soft-deleted workspaces
+    # whose Memgraph/Qdrant/Blob cleanup failed on the inline attempt and
+    # retries the cascade. 60s interval balances "fast enough that orphans
+    # clear quickly" against "don't hammer side stores during an outage."
+    last_deletion_sweep_ts = 0.0
+    deletion_sweep_interval = 60.0
 
     while not _draining:
         async with _build_semaphore:
@@ -575,6 +742,19 @@ async def worker_main() -> None:
             except Exception as exc:
                 logger.warning("storage sweep failed: %s", exc)
             last_storage_sweep_ts = now
+
+        # Workspace-deletion saga retries. Idempotent — if the side stores
+        # are healthy we clear a few rows per tick; if an upstream is
+        # throwing we leave rows alone and try again next sweep.
+        if now - last_deletion_sweep_ts >= deletion_sweep_interval:
+            try:
+                from src.api.workspace_routes import sweep_pending_deletions
+                cleared = await sweep_pending_deletions()
+                if cleared:
+                    logger.info("deletion sweep cleared %d workspace(s)", cleared)
+            except Exception as exc:
+                logger.warning("deletion sweep failed: %s", exc)
+            last_deletion_sweep_ts = now
 
         try:
             await asyncio.sleep(CLAIM_POLL_INTERVAL_SECONDS)

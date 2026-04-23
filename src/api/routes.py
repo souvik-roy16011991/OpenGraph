@@ -210,6 +210,12 @@ class QueryResponse(BaseModel):
     # completes from the per-turn ``chat_metrics_var`` accumulator. Absent
     # (None) for pre-feature rows — the UI renders "—".
     usage: Optional[ChatUsage] = None
+    # True if both the user and assistant turn were written to Neon
+    # ``chat_messages``. When False the answer was served successfully but
+    # the server could not record the turn — the UI should surface a subtle
+    # "history not saved" hint so the user knows to retry if they want a
+    # durable record.
+    history_persisted: bool = True
 
 
 class TraverseRequest(BaseModel):
@@ -235,156 +241,22 @@ async def query_graph(
     workspace_id: str = Depends(require_workspace_id),
     user: User = Depends(require_user),
 ):
+    """Main query endpoint for the interactive (JWT-auth) UI.
+
+    Runs the LangGraph agent pipeline. All pipeline logic — agent execution,
+    chat persistence, audit, billing — lives in
+    :func:`src.api.query_service.run_query` so the public ``/api/v1/ext/query``
+    endpoint can share it byte-for-byte. This wrapper only resolves the
+    caller's identity and delegates.
     """
-    Main query endpoint. Runs the full LangGraph agent pipeline and
-    returns a step-by-step response with tool details and follow-ups.
-
-    If `session_id` is provided, the user query and agent response are
-    persisted to the chat history (when Neon is configured). If omitted,
-    a new session_id is generated, returned to the caller, and used for
-    persistence.
-    """
-    import time
-    import uuid
-    from src.agent.graph import KBGraphAgent
-    from src.billing import check_chat_allowed
-    from src.config import LLM_MODEL, USE_NEON
-    from src.infra.workspace_llm import get_workspace_llm_model
-
-    from src.observability.usage import ChatMetrics, chat_metrics_var
-
-    # Billing gate — raises HTTP 402 on trial-cap hit or overdraft.
-    await check_chat_allowed(user.id)
-
-    kg = await _get_kg(workspace_id)
-    agent = KBGraphAgent.from_graph(kg)
-
-    session_id = req.session_id or str(uuid.uuid4())
-
-    # Resolve the effective LLM model: request override > workspace default.
-    # (Env LLM_MODEL is the final fallback inside src.agent.nodes._get_llm.)
-    resolved_model = (req.llm_model or "").strip() or None
-    if resolved_model is None:
-        resolved_model = await get_workspace_llm_model(workspace_id)
-    # Effective model = what actually answers. If the chain above produced
-    # None, the agent nodes fall back to env LLM_MODEL — surface that so the
-    # response is self-describing.
-    effective_model = resolved_model or LLM_MODEL
-
-    # Install the per-turn accumulator before the agent runs. Reset in
-    # ``finally`` so even a failing agent call doesn't leak the var.
-    chat_metrics = ChatMetrics(model=effective_model)
-    chat_token = chat_metrics_var.set(chat_metrics)
-
-    start = time.perf_counter()
-    try:
-        try:
-            state = agent.query(req.query, llm_model=resolved_model)
-        except Exception as exc:
-            logger.error(f"Agent query failed: {exc}", exc_info=True)
-            # best-effort record the failure turn
-            if USE_NEON:
-                try:
-                    await _persist_chat_turn(
-                        session_id=session_id,
-                        query=req.query,
-                        resp=None,
-                        duration_ms=int((time.perf_counter() - start) * 1000),
-                        error=str(exc),
-                    )
-                except Exception:
-                    pass
-            raise HTTPException(status_code=500, detail=str(exc))
-    finally:
-        try:
-            chat_metrics_var.reset(chat_token)
-        except Exception:
-            pass
-    duration_ms = int((time.perf_counter() - start) * 1000)
-
-    usage_payload = ChatUsage(**chat_metrics.usage_dict()) if (
-        chat_metrics.llm_calls or chat_metrics.llm_prompt_tokens or chat_metrics.llm_completion_tokens
-    ) else None
-
-    resp = QueryResponse(
-        query=state["query"],
-        intent=state.get("intent", ""),
-        kb_focus=state.get("kb_focus", "both"),
-        extracted_topics=state.get("extracted_topics", []),
-        response=state.get("response", ""),
-        steps=state.get("steps", []),
-        tools_referenced=state.get("tools_referenced", []),
-        knowledge_concepts=state.get("knowledge_concepts", []),
-        follow_up_suggestions=state.get("follow_up_suggestions", []),
-        traversal_path=state.get("traversal_path", []),
-        session_id=session_id,
-        duration_ms=duration_ms,
-        error=state.get("error"),
-        llm_model=effective_model,
-        usage=usage_payload,
-    )
-
-    if USE_NEON:
-        try:
-            await _persist_chat_turn(
-                workspace_id=workspace_id,
-                session_id=session_id,
-                query=req.query,
-                resp=resp,
-                duration_ms=duration_ms,
-            )
-        except Exception as exc:
-            logger.warning("Neon chat persistence failed: %s", exc)
-
-    record_audit(
-        user.id, "chat.query",
-        target_type="chat_session", target_id=session_id,
+    from src.api.query_service import run_query
+    return await run_query(
         workspace_id=workspace_id,
-        metadata={
-            "model": effective_model,
-            "intent": resp.intent,
-            "duration_ms": duration_ms,
-            "query_preview": (req.query[:80] + "…") if len(req.query) > 80 else req.query,
-        },
+        req=req,
+        owner_user_id=user.id,
+        actor_type="user",
+        audit_action="chat.query",
     )
-
-    # Billing deduction — post-commit so a failure here never blocks the
-    # user's response. BYOK detection: presence of a row in
-    # ``workspace_api_keys`` for this workspace waives LLM/embedding tokens.
-    try:
-        from src.billing import cost_chat, debit
-        from src.billing.ledger import bump_trial_counter
-        from src.infra.db_models import WorkspaceApiKey
-        import uuid as _uuid
-        ws_uuid = _uuid.UUID(workspace_id)
-        async with get_session() as _s:
-            from sqlalchemy import select as _select
-            has_byok = (await _s.execute(
-                _select(WorkspaceApiKey.workspace_id).where(
-                    WorkspaceApiKey.workspace_id == ws_uuid
-                )
-            )).scalar_one_or_none() is not None
-        usage_dict = usage_payload.model_dump() if usage_payload else {}
-        credits = cost_chat(usage=usage_dict, has_byok=has_byok)
-        await debit(
-            user.id,
-            credits,
-            reason="chat",
-            source_type="chat_session",
-            source_id=session_id,
-            actor_type="system",
-            metadata={
-                "workspace_id": workspace_id,
-                "has_byok": has_byok,
-                "model": effective_model,
-            },
-        )
-        # Trial users: bump lifetime chat counter. No-op for non-trial.
-        await bump_trial_counter(user.id, kind="chat")
-    except Exception as bill_exc:
-        logger.warning("chat billing debit failed for session %s: %s", session_id, bill_exc)
-
-    return resp
 
 
 async def _persist_chat_turn(
