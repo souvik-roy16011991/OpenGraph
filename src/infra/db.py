@@ -216,6 +216,15 @@ async def init_db() -> None:
             "ON build_jobs (workspace_id) "
             "WHERE status IN ('queued','running')"
         ))
+        # --- api_keys: developer API credentials --------------------------
+        # Shipped with the /api/v1/ext/* public surface. create_all() picks
+        # up the table from the ORM model; these statements are defensive
+        # repeats that keep pre-existing deployments in sync when the model
+        # evolves (e.g. adding columns later).
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_api_keys_prefix_live "
+            "ON api_keys (prefix) WHERE revoked_at IS NULL"
+        ))
         # --- workspaces: delete-saga columns ------------------------------
         # ``deleted_at`` IS NULL means live; any non-null value means the
         # cross-store cascade is in progress or has been retried. The HTTP
