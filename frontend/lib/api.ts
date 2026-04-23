@@ -1,12 +1,14 @@
 "use client";
 
 import type {
+  ApiKeyRow,
   BuildHistoryDetail,
   BuildHistoryRow,
   BuildJobStatus,
   ChatHistoryDetail,
   ChatHistoryRow,
   ConfigHistoryRow,
+  CreateApiKeyResponse,
   DomainPayload,
   GraphConfigPayload,
   GraphStats,
@@ -250,6 +252,12 @@ export const api = {
     get<{ files: WorkspaceFileInfo[] }>(`/api/v1/workspaces/${id}/files`, { kb_source }),
   deleteWorkspaceFile: (ws_id: string, file_id: number) =>
     json<{ ok: true }>(`/api/v1/workspaces/${ws_id}/files/${file_id}`, "DELETE"),
+
+  // developer API keys — powers /api-keys dashboard
+  listApiKeys: () => get<ApiKeyRow[]>("/api/v1/keys"),
+  createApiKey: (body: { name: string; workspace_id?: string | null; rate_limit_rpm?: number }) =>
+    json<CreateApiKeyResponse>("/api/v1/keys", "POST", body),
+  revokeApiKey: (id: string) => json<{ ok: true }>(`/api/v1/keys/${id}`, "DELETE"),
 
   // config
   getDomain: () => get<DomainPayload>("/api/v1/config/domain"),
