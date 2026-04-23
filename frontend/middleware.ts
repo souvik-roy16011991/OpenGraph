@@ -67,6 +67,13 @@ export function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
+// Matcher exclusion list. The trailing slashes on ``api/`` and ``_next/``
+// matter — without them, the negative-lookahead swallows any path that
+// merely *starts* with ``api`` (e.g. ``/api-keys``, ``/api-docs``), which
+// would silently bypass the auth gate. The backend FastAPI lives at
+// ``http://<backend>/api/…`` — there are no Next.js route handlers at
+// ``/api/*`` today, but we keep the exclusion scoped so the convention
+// still holds if that ever changes.
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico).*)"],
 };

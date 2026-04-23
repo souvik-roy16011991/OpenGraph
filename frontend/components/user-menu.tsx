@@ -8,7 +8,6 @@ import {
   CircleUser,
   CreditCard,
   LogOut,
-  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -157,7 +156,3 @@ export function SignOutButton({ onClick }: { onClick: () => void }) {
     </Button>
   );
 }
-
-// Suppress unused-import warnings for lingering consumers. (UserRound kept
-// for backwards compat if any page still imports it by name.)
-export { UserRound };
