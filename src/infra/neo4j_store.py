@@ -216,7 +216,7 @@ class Neo4jGraphStore:
                 "MATCH (n:KBNode {workspace_id: $wid}) DETACH DELETE n",
                 wid=workspace_id,
             )
-        logger.info("Memgraph: cleared workspace %s", workspace_id)
+        logger.info("Graph storage: cleared workspace %s", workspace_id)
 
     def clear_graph(self) -> None:
         """Delete *all* KBNode nodes across all workspaces. Used by wipe_all.py."""
