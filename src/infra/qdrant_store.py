@@ -163,7 +163,7 @@ class QdrantVectorStore:
             vectors_config=VectorParams(size=self._dimension, distance=self._distance),
         )
         # Qdrant collection is ready immediately after create
-        logger.info(f"Qdrant collection '{self._collection}' ready.")
+        logger.info(f"Vector store collection '{self._collection}' ready.")
 
     # ------------------------------------------------------------------
     # Write path
