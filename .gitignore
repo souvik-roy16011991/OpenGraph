@@ -46,3 +46,8 @@ htmlcov/
 frontend/node_modules/
 frontend/.next/
 frontend/tsconfig.tsbuildinfo
+
+# SDK build artifacts
+sdks/typescript/node_modules/
+sdks/typescript/dist/
+sdks/python/.pytest_cache/
