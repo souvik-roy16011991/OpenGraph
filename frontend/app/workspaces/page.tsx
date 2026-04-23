@@ -129,7 +129,7 @@ export default function WorkspacesPage() {
             <GitBranch className="mx-auto h-8 w-8 text-muted-foreground opacity-50" />
             <div>
               <p className="font-medium">No graphs yet</p>
-              <p className="text-sm text-muted-foreground">Create one to start uploading KB files, or pick a template.</p>
+              <p className="text-sm text-muted-foreground">Create one to start uploading knowledge base files, or pick a template.</p>
             </div>
             <div className="flex justify-center gap-2">
               <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New graph</Button>

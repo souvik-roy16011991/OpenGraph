@@ -323,7 +323,7 @@ function EmptySide({ label }: { label: string }) {
 const CFG_SECTIONS: Array<{ key: keyof GraphConfigPayload; title: string }> = [
   { key: "embeddings", title: "Embeddings" },
   { key: "edges", title: "Edges" },
-  { key: "cross_kb", title: "Cross-KB linking" },
+  { key: "cross_kb", title: "Cross-knowledge base linking" },
   { key: "traversal", title: "Traversal" },
   { key: "search", title: "Search" },
   { key: "extraction", title: "Extraction" },

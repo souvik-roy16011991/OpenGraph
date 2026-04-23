@@ -245,14 +245,14 @@ export default function UploadPage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <KbDropzone
-            label="Knowledge KB files"
+            label="Knowledge base files"
             helpText="Domain policy / reference documentation"
             value={knowledge}
             onChange={setKnowledge}
             accentColor="bg-gradient-to-br from-sky-500/10 to-indigo-500/10"
           />
           <KbDropzone
-            label="Tool KB files"
+            label="Tool knowledge base files"
             helpText="Systems, tools, integrations catalog"
             value={tool}
             onChange={setTool}
