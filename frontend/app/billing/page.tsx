@@ -4,11 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Check,
   Coins,
   CreditCard,
   Download,
   Loader2,
   Receipt,
+  Rocket,
   ShieldCheck,
   Sparkles,
   Wallet,
@@ -16,8 +18,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { BookCallButton } from "@/components/billing/book-call-button";
 import { api } from "@/lib/api";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, cn } from "@/lib/utils";
+import {
+  ENTERPRISE_INCLUDES,
+  FREE_TRIAL_INCLUDES,
+  planLabel as planLabelText,
+  planToDisplay,
+} from "@/lib/plans";
 import type { BillingSummary, CreditTransactionEntry } from "@/lib/schema";
 
 /**
@@ -28,18 +37,22 @@ import type { BillingSummary, CreditTransactionEntry } from "@/lib/schema";
  * Team subscription (Phase 3) plug in here.
  */
 
-function planLabel(tier: BillingSummary["plan_tier"]): {
+function planBadge(tier: BillingSummary["plan_tier"]): {
   label: string;
   tone: string;
 } {
-  switch (tier) {
-    case "team":
-      return { label: "Team", tone: "bg-violet-500/15 text-violet-700 dark:text-violet-400" };
-    case "payg":
-      return { label: "Pay-as-you-go", tone: "bg-sky-500/15 text-sky-700 dark:text-sky-400" };
-    default:
-      return { label: "Free trial", tone: "bg-amber-500/15 text-amber-700 dark:text-amber-400" };
+  // Two-tier UX — payg + team both surface as Enterprise. The amber
+  // trial badge stays distinct so trial users know why they're capped.
+  if (planToDisplay(tier) === "enterprise") {
+    return {
+      label: planLabelText(tier),
+      tone: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
+    };
   }
+  return {
+    label: planLabelText(tier),
+    tone: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  };
 }
 
 function BalanceCard({
@@ -78,64 +91,145 @@ function BalanceCard({
   );
 }
 
-function TrialCta({ remaining }: { remaining: BillingSummary["trial_remaining"] }) {
+/**
+ * Plans — two tiles. One is the active plan (ring highlight + "Current"
+ * badge); the other is the upgrade path (Book-a-call CTA). Enterprise
+ * is a contact-sales flow, not a self-serve upgrade, so there is no
+ * price — the co-founder works out the right package on the call.
+ */
+function PlansSection({
+  tier,
+  remaining,
+}: {
+  tier: BillingSummary["plan_tier"];
+  remaining: BillingSummary["trial_remaining"];
+}) {
+  const display = planToDisplay(tier);
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <PlanTile
+        title="Free trial"
+        subtitle="Start here — no card required"
+        icon={Sparkles}
+        tone="amber"
+        current={display === "free_trial"}
+        features={FREE_TRIAL_INCLUDES}
+        footer={
+          display === "free_trial" ? (
+            <TrialRemainingGrid remaining={remaining} />
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              You&apos;ve moved past the free trial — Enterprise below.
+            </p>
+          )
+        }
+      />
+      <PlanTile
+        title="Enterprise"
+        subtitle="Scaling up? Talk to the co-founder"
+        icon={Rocket}
+        tone="violet"
+        current={display === "enterprise"}
+        features={ENTERPRISE_INCLUDES}
+        footer={
+          display === "enterprise" ? (
+            <p className="text-[11px] text-muted-foreground">
+              Plan active. Need to adjust terms?{" "}
+              <BookCallButton size="sm" variant="ghost" label="Book a call" className="h-6 px-2 text-[11px]" />
+            </p>
+          ) : (
+            <div className="flex items-center gap-2">
+              <BookCallButton size="sm" label="Book a call" />
+              <span className="text-[11px] text-muted-foreground">
+                ~15 min · no commitment
+              </span>
+            </div>
+          )
+        }
+      />
+    </div>
+  );
+}
+
+function PlanTile({
+  title,
+  subtitle,
+  icon: Icon,
+  tone,
+  current,
+  features,
+  footer,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "amber" | "violet";
+  current: boolean;
+  features: readonly string[];
+  footer: React.ReactNode;
+}) {
+  const toneBg =
+    tone === "amber"
+      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+      : "bg-violet-500/10 text-violet-600 dark:text-violet-400";
+  const ring = current
+    ? tone === "amber"
+      ? "ring-2 ring-amber-400/60"
+      : "ring-2 ring-violet-400/60"
+    : "";
+  return (
+    <Card className={cn("relative", ring, !current && "opacity-90")}>
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className={cn("h-9 w-9 rounded-md flex items-center justify-center shrink-0", toneBg)}>
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold leading-tight">{title}</h3>
+                {current && (
+                  <Badge variant="outline" className="text-[10px] py-0 h-4 px-1.5">
+                    Current
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
+            </div>
+          </div>
+        </div>
+        <ul className="space-y-1.5">
+          {features.map((f) => (
+            <li key={f} className="flex items-start gap-2 text-xs">
+              <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="pt-2 border-t">{footer}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TrialRemainingGrid({
+  remaining,
+}: {
+  remaining: BillingSummary["trial_remaining"];
+}) {
   const items = [
     { label: "Workspace", n: remaining.workspaces },
     { label: "Build", n: remaining.builds },
     { label: "Chat turn", n: remaining.chats },
   ];
   return (
-    <Card className="border-amber-400/50 bg-amber-500/5">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          You&apos;re on the free trial
+    <div className="grid grid-cols-3 gap-2 text-center">
+      {items.map((it) => (
+        <div key={it.label} className="rounded-md border border-border p-2">
+          <div className="text-[9px] uppercase tracking-wide text-muted-foreground">{it.label}</div>
+          <div className="text-base font-semibold tabular-nums">{it.n ?? "—"}</div>
+          <div className="text-[9px] text-muted-foreground">remaining</div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Limited to 1 workspace, 1 build, and 5 chat turns. Upgrade to pay-as-you-go by topping up credits.
-        </p>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          {items.map((it) => (
-            <div key={it.label} className="rounded-md border border-border p-2">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{it.label}</div>
-              <div className="text-lg font-semibold tabular-nums">{it.n ?? "—"}</div>
-              <div className="text-[10px] text-muted-foreground">remaining</div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TopUpBundles() {
-  const bundles = [
-    { name: "Starter", usd: 10, credits: 1000, bonus: 0 },
-    { name: "Builder", usd: 25, credits: 2750, bonus: 10 },
-    { name: "Pro", usd: 50, credits: 6000, bonus: 20 },
-    { name: "Team", usd: 100, credits: 13000, bonus: 30 },
-    { name: "Scale", usd: 250, credits: 35000, bonus: 40 },
-  ];
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {bundles.map((b) => (
-        <Card key={b.name} className="border-border">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="font-medium">{b.name}</div>
-              {b.bonus > 0 && (
-                <Badge variant="outline" className="text-[10px]">+{b.bonus}% bonus</Badge>
-              )}
-            </div>
-            <div className="text-2xl font-semibold tabular-nums">${b.usd}</div>
-            <div className="text-xs text-muted-foreground tabular-nums">
-              {formatNumber(b.credits)} credits · ${(b.usd / b.credits).toFixed(4)}/credit
-            </div>
-            <Button size="sm" className="w-full" disabled title="Coming soon — Phase 2">
-              Top up (coming soon)
-            </Button>
-          </CardContent>
-        </Card>
       ))}
     </div>
   );
@@ -287,7 +381,7 @@ export default function BillingPage() {
   }
   const me = meQ.data!;
   const b = me.billing;
-  const { label: planText, tone: planTone } = planLabel(b.plan_tier);
+  const { label: planText, tone: planTone } = planBadge(b.plan_tier);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -297,9 +391,10 @@ export default function BillingPage() {
         <Badge className={`text-[11px] ${planTone} border-transparent`}>{planText}</Badge>
       </div>
 
-      {b.plan_tier === "trial" ? (
-        <TrialCta remaining={b.trial_remaining} />
-      ) : null}
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium">Plans</h2>
+        <PlansSection tier={b.plan_tier} remaining={b.trial_remaining} />
+      </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <BalanceCard
@@ -323,14 +418,6 @@ export default function BillingPage() {
           subtle="Never expire"
           tone="amber"
         />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium">Top up</h2>
-        <TopUpBundles />
-        <p className="text-xs text-muted-foreground">
-          Purchases are handled by Stripe (coming in Phase 2). Paid bundles flip your account from the free trial to pay-as-you-go automatically.
-        </p>
       </section>
 
       <section className="space-y-3">

@@ -24,6 +24,7 @@ function GitHubMark({ className }: { className?: string }) {
 
 import { AuthAnimation } from "@/components/auth/auth-animation";
 import { BrandMark } from "@/components/brand";
+import { CAL_BOOKING_URL } from "@/lib/plans";
 
 const MIN_PASSWORD = 8;
 
@@ -197,7 +198,7 @@ function SignUpPageInner() {
               <Button type="submit" className="w-full" size="lg" disabled={submitting}>
                 {submitting ? "Creating account…" : "Create account"}
               </Button>
-              <p className="text-xs text-muted-foreground text-center pb-4">
+              <p className="text-xs text-muted-foreground text-center pb-2">
                 Already have an account?{" "}
                 <Link
                   href={`/sign-in${rawReturn ? `?return_to=${encodeURIComponent(rawReturn)}` : ""}`}
@@ -205,6 +206,23 @@ function SignUpPageInner() {
                 >
                   Sign in
                 </Link>
+              </p>
+              {/* Two-plan footer — see frontend/lib/plans.ts. Sign-up lands
+                  every user on the free trial; if they already know they
+                  need Enterprise (SSO, higher limits, support channel),
+                  the Cal.com link goes straight to the co-founder. */}
+              <p className="text-[11px] text-muted-foreground text-center pb-4">
+                You&apos;ll start on the <span className="font-medium">free trial</span>.
+                {" "}Need Enterprise?{" "}
+                <a
+                  href={CAL_BOOKING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground font-medium"
+                >
+                  Book a call
+                </a>
+                .
               </p>
             </form>
           </CardContent>
