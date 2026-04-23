@@ -245,6 +245,29 @@ async def init_db() -> None:
             "CREATE INDEX IF NOT EXISTS ix_workspaces_deleted_at "
             "ON workspaces (deleted_at) WHERE deleted_at IS NOT NULL"
         ))
+        # --- workspaces: deployment gate for /api/v1/ext/* ----------------
+        # Adding the column as NULLABLE with no default runs instantly even
+        # at 1M rows. The /ext/* surface filters ``deployed_at IS NOT NULL``
+        # so nothing is API-exposed until the user clicks Deploy in the UI.
+        # To keep any pre-existing integrations working through the cutover,
+        # backfill any workspace that has at least one successful build —
+        # set ``deployed_at = updated_at`` in one pass. New workspaces
+        # start undeployed; they need the explicit Deploy action.
+        await conn.execute(text(
+            "ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS deployed_at TIMESTAMPTZ"
+        ))
+        await conn.execute(text(
+            """
+            UPDATE workspaces ws
+               SET deployed_at = ws.updated_at
+             WHERE ws.deployed_at IS NULL
+               AND EXISTS (
+                     SELECT 1 FROM build_jobs bj
+                      WHERE bj.workspace_id = ws.id
+                        AND bj.status = 'done'
+                   )
+            """
+        ))
         # --- billing_accounts: grandfather existing users -----------------
         # First-deploy protection: every ``users`` row that predates billing
         # would otherwise get a ``plan_tier='trial'`` row on first /me call
