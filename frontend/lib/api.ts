@@ -22,6 +22,7 @@ import type {
   MeResponse,
   NodeDetail,
   ParseJob,
+  ParseJobsList,
   PutGraphConfigResponse,
   QueryRequest,
   QueryResponse,
@@ -251,6 +252,20 @@ export const api = {
   // reaches a terminal value (done / error / cancelled).
   getParseJob: (job_id: string) =>
     get<ParseJob>(`/api/v1/kb/parse-jobs/${encodeURIComponent(job_id)}`),
+
+  // Batched parse-job listing — one request returns every active job
+  // the caller owns, optionally scoped to a workspace and status set.
+  // Drops polling volume from O(N jobs) to O(1) at the dropzone.
+  listParseJobs: (args: {
+    workspace_id?: string;
+    status?: Array<"queued" | "running" | "done" | "error" | "cancelled">;
+    limit?: number;
+  } = {}) =>
+    get<ParseJobsList>("/api/v1/kb/parse-jobs", {
+      workspace_id: args.workspace_id,
+      status: args.status?.join(","),
+      limit: args.limit,
+    }),
 
   // workspaces
   listWorkspaces: () => get<{ workspaces: WorkspaceSummary[] }>("/api/v1/workspaces"),

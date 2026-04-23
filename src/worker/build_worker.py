@@ -51,11 +51,19 @@ logger = logging.getLogger(__name__)
 _build_semaphore = asyncio.Semaphore(1)
 
 # Parse jobs are I/O-bound (OpenRouter round-trips dominate) with no
-# module-level cache contention, so a few can run concurrently per
-# process. The cap defends against a single worker monopolising the
-# shared OpenRouter quota with a batch upload of 50 PDFs. Overridable
-# via PARSE_CONCURRENCY for operators tuning at scale.
-_parse_semaphore = asyncio.Semaphore(int(os.environ.get("PARSE_CONCURRENCY", "3")))
+# module-level cache contention, so they scale horizontally within
+# one worker. Default 6 concurrent parses: each holds one PyMuPDF doc
+# (~50-300 MB peak depending on page size) so 6 × ~150 MB avg ≈ 1 GB —
+# within Render starter worker (2 GB) with room for the base process +
+# LibreOffice conversion scratch. Per-user fairness is enforced
+# upstream by VISION_RPM_PER_USER, not here.
+#
+# Scaling knobs (all via env):
+#   PARSE_CONCURRENCY — per-process; raise if memory permits.
+#   (Scale out horizontally by adding more worker instances in
+#   render.yaml — SELECT FOR UPDATE SKIP LOCKED makes claims
+#   contention-free across N workers.)
+_parse_semaphore = asyncio.Semaphore(int(os.environ.get("PARSE_CONCURRENCY", "6")))
 
 # Drain flag: set by the SIGTERM handler. While draining, the claim loop
 # stops taking new jobs; the in-flight build (if any) runs to completion.
@@ -765,6 +773,7 @@ async def run_parse_job(job: ClaimedParseJob, *, worker_id: str) -> None:
                 kind=kind,
                 progress_cb=progress_cb,
                 cancel_check=cancel_check,
+                user_id=job.user_id,
             )
         except CancelledError:
             await parse_queue.complete(

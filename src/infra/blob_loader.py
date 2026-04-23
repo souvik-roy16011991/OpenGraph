@@ -95,6 +95,9 @@ def upload_raw_document(
     parsed JSON written under ``{kb_source}/{filename}.json``. The
     sha256 prefix disambiguates when two files happen to share a name.
     Returns the public Blob URL.
+
+    Prefer :func:`upload_raw_document_stream` for large uploads —
+    passing ``data`` as bytes buffers the whole file in RAM.
     """
     if not BLOB_READ_WRITE_TOKEN:
         raise RuntimeError("BLOB_READ_WRITE_TOKEN is not set; cannot upload to Vercel Blob.")
@@ -114,6 +117,86 @@ def upload_raw_document(
     logger.info(
         "Uploaded raw doc ws=%s src=%s name=%s size=%d -> %s",
         workspace_id, kb_source, safe_name, len(data), blob_url,
+    )
+    return blob_url
+
+
+# ---------------------------------------------------------------------------
+# Streaming upload — avoids buffering the full file in RAM
+# ---------------------------------------------------------------------------
+
+import hashlib as _hashlib
+from typing import BinaryIO, Iterator
+
+# 256 KB chunks are small enough that 200 concurrent streams peak at
+# 50 MB of in-flight buffer total (vs. 20 GB if every file is loaded
+# whole), and large enough that httpx frames the body efficiently.
+_STREAM_CHUNK = 256 * 1024
+
+
+def _iter_chunks(fp: BinaryIO, chunk: int = _STREAM_CHUNK) -> Iterator[bytes]:
+    while True:
+        buf = fp.read(chunk)
+        if not buf:
+            return
+        yield buf
+
+
+def sha256_and_size_streaming(fp: BinaryIO) -> tuple[str, int]:
+    """Compute sha256 + size by streaming through *fp*.
+
+    Rewinds to 0 on entry and exit so the caller can PUT the same
+    stream right after. Works on any file-like that supports ``seek``;
+    FastAPI's ``UploadFile.file`` is a ``SpooledTemporaryFile`` which
+    does.
+    """
+    fp.seek(0)
+    hasher = _hashlib.sha256()
+    size = 0
+    for chunk in _iter_chunks(fp):
+        hasher.update(chunk)
+        size += len(chunk)
+    fp.seek(0)
+    return hasher.hexdigest(), size
+
+
+def upload_raw_document_stream(
+    *,
+    workspace_id: str,
+    kb_source: str,
+    filename: str,
+    fp: BinaryIO,
+    size_bytes: int,
+    content_type: str,
+    sha256_prefix: str,
+) -> str:
+    """Streaming variant of :func:`upload_raw_document`.
+
+    Reads from *fp* in 256 KB chunks — peak RAM per upload is one chunk,
+    not the full file. ``size_bytes`` is passed as ``Content-Length`` so
+    Vercel Blob can allocate the object up front; pass the value returned
+    by :func:`sha256_and_size_streaming`.
+    """
+    if not BLOB_READ_WRITE_TOKEN:
+        raise RuntimeError("BLOB_READ_WRITE_TOKEN is not set; cannot upload to Vercel Blob.")
+    if kb_source not in ("knowledge", "tool"):
+        raise ValueError(f"kb_source must be 'knowledge' or 'tool', got {kb_source!r}")
+    safe_name = Path(filename).name or "document.bin"
+    short = (sha256_prefix or "")[:8] or "unknown"
+    remote = f"{BLOB_STORE_PATH}/{workspace_id}/_raw/{kb_source}/{short}_{safe_name}"
+    url = f"{_BLOB_API_BASE}/{remote}"
+    headers = _auth_headers(content_type or "application/octet-stream")
+    headers["x-api-blob-store-id"] = _store_id()
+    headers["x-add-random-suffix"] = "0"
+    headers["Content-Length"] = str(size_bytes)
+
+    fp.seek(0)
+    resp = httpx.put(url, content=_iter_chunks(fp), headers=headers, timeout=300)
+    resp.raise_for_status()
+    blob_url: str = resp.json().get("url", url)
+    logger.info(
+        "Streamed raw doc ws=%s src=%s name=%s size=%d -> %s",
+        workspace_id, kb_source, safe_name, size_bytes, blob_url,
     )
     return blob_url
 

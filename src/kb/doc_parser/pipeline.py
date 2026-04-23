@@ -84,10 +84,15 @@ def parse_document(
     kind: DocKind,
     progress_cb: Optional[ProgressCb] = None,
     cancel_check: Optional[CancelCheck] = None,
+    user_id: Optional[str] = None,
 ) -> ParsedDocResult:
     """Run the vision pipeline end-to-end. Synchronous because the
     vision client is sync and the worker runs each parse job in a
     thread so a single-flight pipeline isn't event-loop-blocking.
+
+    ``user_id`` is forwarded to :class:`VisionClient` so the per-user
+    minute budget (``VISION_RPM_PER_USER``) can throttle a burst batch
+    without starving other users.
 
     Raises:
         TooManyPages: PDF has more than :data:`MAX_PAGES` pages.
@@ -111,7 +116,7 @@ def parse_document(
         )
 
     # 3. Render + OCR each page. Blank pages short-circuit.
-    vision = VisionClient()
+    vision = VisionClient(user_id=user_id)
     per_page_results: list[dict] = []
     blank_pages: list[int] = []
     processed = 0

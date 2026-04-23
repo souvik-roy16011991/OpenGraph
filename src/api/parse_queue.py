@@ -130,6 +130,38 @@ async def get_job_by_id(job_id: str) -> Optional[ParseJobRow]:
         return r
 
 
+async def list_jobs_for_user(
+    *,
+    user_id: str,
+    workspace_id: Optional[str] = None,
+    statuses: Optional[list[str]] = None,
+    limit: int = 200,
+) -> list[ParseJobRow]:
+    """Return active parse jobs owned by *user_id*.
+
+    Powers the frontend's batched progress poll — one query replaces
+    N per-job GETs, cutting request volume by ~N× when the user drops
+    a large batch. Ordered newest-first so the UI shows the currently
+    running jobs at the top.
+    """
+    from sqlalchemy import and_
+
+    conds = [ParseJobRow.user_id == uuid.UUID(user_id)]
+    if workspace_id is not None:
+        conds.append(ParseJobRow.workspace_id == uuid.UUID(workspace_id))
+    if statuses:
+        conds.append(ParseJobRow.status.in_(statuses))
+
+    async with get_session() as s:
+        rows = (await s.execute(
+            select(ParseJobRow)
+            .where(and_(*conds))
+            .order_by(ParseJobRow.created_at.desc())
+            .limit(max(1, min(limit, 500)))
+        )).scalars().all()
+        return list(rows)
+
+
 # ---------------------------------------------------------------------------
 # Worker-side: claim / heartbeat / complete
 # ---------------------------------------------------------------------------

@@ -26,6 +26,7 @@ request fails; there is no local fallback to drift out of sync.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -125,16 +126,42 @@ async def _persist_one(
     upload: UploadFile,
     user: User,
 ) -> UploadedFileInfo:
-    raw = await upload.read()
-    if not raw:
+    """Per-file dispatch.
+
+    JSON files take the existing (small, validated-in-memory) path. Raw
+    documents take the streaming path — we never call ``upload.read()``
+    on docs, so a 200-file × 20 MB batch peaks at a few hundred KB of
+    in-flight buffer instead of 4 GB.
+    """
+    # Peek at the magic bytes without draining the stream. FastAPI's
+    # UploadFile.file is a SpooledTemporaryFile — reading is sync and
+    # cheap even at 200 concurrent calls.
+    fp = upload.file
+    fp.seek(0)
+    head = fp.read(16)
+    fp.seek(0)
+    if not head:
         raise HTTPException(status_code=400, detail=f"{kb_source} upload is empty")
 
-    kind = sniff(raw, upload.filename)
+    kind = sniff(head, upload.filename)
+
     if kind == "json":
+        # Small by definition — OK to buffer + validate.
+        raw = fp.read()
         return await _persist_json(workspace_id, kb_source, upload, raw)
 
     if kind in SUPPORTED_DOC_KINDS:
-        if len(raw) > MAX_RAW_DOC_BYTES:
+        # Size is known without materialising the bytes.
+        try:
+            fp.seek(0, 2)  # 2 = SEEK_END
+            size_bytes = fp.tell()
+            fp.seek(0)
+        except OSError:
+            # Fallback: drain once to measure. Should never trigger for
+            # SpooledTemporaryFile, which supports seek natively.
+            size_bytes = len(fp.read())
+            fp.seek(0)
+        if size_bytes > MAX_RAW_DOC_BYTES:
             raise HTTPException(
                 status_code=413,
                 detail=(
@@ -142,7 +169,9 @@ async def _persist_one(
                     "upload cap. Split it into smaller files."
                 ),
             )
-        return await _persist_raw_document(workspace_id, kb_source, upload, raw, kind, user)
+        return await _persist_raw_document(
+            workspace_id, kb_source, upload, size_bytes, kind, user,
+        )
 
     raise HTTPException(
         status_code=415,
@@ -292,33 +321,58 @@ async def _persist_raw_document(
     workspace_id: str,
     kb_source: str,
     upload: UploadFile,
-    raw: bytes,
+    size_bytes: int,
     kind: str,
     user: User,
 ) -> UploadedFileInfo:
     """Enqueue a vision-OCR parse for a non-JSON upload.
 
-    Path: store raw doc in Blob → dedup by source sha256 → enqueue
-    ParseJob → return UploadedFileInfo with parse_job_id + status=queued.
-    The worker picks it up, produces JSON, and inserts the real
-    WorkspaceFile row. The frontend's ParseProgressCard polls
-    /kb/parse-jobs/{id} until status=done.
+    Streaming version: sha256 is computed by reading the underlying
+    SpooledTemporaryFile in 256 KB chunks (not by buffering the whole
+    file), and the PUT to Vercel Blob streams the same file. Peak RAM
+    per call is ~256 KB regardless of the document size. At 200
+    concurrent uploads in one request, the in-flight buffer budget is
+    ~200 × 256 KB = 50 MB — well within Render starter's 512 MB.
     """
-    sha = hashlib.sha256(raw).hexdigest()
+    from src.infra.blob_loader import (
+        sha256_and_size_streaming,
+        upload_raw_document_stream,
+    )
+
+    # Billing / fairness guardrail. Runs BEFORE the blob upload so a
+    # blocked request never creates an orphaned raw blob. Raises
+    # PaymentRequired (HTTP 402) on trial cap, overdraft, per-user
+    # queue cap (USER_PARSE_QUEUE_CAP), or daily cost ceiling
+    # (USER_DAILY_PARSE_USD) — see src.billing.enforcement.
+    from src.billing import check_document_parse_allowed
+    await check_document_parse_allowed(user.id)
+
+    fp = upload.file  # SpooledTemporaryFile, disk-backed past 1 MB
+    # Two-pass: stream-hash, then stream-upload. Both seek back to 0.
+    sha, streamed_size = await asyncio.to_thread(sha256_and_size_streaming, fp)
+    if streamed_size != size_bytes:
+        # Should never fire — both use the same seek(0)+read loop. If
+        # it ever does, the size_bytes from SEEK_END is authoritative.
+        size_bytes = streamed_size
+
     filename = _safe_doc_filename(upload.filename, kb_source, kind)
 
-    # Dedup by source document sha256. If the same raw PPTX was already
-    # ingested for this (workspace, kb_source), short-circuit to the
-    # existing parsed WorkspaceFile — no OCR, no charge.
+    # Dedup by source document sha256. Two scopes:
+    #   (a) a previously-parsed WorkspaceFile (same raw doc, already
+    #       completed) → short-circuit to the existing row. No OCR.
+    #   (b) an in-flight parse_jobs row (same raw doc, still queued or
+    #       running from this or an earlier batch) → point the caller
+    #       at the existing job_id so they track it instead of paying
+    #       for a second OCR pass.
+    from src.infra.db_models import ParseJobRow
     async with get_session() as s:
-        r = await s.execute(
+        existing = (await s.execute(
             select(WorkspaceFile).where(
                 WorkspaceFile.workspace_id == uuid.UUID(workspace_id),
                 WorkspaceFile.kb_source == kb_source,
                 WorkspaceFile.source_document_sha256 == sha,
             )
-        )
-        existing = r.scalar_one_or_none()
+        )).scalar_one_or_none()
         if existing is not None:
             return UploadedFileInfo(
                 id=existing.id,
@@ -333,6 +387,29 @@ async def _persist_raw_document(
                 status="done",
             )
 
+        in_flight = (await s.execute(
+            select(ParseJobRow).where(
+                ParseJobRow.workspace_id == uuid.UUID(workspace_id),
+                ParseJobRow.kb_source == kb_source,
+                ParseJobRow.source_document_sha256 == sha,
+                ParseJobRow.status.in_(("queued", "running")),
+            )
+        )).scalar_one_or_none()
+        if in_flight is not None:
+            return UploadedFileInfo(
+                id=None,
+                kb_source=in_flight.kb_source,
+                filename=in_flight.filename,
+                size_bytes=int(in_flight.source_document_size),
+                chapters=0,
+                title=None,
+                sha256=sha,
+                blob_url=in_flight.source_document_url,
+                duplicate=True,
+                parse_job_id=in_flight.job_id,
+                status="queued",
+            )
+
     if not BLOB_READ_WRITE_TOKEN:
         raise HTTPException(
             status_code=503,
@@ -342,12 +419,13 @@ async def _persist_raw_document(
     content_type = MIME_BY_KIND.get(kind, "application/octet-stream")
 
     try:
-        from src.infra.blob_loader import upload_raw_document
-        raw_url = upload_raw_document(
+        raw_url = await asyncio.to_thread(
+            upload_raw_document_stream,
             workspace_id=workspace_id,
             kb_source=kb_source,
             filename=filename,
-            data=raw,
+            fp=fp,
+            size_bytes=size_bytes,
             content_type=content_type,
             sha256_prefix=sha,
         )
@@ -371,7 +449,7 @@ async def _persist_raw_document(
             filename=filename,
             source_document_url=raw_url,
             source_document_sha256=sha,
-            source_document_size=len(raw),
+            source_document_size=size_bytes,
             source_mime=content_type,
         )
     except Exception as exc:
@@ -389,7 +467,7 @@ async def _persist_raw_document(
         id=None,
         kb_source=kb_source,
         filename=filename,
-        size_bytes=len(raw),
+        size_bytes=size_bytes,
         chapters=0,
         title=None,
         sha256=sha,
@@ -414,6 +492,15 @@ def _best_effort_blob_delete(blob_url: str) -> None:
         logger.warning("Compensating blob delete failed for %s: %s", blob_url, exc)
 
 
+# Per-request concurrency for blob PUTs + dedup SELECTs + enqueue INSERTs.
+# Tuning: 8 in flight saturates Vercel Blob's single-connection bandwidth
+# without overwhelming Neon's connection pool (DB_POOL_SIZE=2,
+# MAX_OVERFLOW=10 → 12 max). Overridable via env for operators tuning
+# on a larger DB pool.
+import os as _os
+UPLOAD_CONCURRENCY = max(1, int(_os.environ.get("UPLOAD_CONCURRENCY", "8")))
+
+
 @router.post("/kb/upload", response_model=UploadResponse, summary="Upload one or more KB JSON files")
 async def upload_kb_files(
     workspace_id: str = Depends(require_workspace_id),
@@ -425,14 +512,42 @@ async def upload_kb_files(
         raise HTTPException(status_code=400, detail="Provide at least one knowledge_files or tool_files entry")
 
     response = UploadResponse(workspace_id=workspace_id)
+    sem = asyncio.Semaphore(UPLOAD_CONCURRENCY)
 
+    # Per-file worker. Isolates failure: if file #N fails, files 1..N-1
+    # and N+1..M still land in the response. Failures are recorded in
+    # `warnings[]` so the caller sees exactly which filenames didn't
+    # make it, without blowing up the whole batch.
+    async def _one(
+        kb_source: str, upload: UploadFile,
+    ) -> tuple[str, str, UploadedFileInfo | None, str | None]:
+        fname = upload.filename or f"{kb_source}.bin"
+        async with sem:
+            try:
+                info = await _persist_one(workspace_id, kb_source, upload, user)
+                return kb_source, fname, info, None
+            except HTTPException as exc:
+                return kb_source, fname, None, f"{exc.status_code}: {exc.detail}"
+            except Exception as exc:
+                logger.exception("per-file persist crashed for %s/%s", kb_source, fname)
+                return kb_source, fname, None, f"internal error: {type(exc).__name__}: {exc}"
+
+    tasks: list = []
     for f in knowledge_files or []:
-        info = await _persist_one(workspace_id, "knowledge", f, user)
-        response.knowledge.append(info)
-
+        tasks.append(_one("knowledge", f))
     for f in tool_files or []:
-        info = await _persist_one(workspace_id, "tool", f, user)
-        response.tool.append(info)
+        tasks.append(_one("tool", f))
+
+    # return_exceptions=False because _one already swallows and returns a
+    # tagged failure — if gather itself raises, it's a framework bug we
+    # want to see.
+    results = await asyncio.gather(*tasks)
+
+    for kb_source, fname, info, err in results:
+        if info is not None:
+            (response.knowledge if kb_source == "knowledge" else response.tool).append(info)
+        else:
+            response.warnings.append(f"{kb_source}/{fname}: {err}")
 
     all_infos = response.knowledge + response.tool
     record_audit(
@@ -444,6 +559,8 @@ async def upload_kb_files(
             "tool_added": sum(1 for i in response.tool if not i.duplicate and i.status == "done"),
             "duplicates": sum(1 for i in all_infos if i.duplicate),
             "parse_jobs_queued": sum(1 for i in all_infos if i.parse_job_id is not None),
+            "failures": len(response.warnings),
+            "batch_size": len(tasks),
         },
     )
     return response

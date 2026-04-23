@@ -137,6 +137,97 @@ async def check_chat_allowed(user_id: uuid.UUID | str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Document-parse enforcement (vision-OCR ingestion)
+# ---------------------------------------------------------------------------
+# Three independent checks, any of which rejects the enqueue:
+#
+#   1. Standard balance / trial-cap check (same as build/chat).
+#   2. Per-user concurrent queue cap — prevents a 10k-doc drop from
+#      monopolising worker capacity. Tunable via USER_PARSE_QUEUE_CAP
+#      (default 50).
+#   3. Daily cost ceiling — rolling 24h sum of ``document_parse`` debits
+#      against USER_DAILY_PARSE_USD (default $20). Stops a runaway
+#      burst from turning into a surprise bill.
+#
+# Each check raises a distinct ``reason`` on PaymentRequired so the
+# frontend can show a targeted error.
+
+import os as _os
+from datetime import datetime as _datetime, timedelta as _timedelta, timezone as _timezone
+
+USER_PARSE_QUEUE_CAP = max(1, int(_os.environ.get("USER_PARSE_QUEUE_CAP", "50")))
+USER_DAILY_PARSE_USD = float(_os.environ.get("USER_DAILY_PARSE_USD", "20.00"))
+
+
+async def check_document_parse_allowed(user_id: uuid.UUID | str) -> None:
+    """Gate a vision-OCR parse enqueue.
+
+    Called once per file during the upload endpoint. Cheap: two
+    narrow COUNT/SUM queries plus the existing balance read. The
+    ``_check_trial_or_balance`` call reuses the same trial-bucket
+    counter as builds — parses count as builds for trial users so
+    they can't infinitely burn through the free tier via OCR.
+    """
+    from src.infra.db_models import CreditTransaction, ParseJobRow
+    from sqlalchemy import func, and_
+
+    uid = _coerce_uuid(user_id)
+    await ensure_account(uid)
+
+    async with get_session() as s:
+        acct = (await s.execute(
+            select(BillingAccount).where(BillingAccount.user_id == uid)
+        )).scalar_one()
+
+        # 1. Trial cap / overdraft floor.
+        _check_trial_or_balance(
+            acct,
+            trial_kind="document_parse",
+            trial_current=int(acct.trial_build_count or 0),
+            trial_cap=TRIAL_MAX_BUILDS,
+        )
+
+        # 2. Concurrent-queue cap.
+        queue_depth = (await s.execute(
+            select(func.count(ParseJobRow.job_id))
+            .where(and_(
+                ParseJobRow.user_id == uid,
+                ParseJobRow.status.in_(("queued", "running")),
+            ))
+        )).scalar_one()
+        if queue_depth >= USER_PARSE_QUEUE_CAP:
+            raise PaymentRequired(
+                reason="parse_queue_cap_exceeded",
+                queue_depth=int(queue_depth),
+                cap=USER_PARSE_QUEUE_CAP,
+            )
+
+        # 3. Rolling 24h cost ceiling. The ledger stores credits; we
+        # convert to approximate USD at 0.01 USD/credit (the rate used
+        # everywhere else; see rate_card). The check tolerates the
+        # (typical) case where no transactions exist yet — SUM returns
+        # NULL which SQLAlchemy hands back as None.
+        since = _datetime.now(_timezone.utc) - _timedelta(hours=24)
+        spent_credits = (await s.execute(
+            select(func.coalesce(func.sum(func.abs(CreditTransaction.delta_credits)), 0))
+            .where(and_(
+                CreditTransaction.user_id == uid,
+                CreditTransaction.reason == "document_parse",
+                CreditTransaction.created_at >= since,
+            ))
+        )).scalar_one()
+        # credits ≈ USD * 100 in this system; see src.billing.rate_card
+        # for the per-1K-token rates that feed into it.
+        spent_usd = float(spent_credits or 0) / 100.0
+        if spent_usd >= USER_DAILY_PARSE_USD:
+            raise PaymentRequired(
+                reason="daily_parse_cost_exceeded",
+                spent_usd=round(spent_usd, 2),
+                cap_usd=USER_DAILY_PARSE_USD,
+            )
+
+
+# ---------------------------------------------------------------------------
 # Shared logic
 # ---------------------------------------------------------------------------
 

@@ -47,6 +47,14 @@ _COST_PER_1K_IN: float = float(os.environ.get("VISION_COST_PER_1K_IN", "0.0008")
 _COST_PER_1K_OUT: float = float(os.environ.get("VISION_COST_PER_1K_OUT", "0.0016"))
 _COST_CAP_USD: float = float(os.environ.get("VISION_COST_CAP_USD", "2.00"))
 
+# Per-user minute budget against OpenRouter's vision model. Fairness
+# gate: one user dropping 200 docs can't starve other users' OCR. The
+# default is a comfortable 120 req/min (2/s) — works for a single user
+# chewing through a batch sequentially (the pipeline emits ~1 req/page
+# per doc, 3 concurrent per worker) without nearing OpenRouter's typical
+# org-wide 600 req/min ceiling. Set to 0 to disable.
+VISION_RPM_PER_USER: int = int(os.environ.get("VISION_RPM_PER_USER", "120"))
+
 
 class CostCapExceeded(RuntimeError):
     """Per-job running cost exceeded ``VISION_COST_CAP_USD``."""
@@ -63,7 +71,12 @@ class VisionClient:
     cap + billing debit.
     """
 
-    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ):
         key = api_key or OPENROUTER_API_KEY
         if not key:
             raise RuntimeError(
@@ -72,6 +85,10 @@ class VisionClient:
         self._api_key = key
         self._model = model or VISION_MODEL
         self._base_url = OPENROUTER_BASE_URL.rstrip("/") + "/chat/completions"
+        # ``user_id`` is threaded through so the per-user minute budget
+        # (VISION_RPM_PER_USER) can be enforced via Upstash. None
+        # disables the gate (e.g., for CLI smoke tests).
+        self._user_id = user_id
         self._session = httpx.Client(timeout=REQUEST_TIMEOUT)
         self._session.headers.update({
             "Authorization": f"Bearer {self._api_key}",
@@ -156,7 +173,38 @@ class VisionClient:
     # HTTP with bounded retry + 429 backoff
     # ------------------------------------------------------------------
 
+    def _wait_for_user_quota(self) -> None:
+        """Block until the per-user minute budget has room for one more call.
+
+        Uses the same Upstash INCR fixed-window limiter as the public
+        /ext/* API, scoped to ``vision_user:<uuid>``. On a miss, sleep
+        until the minute rolls over and re-check — since a worker's
+        ``run_parse_job`` already tolerates multi-minute OCR, adding a
+        ~60 s wait at the worst case is acceptable.
+        """
+        if not self._user_id or VISION_RPM_PER_USER <= 0:
+            return
+        # Late-import so src.kb.doc_parser stays import-light for the API
+        # (it imports src.kb.doc_parser.__init__ which pulls this module).
+        from src.infra import rate_limit as _rl
+
+        while True:
+            decision = _rl.check(
+                scope="vision_user",
+                subject=self._user_id,
+                limit=VISION_RPM_PER_USER,
+            )
+            if decision.allowed:
+                return
+            wait = max(1, decision.reset_at_unix - int(time.time()) + 1)
+            logger.info(
+                "vision rate-limit: user=%s budget=%d/min exceeded, sleeping %ds",
+                self._user_id, VISION_RPM_PER_USER, wait,
+            )
+            time.sleep(wait)
+
     def _call(self, messages: list) -> str:
+        self._wait_for_user_quota()
         payload = {"model": self._model, "messages": messages, "max_tokens": MAX_TOKENS}
         rate_limit_retries = 0
         for attempt in range(MAX_RETRIES):

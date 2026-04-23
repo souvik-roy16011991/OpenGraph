@@ -189,6 +189,11 @@ export interface ParseJob {
   created_at: string;
   finished_at?: string | null;
 }
+export interface ParseJobsList {
+  jobs: ParseJob[];
+  total: number;
+  by_status: Partial<Record<ParseJobStatus, number>>;
+}
 
 // ---------- Build ----------
 export interface StartBuildRequest {

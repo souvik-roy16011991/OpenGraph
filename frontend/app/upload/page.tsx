@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { KbDropzone, type KbFilePreview } from "@/components/upload/kb-dropzone";
 import { ParseProgressCard } from "@/components/upload/parse-progress-card";
+import { ParseBatchProgressCard } from "@/components/upload/parse-batch-progress-card";
 import { WizardPage } from "@/components/wizard/wizard-page";
 import { api } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
@@ -61,27 +62,78 @@ export default function UploadPage() {
     onSettled: () => qc.invalidateQueries({ queryKey: ["workspace-files", activeWs] }),
   });
 
+  // Batch-size heuristic. The server processes 8 files concurrently per
+  // request. 20 per batch keeps each HTTP round-trip under ~10 s while
+  // still giving the user visible progress when they drop 200 files —
+  // 10 batches of 20, shown as "Uploading 60/200...".
+  const UPLOAD_BATCH_SIZE = 20;
+  const [uploadBatch, setUploadBatch] = React.useState<{ current: number; total: number; sent: number; of: number } | null>(null);
+
   const uploadMut = useMutation({
     mutationFn: async () => {
-      const form = new FormData();
-      for (const k of knowledge) if (k.ok) form.append("knowledge_files", k.file);
-      for (const t of tool) if (t.ok) form.append("tool_files", t.file);
-      return api.uploadKB(form);
+      // Flatten once so we control interleaving. kb_source sticks with
+      // each file so the chunked requests preserve category.
+      const items: Array<{ file: File; kb: "knowledge" | "tool" }> = [
+        ...knowledge.filter((k) => k.ok).map((k) => ({ file: k.file, kb: "knowledge" as const })),
+        ...tool.filter((t) => t.ok).map((t) => ({ file: t.file, kb: "tool" as const })),
+      ];
+
+      const totalFiles = items.length;
+      if (totalFiles === 0) {
+        throw new Error("No valid files to upload.");
+      }
+
+      const aggregated = {
+        workspace_id: "",
+        knowledge: [] as NonNullable<Awaited<ReturnType<typeof api.uploadKB>>["knowledge"]>,
+        tool: [] as NonNullable<Awaited<ReturnType<typeof api.uploadKB>>["tool"]>,
+        warnings: [] as string[],
+      };
+
+      const totalBatches = Math.ceil(totalFiles / UPLOAD_BATCH_SIZE);
+      setUploadBatch({ current: 0, total: totalBatches, sent: 0, of: totalFiles });
+
+      for (let b = 0; b < totalBatches; b++) {
+        const slice = items.slice(b * UPLOAD_BATCH_SIZE, (b + 1) * UPLOAD_BATCH_SIZE);
+        const form = new FormData();
+        for (const it of slice) {
+          form.append(it.kb === "knowledge" ? "knowledge_files" : "tool_files", it.file);
+        }
+        const resp = await api.uploadKB(form);
+        aggregated.workspace_id = resp.workspace_id;
+        aggregated.knowledge.push(...(resp.knowledge ?? []));
+        aggregated.tool.push(...(resp.tool ?? []));
+        aggregated.warnings.push(...(resp.warnings ?? []));
+        setUploadBatch({
+          current: b + 1,
+          total: totalBatches,
+          sent: Math.min(totalFiles, (b + 1) * UPLOAD_BATCH_SIZE),
+          of: totalFiles,
+        });
+      }
+
+      return aggregated;
     },
     onSuccess: (data) => {
       const all = [...(data.knowledge ?? []), ...(data.tool ?? [])];
       const dupCount = all.filter((f) => f.duplicate).length;
-      // Split JSON (already attached) from raw-docs (queued to parse).
       const queued = all.filter((f) => f.parse_job_id && f.status === "queued");
       const done = all.filter((f) => !f.parse_job_id);
+      const warnCount = data.warnings?.length ?? 0;
 
       const msgParts: string[] = [];
       if (done.length) msgParts.push(`Uploaded ${done.length} file${done.length === 1 ? "" : "s"}`);
       if (queued.length) msgParts.push(`queued ${queued.length} for parsing`);
       if (dupCount) msgParts.push(`${dupCount} already existed`);
+      if (warnCount) msgParts.push(`${warnCount} failed`);
       toast.success(msgParts.length ? msgParts.join(" · ") : "Upload complete");
 
-      // Queue ParseProgressCards for the raw-doc uploads.
+      // Surface failures individually so the user knows which files were skipped.
+      if (warnCount) {
+        for (const w of (data.warnings ?? []).slice(0, 5)) toast.error(w);
+        if (warnCount > 5) toast.error(`…and ${warnCount - 5} more failure${warnCount - 5 === 1 ? "" : "s"}`);
+      }
+
       if (queued.length) {
         setParseCards((prev) => [
           ...prev,
@@ -97,10 +149,14 @@ export default function UploadPage() {
       markCompleted("upload", true);
       setKnowledge([]);
       setTool([]);
+      setUploadBatch(null);
       qc.invalidateQueries({ queryKey: ["workspace-files", activeWs] });
       qc.invalidateQueries({ queryKey: ["workspaces"] });
     },
-    onError: (err: Error) => toast.error(`Upload failed: ${err.message}`),
+    onError: (err: Error) => {
+      setUploadBatch(null);
+      toast.error(`Upload failed: ${err.message}`);
+    },
   });
 
   if (!activeWs) return null;
@@ -139,7 +195,9 @@ export default function UploadPage() {
         </Card>
       )}
 
-      {/* In-flight vision-OCR parse jobs */}
+      {/* In-flight vision-OCR parse jobs.
+          ≥ 10 jobs → single aggregate card with one batched poll.
+          < 10 jobs → one detailed card per job (the existing UX). */}
       {parseCards.length > 0 && (
         <Card>
           <CardHeader>
@@ -152,18 +210,26 @@ export default function UploadPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {parseCards.map((c) => (
-              <ParseProgressCard
-                key={c.jobId}
-                jobId={c.jobId}
-                filename={c.filename}
-                sizeBytes={c.sizeBytes}
+            {parseCards.length >= 10 ? (
+              <ParseBatchProgressCard
+                jobIds={parseCards.map((c) => c.jobId)}
                 workspaceId={activeWs}
-                onDismiss={() =>
-                  setParseCards((prev) => prev.filter((x) => x.jobId !== c.jobId))
-                }
+                onDismissAll={() => setParseCards([])}
               />
-            ))}
+            ) : (
+              parseCards.map((c) => (
+                <ParseProgressCard
+                  key={c.jobId}
+                  jobId={c.jobId}
+                  filename={c.filename}
+                  sizeBytes={c.sizeBytes}
+                  workspaceId={activeWs}
+                  onDismiss={() =>
+                    setParseCards((prev) => prev.filter((x) => x.jobId !== c.jobId))
+                  }
+                />
+              ))
+            )}
           </CardContent>
         </Card>
       )}
@@ -197,7 +263,13 @@ export default function UploadPage() {
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground flex items-center gap-1">
-          {pendingValid === 0
+          {uploadBatch
+            ? <>
+              <AlertTriangle className="h-3 w-3 text-sky-500" />
+              Uploading {uploadBatch.sent}/{uploadBatch.of}
+              {uploadBatch.total > 1 ? ` (batch ${uploadBatch.current}/${uploadBatch.total})` : ""}…
+            </>
+            : pendingValid === 0
             ? "Drop at least one file to enable upload."
             : <>
               <AlertTriangle className="h-3 w-3 text-amber-500" />
@@ -218,7 +290,11 @@ export default function UploadPage() {
             onClick={() => uploadMut.mutate()}
             disabled={pendingValid === 0 || uploadMut.isPending}
           >
-            {uploadMut.isPending ? "Uploading…" : `Upload ${pendingValid} file${pendingValid === 1 ? "" : "s"}`}
+            {uploadMut.isPending
+              ? uploadBatch
+                ? `Uploading ${uploadBatch.sent}/${uploadBatch.of}…`
+                : "Uploading…"
+              : `Upload ${pendingValid} file${pendingValid === 1 ? "" : "s"}`}
           </Button>
         </div>
       </div>
