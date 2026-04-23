@@ -11,16 +11,12 @@ import {
   GitBranch,
   GitCompareArrows,
   History as HistoryIcon,
-  CircleUser,
-  CreditCard,
   CheckCircle2,
   KeyRound,
   Moon,
   Sun,
   Briefcase,
   ChevronDown,
-  PanelLeftClose,
-  PanelLeftOpen,
   ChevronsLeft,
   ChevronsRight,
   Plus,
@@ -51,15 +47,16 @@ const WIZARD_ROUTES = ["/upload", "/domain", "/graph-config", "/build", "/explor
 // screen for a graph (/upload, /domain, /graph-config, /build, /explore).
 const GRAPH_MATCH_PREFIXES = ["/workspaces", ...WIZARD_ROUTES];
 
+// Primary nav — workspace + developer-surface routes. Billing + Profile
+// moved into the header user menu so the sidebar stops fighting them for
+// attention.
 const PRIMARY_NAV: NavItem[] = [
   { href: "/templates", label: "Templates", icon: LayoutGrid },
-  { href: "/chat", label: "Chat", icon: MessageSquareText },
   { href: "/workspaces", label: "My Graphs", icon: GitBranch, matchPrefixes: GRAPH_MATCH_PREFIXES },
+  { href: "/chat", label: "Chat", icon: MessageSquareText },
   { href: "/playground", label: "Playground", icon: GitCompareArrows },
   { href: "/history", label: "History", icon: HistoryIcon },
   { href: "/api-keys", label: "API Keys", icon: KeyRound, matchPrefixes: ["/api-keys", "/api-docs"] },
-  { href: "/billing", label: "Billing", icon: CreditCard },
-  { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 
 function isActive(pathname: string | null, item: NavItem): boolean {
@@ -341,20 +338,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col min-w-0 flex-1">
         <header className="h-14 border-b px-4 md:px-6 flex items-center justify-between gap-4 bg-background/80 backdrop-blur sticky top-0 z-20">
           <div className="flex items-center gap-2 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggle}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="h-8 w-8 md:hidden lg:inline-flex"
-            >
-              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            </Button>
-            <span className="text-sm font-medium truncate">{headerLabel}</span>
+            {/* Sidebar collapse lives in the sidebar footer so we don't have
+             * two toggles doing the same thing. The page title is enough
+             * for the header's left slot. */}
+            <h1 className="text-sm font-medium truncate">{headerLabel}</h1>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-            <UserMenu />
             <ThemeToggle />
+            <UserMenu />
           </div>
         </header>
 
