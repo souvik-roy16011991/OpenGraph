@@ -51,3 +51,27 @@ postman/
 
 # Frontend: built and deployed as a separate Render service.
 frontend/
+
+# SDKs: shipped to PyPI + npm via GitHub Actions, not bundled into the
+# backend image. sdks/typescript/node_modules alone is ~85 MB — without
+# this line every backend deploy pays that cost in the build context
+# transfer.
+sdks/
+
+# Alembic: migrations are applied at boot via init_db()'s idempotent
+# CREATE ... IF NOT EXISTS block. The alembic/ directory + alembic.ini
+# are only needed by operators running `alembic revision --autogenerate`
+# locally against a Neon staging DB.
+alembic/
+alembic.ini
+
+# Plan files, local test checkouts, miscellany.
+tests/
+*.log
+coverage/
+.venv312/
+.next/
+
+# GitHub Actions workflows — configured in the repo, not shipped in the
+# runtime image.
+.github/
