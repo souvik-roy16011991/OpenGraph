@@ -109,6 +109,15 @@ class Workspace(Base):
     )
     deletion_failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     deletion_last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # API deployment. NULL means "not published to /api/v1/ext/*"; the
+    # ext surface rejects calls targeting undeployed workspaces. Set
+    # by ``POST /workspaces/{id}/deploy`` (which also mints a scoped
+    # API key in the same transaction). Cleared on soft-delete; a
+    # backfill in init_db marks pre-existing built workspaces as
+    # deployed so legacy integrations keep working.
+    deployed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     user: Mapped[User] = relationship(back_populates="workspaces")
     files: Mapped[list["WorkspaceFile"]] = relationship(

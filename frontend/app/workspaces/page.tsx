@@ -15,6 +15,7 @@ import {
   Pencil,
   Play,
   Loader2,
+  Rocket,
   GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
+import { DeployDialog, DeployedBadge } from "@/components/workspace/deploy-dialog";
 import { api } from "@/lib/api";
 import type { WorkspaceSummary } from "@/lib/schema";
 import { useWorkspaceStore } from "@/store/workspace-store";
@@ -48,6 +50,7 @@ export default function WorkspacesPage() {
 
   const [open, setOpen] = React.useState(false);
   const [toDelete, setToDelete] = React.useState<WorkspaceSummary | null>(null);
+  const [toDeploy, setToDeploy] = React.useState<WorkspaceSummary | null>(null);
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.deleteWorkspace(id),
@@ -163,10 +166,17 @@ export default function WorkspacesPage() {
                 router.push("/build?autostart=1");
               }}
               onDelete={() => setToDelete(w)}
+              onDeploy={() => setToDeploy(w)}
             />
           ))}
         </div>
       )}
+
+      <DeployDialog
+        workspace={toDeploy}
+        open={toDeploy !== null}
+        onOpenChange={(o) => !o && setToDeploy(null)}
+      />
 
       <Dialog open={toDelete !== null} onOpenChange={(o) => !o && setToDelete(null)}>
         <DialogContent>
@@ -225,6 +235,7 @@ function WorkspaceCard({
   onEdit,
   onRerun,
   onDelete,
+  onDeploy,
 }: {
   ws: WorkspaceSummary;
   isActive: boolean;
@@ -232,24 +243,50 @@ function WorkspaceCard({
   onEdit: () => void;
   onRerun: () => void;
   onDelete: () => void;
+  onDeploy: () => void;
 }) {
   const status = ws.last_build_status;
   const isBuilding = status === "queued" || status === "running";
   const hasBuild = status === "done";
+  const isDeployed = Boolean(ws.deployed_at);
   const openLabel = hasBuild ? "Explore" : "Open";
+
+  // Button label + tooltip reflect the three possible deploy states so the
+  // user understands what happens on click without opening the dialog.
+  const deployTitle = !hasBuild
+    ? "Build your graph first — Deploy needs a successful build"
+    : isDeployed
+      ? "Mint a fresh API key and restamp this graph as live"
+      : "Publish this graph to /api/v1/ext/* and mint an API key";
+  const deployLabel = isDeployed ? "Redeploy" : "Deploy";
+
   return (
     <Card className={isActive ? "border-primary/60 shadow-md" : undefined}>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <CardTitle className="text-base truncate">{ws.name}</CardTitle>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-base truncate">{ws.name}</CardTitle>
+              {isActive && (
+                <Badge variant="success" className="text-[10px]">active</Badge>
+              )}
+              {isDeployed && <DeployedBadge />}
+            </div>
             {ws.description && (
-              <CardDescription className="line-clamp-2">{ws.description}</CardDescription>
+              <CardDescription className="line-clamp-2 mt-1">{ws.description}</CardDescription>
             )}
           </div>
-          {isActive && (
-            <Badge variant="success" className="text-[10px]">active</Badge>
-          )}
+          <Button
+            size="sm"
+            variant={isDeployed ? "outline" : "default"}
+            onClick={onDeploy}
+            disabled={!hasBuild}
+            title={deployTitle}
+            className="gap-1.5 shrink-0"
+          >
+            <Rocket className="h-3.5 w-3.5" />
+            {deployLabel}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

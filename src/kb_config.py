@@ -16,12 +16,15 @@ call ``get_active_kb_config()`` instead of importing domain-specific constants.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Optional
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -162,19 +165,133 @@ def _overlay_domain(base: KBConfig, overrides: dict) -> KBConfig:
     return _dc_replace(base, profile=profile)
 
 
+def _candidate_kb_config_paths() -> list[Path]:
+    """Candidate locations for the kb-config seed, in priority order.
+
+    The seed is mostly template scaffolding — every real workspace overlays
+    its own ``domain_config`` JSONB on top. We still look in a few sensible
+    places so a deployment that renamed or split the source tree doesn't
+    immediately crash the build pipeline.
+
+    Search order:
+      1. ``KB_CONFIG_PATH`` env var (explicit operator override).
+      2. ``src/../kb-config`` — same layout as the git checkout.
+      3. Ancestors of ``__file__`` that contain a ``kb-config`` directory
+         (covers checkouts where ``src/`` is nested deeper than expected).
+      4. ``cwd/kb-config`` — handy for CLI invocations.
+      5. Ancestors of ``cwd`` that contain a ``kb-config`` directory.
+    """
+    cands: list[Path] = []
+    env_path = os.environ.get("KB_CONFIG_PATH")
+    if env_path:
+        cands.append(Path(env_path).expanduser().resolve())
+
+    cands.append((Path(__file__).parent.parent / "kb-config").resolve())
+
+    for p in Path(__file__).resolve().parents:
+        # Stop walking once we've hit the root — no point climbing past "/".
+        if p == p.parent:
+            break
+        candidate = p / "kb-config"
+        if candidate.is_dir() and candidate.resolve() not in cands:
+            cands.append(candidate.resolve())
+        # Keep the search bounded so we don't scan the whole filesystem.
+        if len(cands) > 10:
+            break
+
+    try:
+        cwd = Path.cwd().resolve()
+    except (FileNotFoundError, OSError):
+        cwd = None
+    if cwd is not None:
+        cwd_cand = (cwd / "kb-config").resolve()
+        if cwd_cand not in cands:
+            cands.append(cwd_cand)
+        for p in cwd.parents:
+            if p == p.parent:
+                break
+            candidate = p / "kb-config"
+            if candidate.is_dir() and candidate.resolve() not in cands:
+                cands.append(candidate.resolve())
+            if len(cands) > 15:
+                break
+
+    return cands
+
+
+def _synthesized_seed_config() -> KBConfig:
+    """Last-resort in-memory KBConfig when no kb-config/ dir is reachable.
+
+    A workspace build doesn't actually *need* the disk seed to run: the
+    per-workspace ``domain_config`` JSONB override provides every
+    :class:`DomainProfile` identity field, and the extractor's keyword sets
+    fall back to :data:`DEFAULT_TOOL_COLUMN_KEYWORDS` / :data:`DEFAULT_PROCESS_COLUMN_KEYWORDS`
+    when no override is present. So if the operator's deployment is missing
+    the disk scaffolding we log loudly, synthesize a minimal-but-valid config,
+    and let the build proceed — a missing dev seed shouldn't take down 1M
+    tenant builds.
+    """
+    here = Path(__file__).resolve()
+    # ``root`` must be an existing path for ``Path(...).resolve()`` to make
+    # sense downstream; fall back to the src directory itself, which always
+    # exists when we're executing from it.
+    root = here.parent
+    profile = DomainProfile(
+        domain_name="generic",
+        domain_display_name="Knowledge Graph",
+        organization_name="OpenGraph",
+        knowledge_focus_examples="policies, procedures, domain documentation",
+        tool_focus_examples="systems, integrations, SaaS tools",
+    )
+    return KBConfig(
+        root=root,
+        knowledge_kb_path=root / "__missing__knowledge.json",
+        tool_kb_path=root / "__missing__tool.json",
+        profile=profile,
+        prompt_overrides={},
+    )
+
+
 def _load_seed_config() -> KBConfig:
-    """Load the disk-seed KBConfig (no workspace overlay). Idempotent."""
+    """Load the disk-seed KBConfig (no workspace overlay). Idempotent.
+
+    Tries each candidate path from :func:`_candidate_kb_config_paths` in
+    order, returning the first one that successfully loads. If none exist,
+    synthesises an in-memory default so the build pipeline can still run
+    against per-workspace ``domain_config`` overrides.
+    """
     global _ACTIVE
     if _ACTIVE is not None:
         return _ACTIVE
 
-    env_path = os.environ.get("KB_CONFIG_PATH")
-    if env_path:
-        root = Path(env_path).expanduser().resolve()
-    else:
-        root = (Path(__file__).parent.parent / "kb-config").resolve()
+    tried: list[Path] = []
+    last_err: Optional[Exception] = None
+    for root in _candidate_kb_config_paths():
+        tried.append(root)
+        if not root.is_dir():
+            continue
+        try:
+            _ACTIVE = load_kb_config(root)
+            return _ACTIVE
+        except Exception as exc:
+            # A candidate dir exists but is malformed (missing knowledge/, bad
+            # yaml, etc.). Log and keep trying the rest.
+            last_err = exc
+            logger.warning(
+                "kb-config at %s failed to load (%s); trying next candidate.",
+                root, exc,
+            )
 
-    _ACTIVE = load_kb_config(root)
+    # None of the candidates worked. Fall back to an in-memory synthesis so
+    # workspaces that ship their own domain_config don't get blocked by a
+    # missing dev-mode seed on the host.
+    logger.warning(
+        "No kb-config directory found at any candidate: %s. "
+        "Falling back to synthesized defaults. Set KB_CONFIG_PATH to silence. "
+        "Last loader error: %s",
+        [str(p) for p in tried], last_err,
+    )
+    _ACTIVE = _synthesized_seed_config()
     return _ACTIVE
 
 
