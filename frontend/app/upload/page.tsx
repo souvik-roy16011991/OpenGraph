@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KbDropzone, type KbFilePreview } from "@/components/upload/kb-dropzone";
+import { ParseProgressCard } from "@/components/upload/parse-progress-card";
 import { WizardPage } from "@/components/wizard/wizard-page";
 import { api } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
@@ -27,6 +28,13 @@ export default function UploadPage() {
 
   const [knowledge, setKnowledge] = React.useState<KbFilePreview[]>([]);
   const [tool, setTool] = React.useState<KbFilePreview[]>([]);
+
+  // Raw-doc parse jobs we've kicked off but haven't yet seen land as
+  // WorkspaceFiles. Each upload mutation may add to this list; the
+  // ParseProgressCards self-dismiss on terminal status.
+  const [parseCards, setParseCards] = React.useState<
+    Array<{ jobId: string; filename: string; sizeBytes: number; kbSource: "knowledge" | "tool" }>
+  >([]);
 
   const filesQuery = useQuery({
     queryKey: ["workspace-files", activeWs],
@@ -61,11 +69,31 @@ export default function UploadPage() {
       return api.uploadKB(form);
     },
     onSuccess: (data) => {
-      const newCount = (data.knowledge?.length ?? 0) + (data.tool?.length ?? 0);
-      const dupCount = [...(data.knowledge ?? []), ...(data.tool ?? [])].filter((f) => f.duplicate).length;
-      toast.success(
-        `Uploaded ${newCount} file${newCount === 1 ? "" : "s"}${dupCount ? ` (${dupCount} already existed)` : ""}`
-      );
+      const all = [...(data.knowledge ?? []), ...(data.tool ?? [])];
+      const dupCount = all.filter((f) => f.duplicate).length;
+      // Split JSON (already attached) from raw-docs (queued to parse).
+      const queued = all.filter((f) => f.parse_job_id && f.status === "queued");
+      const done = all.filter((f) => !f.parse_job_id);
+
+      const msgParts: string[] = [];
+      if (done.length) msgParts.push(`Uploaded ${done.length} file${done.length === 1 ? "" : "s"}`);
+      if (queued.length) msgParts.push(`queued ${queued.length} for parsing`);
+      if (dupCount) msgParts.push(`${dupCount} already existed`);
+      toast.success(msgParts.length ? msgParts.join(" · ") : "Upload complete");
+
+      // Queue ParseProgressCards for the raw-doc uploads.
+      if (queued.length) {
+        setParseCards((prev) => [
+          ...prev,
+          ...queued.map((f) => ({
+            jobId: f.parse_job_id!,
+            filename: f.filename,
+            sizeBytes: f.size_bytes,
+            kbSource: f.kb_source,
+          })),
+        ]);
+      }
+
       markCompleted("upload", true);
       setKnowledge([]);
       setTool([]);
@@ -107,6 +135,35 @@ export default function UploadPage() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <FileList title="Knowledge" files={existingK} onDelete={(id) => deleteMut.mutate({ ws: activeWs, id })} />
             <FileList title="Tool" files={existingT} onDelete={(id) => deleteMut.mutate({ ws: activeWs, id })} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* In-flight vision-OCR parse jobs */}
+      {parseCards.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <UploadCloud className="h-4 w-4" /> Parsing uploaded documents
+            </CardTitle>
+            <CardDescription>
+              Vision OCR turns each page into structured JSON. Page count drives
+              the time — typically under a minute per 20 pages.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {parseCards.map((c) => (
+              <ParseProgressCard
+                key={c.jobId}
+                jobId={c.jobId}
+                filename={c.filename}
+                sizeBytes={c.sizeBytes}
+                workspaceId={activeWs}
+                onDismiss={() =>
+                  setParseCards((prev) => prev.filter((x) => x.jobId !== c.jobId))
+                }
+              />
+            ))}
           </CardContent>
         </Card>
       )}

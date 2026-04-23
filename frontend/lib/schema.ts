@@ -148,23 +148,46 @@ export interface PutGraphConfigResponse {
 
 // ---------- Upload ----------
 export interface UploadedFileInfo {
-  id: number;
+  id: number | null;            // null for queued raw-doc parses — the WorkspaceFile is created on completion
   kb_source: "knowledge" | "tool";
   filename: string;
   size_bytes: number;
   chapters: number;
   title?: string | null;
   sha256: string;
-  local_path: string;
-  blob_url?: string | null;
+  local_path?: string;
+  blob_url?: string | null;     // parsed JSON URL for done; raw doc URL for queued
   blob_error?: string | null;
   duplicate: boolean;
+  parse_job_id?: string | null; // present when the upload went through the vision-OCR path
+  status?: "done" | "queued";   // discriminator the UI uses to pick a render path
 }
 export interface UploadResponse {
   workspace_id: string;
   knowledge: UploadedFileInfo[];
   tool: UploadedFileInfo[];
   warnings: string[];
+}
+
+// ---------- Parse jobs (vision OCR ingestion) ----------
+export type ParseJobStatus = "queued" | "running" | "done" | "error" | "cancelled";
+export interface ParseJob {
+  job_id: string;
+  workspace_id: string;
+  kb_source: "knowledge" | "tool";
+  filename: string;
+  status: ParseJobStatus;
+  percent: number;
+  pages_total: number;
+  pages_done: number;
+  error?: string | null;
+  result_file_id?: number | null;
+  source_document_url: string;
+  tokens_in: number;
+  tokens_out: number;
+  cost_usd?: number | null;
+  created_at: string;
+  finished_at?: string | null;
 }
 
 // ---------- Build ----------

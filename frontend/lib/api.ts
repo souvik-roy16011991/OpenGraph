@@ -21,6 +21,7 @@ import type {
   EmbeddingModelsResponse,
   MeResponse,
   NodeDetail,
+  ParseJob,
   PutGraphConfigResponse,
   QueryRequest,
   QueryResponse,
@@ -230,7 +231,11 @@ export const api = {
   stats: () => get<GraphStats>("/api/v1/graph/stats"),
   statsFor: (ws_id: string) => getWithWorkspace<GraphStats>("/api/v1/graph/stats", ws_id),
 
-  // upload — accepts multiple `knowledge_files` + multiple `tool_files`
+  // upload — accepts multiple `knowledge_files` + multiple `tool_files`.
+  // Mixes JSON (processed sync) and raw docs (PDF/PPTX/DOCX/...) — the
+  // response fans out: JSON files come back with status="done" and a
+  // WorkspaceFile `id`; raw docs come back with status="queued" and a
+  // `parse_job_id` the UI polls via `getParseJob`.
   uploadKB: async (form: FormData): Promise<UploadResponse> => {
     const res = await safeFetch(`${BASE}/api/v1/kb/upload`, {
       method: "POST",
@@ -240,6 +245,12 @@ export const api = {
     });
     return handle<UploadResponse>(res);
   },
+
+  // Vision-OCR parse job status. Poll this every ~3s from the upload
+  // UI while a raw-doc ingestion is in flight; stop polling once status
+  // reaches a terminal value (done / error / cancelled).
+  getParseJob: (job_id: string) =>
+    get<ParseJob>(`/api/v1/kb/parse-jobs/${encodeURIComponent(job_id)}`),
 
   // workspaces
   listWorkspaces: () => get<{ workspaces: WorkspaceSummary[] }>("/api/v1/workspaces"),

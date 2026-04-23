@@ -5,8 +5,11 @@ import { Upload, FileText, CheckCircle2, AlertCircle, X, Plus } from "lucide-rea
 
 import { cn, formatBytes } from "@/lib/utils";
 
+export type KbFileKind = "json" | "document";
+
 export interface KbFilePreview {
   file: File;
+  kind: KbFileKind;
   title?: string;
   subtitle?: string;
   chapters: number;
@@ -14,24 +17,85 @@ export interface KbFilePreview {
   error?: string;
 }
 
-async function parsePreview(file: File): Promise<KbFilePreview> {
-  try {
-    const text = await file.text();
-    const json = JSON.parse(text);
-    if (!json || typeof json !== "object" || !Array.isArray((json as { chapters: unknown }).chapters)) {
-      return { file, chapters: 0, ok: false, error: "Invalid format — missing data array" };
+// Server caps this at 100 MB; mirror that in the client so the user gets
+// immediate feedback instead of an opaque 413 a second later.
+const MAX_DOC_BYTES = 100 * 1024 * 1024;
 
+// Raw document extensions the vision-OCR pipeline accepts. Anything else
+// either takes the JSON fast-path (".json") or is rejected with an error.
+const DOC_EXTS = [
+  ".pdf",
+  ".pptx", ".ppt",
+  ".docx", ".doc",
+  ".xlsx", ".xls",
+  ".odp", ".odt", ".ods",
+  ".rtf",
+];
+
+function isJsonFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return (
+    file.type === "application/json" ||
+    name.endsWith(".json")
+  );
+}
+
+function isDocumentFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return DOC_EXTS.some((ext) => name.endsWith(ext));
+}
+
+async function parsePreview(file: File): Promise<KbFilePreview> {
+  // Size cap applies to every upload; it's cheaper to reject huge files
+  // here than to upload 200 MB only to get a 413 back.
+  if (file.size > MAX_DOC_BYTES) {
+    return {
+      file, kind: isJsonFile(file) ? "json" : "document",
+      chapters: 0, ok: false,
+      error: `File exceeds ${MAX_DOC_BYTES / (1024 * 1024)} MB limit`,
+    };
+  }
+
+  if (isJsonFile(file)) {
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      if (!json || typeof json !== "object" || !Array.isArray((json as { chapters: unknown }).chapters)) {
+        return { file, kind: "json", chapters: 0, ok: false, error: "Invalid format — missing chapters array" };
+      }
+      return {
+        file,
+        kind: "json",
+        title: (json as { title?: string }).title,
+        subtitle: (json as { subtitle?: string }).subtitle,
+        chapters: (json as { chapters: unknown[] }).chapters.length,
+        ok: true,
+      };
+    } catch (exc) {
+      return { file, kind: "json", chapters: 0, ok: false, error: (exc as Error).message };
     }
+  }
+
+  if (isDocumentFile(file)) {
+    // Raw documents are parsed server-side by the vision pipeline, so
+    // we don't open the bytes here. Accept as-is; the backend will
+    // sniff + reject on MIME if something sneaks past the extension.
     return {
       file,
-      title: (json as { title?: string }).title,
-      subtitle: (json as { subtitle?: string }).subtitle,
-      chapters: (json as { chapters: unknown[] }).chapters.length,
+      kind: "document",
+      title: file.name.replace(/\.[^.]+$/, ""),
+      chapters: 0,
       ok: true,
     };
-  } catch (exc) {
-    return { file, chapters: 0, ok: false, error: (exc as Error).message };
   }
+
+  return {
+    file,
+    kind: "document",
+    chapters: 0,
+    ok: false,
+    error: "Unsupported file type. Use .json, .pdf, .pptx, .docx, .xlsx, .odp, or similar.",
+  };
 }
 
 /**
@@ -69,7 +133,10 @@ export function KbDropzone({
 
   const validCount = value.filter((v) => v.ok).length;
   const invalidCount = value.length - validCount;
-  const totalChapters = value.filter((v) => v.ok).reduce((sum, v) => sum + v.chapters, 0);
+  const totalChapters = value
+    .filter((v) => v.ok && v.kind === "json")
+    .reduce((sum, v) => sum + v.chapters, 0);
+  const docsToParse = value.filter((v) => v.ok && v.kind === "document").length;
 
   return (
     <div className="space-y-2">
@@ -79,6 +146,7 @@ export function KbDropzone({
           <span className="text-xs text-muted-foreground">
             {validCount} valid{invalidCount ? ` · ${invalidCount} rejected` : ""}
             {totalChapters ? ` · ${totalChapters} chapters` : ""}
+            {docsToParse ? ` · ${docsToParse} to parse` : ""}
           </span>
         )}
       </div>
@@ -105,7 +173,15 @@ export function KbDropzone({
         <input
           ref={inputRef}
           type="file"
-          accept="application/json,.json"
+          accept={[
+            "application/json", ".json",
+            "application/pdf", ".pdf",
+            ".pptx", ".ppt",
+            ".docx", ".doc",
+            ".xlsx", ".xls",
+            ".odp", ".odt", ".ods",
+            ".rtf",
+          ].join(",")}
           multiple
           className="hidden"
           onChange={(e) => void handleFiles(e.target.files)}
@@ -142,7 +218,9 @@ export function KbDropzone({
                 <p className="text-xs text-muted-foreground truncate">
                   {formatBytes(v.file.size)}
                   {v.ok
-                    ? ` · ${v.chapters} chapters${v.title ? ` · ${v.title}` : ""}`
+                    ? v.kind === "document"
+                      ? ` · will be parsed on upload`
+                      : ` · ${v.chapters} chapters${v.title ? ` · ${v.title}` : ""}`
                     : ` · ${v.error}`}
                 </p>
               </div>
