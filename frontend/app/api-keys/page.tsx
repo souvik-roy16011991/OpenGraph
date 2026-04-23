@@ -10,7 +10,6 @@ import {
   AlertCircle,
   Briefcase,
   Clock,
-  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

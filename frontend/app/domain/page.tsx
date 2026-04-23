@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { WizardPage } from "@/components/wizard/wizard-page";
 import { api } from "@/lib/api";
 import { DomainPayloadSchema, type DomainPayload } from "@/lib/schema";
 import { useRequireWorkspace } from "@/hooks/use-require-workspace";
@@ -51,16 +52,16 @@ export default function DomainPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Domain profile</h1>
-          <p className="text-muted-foreground text-sm">
-            Context for the agent's prompts and the UI. Maps to <code className="font-mono text-xs">kb-config/domain.yaml</code>.
-          </p>
-        </div>
-      </div>
-
+    <WizardPage
+      icon={Tag}
+      title="Domain profile"
+      description={
+        <>
+          Context for the agent's prompts and the UI. Maps to{" "}
+          <code className="font-mono text-xs">kb-config/domain.yaml</code>.
+        </>
+      }
+    >
       <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="space-y-6">
         <Card>
           <CardHeader>
@@ -125,7 +126,7 @@ export default function DomainPage() {
           </Button>
         </div>
       </form>
-    </div>
+    </WizardPage>
   );
 }
 

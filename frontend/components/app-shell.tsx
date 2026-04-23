@@ -11,16 +11,12 @@ import {
   GitBranch,
   GitCompareArrows,
   History as HistoryIcon,
-  CircleUser,
-  CreditCard,
   CheckCircle2,
   KeyRound,
   Moon,
   Sun,
   Briefcase,
   ChevronDown,
-  PanelLeftClose,
-  PanelLeftOpen,
   ChevronsLeft,
   ChevronsRight,
   Plus,
@@ -35,6 +31,7 @@ import { UserMenu } from "@/components/user-menu";
 import { RouteProgress } from "@/components/route-progress";
 import { CommandPalette } from "@/components/command-palette";
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
+import { WorkspacePickerModal } from "@/components/workspace/workspace-picker-modal";
 import { useWorkspaceStore } from "@/store/workspace-store";
 import { useSidebarStore } from "@/store/sidebar-store";
 
@@ -51,15 +48,37 @@ const WIZARD_ROUTES = ["/upload", "/domain", "/graph-config", "/build", "/explor
 // screen for a graph (/upload, /domain, /graph-config, /build, /explore).
 const GRAPH_MATCH_PREFIXES = ["/workspaces", ...WIZARD_ROUTES];
 
+// Every route that assumes an active workspace. When a user lands here
+// without one selected, ``AppShell`` overlays the WorkspacePickerModal
+// so they stay on their intended URL instead of being bounced to
+// /workspaces. Keep in sync with the pages that call useRequireWorkspace.
+//
+// Notable exclusions:
+//   /workspaces → is the picker UI itself.
+//   /templates  → choosing a template auto-creates + activates a workspace.
+//   /playground → uses its own workspace selector (see chat-store).
+//   /            → public landing; works without a workspace.
+const WORKSPACE_SCOPED_ROUTES = [
+  ...WIZARD_ROUTES,
+  "/chat",
+  "/history",
+];
+
+function needsWorkspace(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return WORKSPACE_SCOPED_ROUTES.some((p) => pathname.startsWith(p));
+}
+
+// Primary nav — workspace + developer-surface routes. Billing + Profile
+// moved into the header user menu so the sidebar stops fighting them for
+// attention.
 const PRIMARY_NAV: NavItem[] = [
   { href: "/templates", label: "Templates", icon: LayoutGrid },
-  { href: "/chat", label: "Chat", icon: MessageSquareText },
   { href: "/workspaces", label: "My Graphs", icon: GitBranch, matchPrefixes: GRAPH_MATCH_PREFIXES },
+  { href: "/chat", label: "Chat", icon: MessageSquareText },
   { href: "/playground", label: "Playground", icon: GitCompareArrows },
   { href: "/history", label: "History", icon: HistoryIcon },
   { href: "/api-keys", label: "API Keys", icon: KeyRound, matchPrefixes: ["/api-keys", "/api-docs"] },
-  { href: "/billing", label: "Billing", icon: CreditCard },
-  { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 
 function isActive(pathname: string | null, item: NavItem): boolean {
@@ -253,6 +272,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggle = useSidebarStore((s) => s.toggle);
   const setCollapsed = useSidebarStore((s) => s.set);
+  const activeId = useWorkspaceStore((s) => s.activeId);
+
+  // Gate: a page that needs a workspace, with none selected, gets the
+  // picker modal overlaid. The ``mounted`` flag keeps the modal from
+  // flashing before zustand's persist middleware has hydrated — without
+  // it, a freshly-loaded page briefly sees ``activeId=null`` even when
+  // localStorage has a value.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const showPicker = mounted && needsWorkspace(pathname) && !activeId;
 
   // On small screens, force the rail to collapsed on mount.
   React.useEffect(() => {
@@ -341,20 +370,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col min-w-0 flex-1">
         <header className="h-14 border-b px-4 md:px-6 flex items-center justify-between gap-4 bg-background/80 backdrop-blur sticky top-0 z-20">
           <div className="flex items-center gap-2 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggle}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="h-8 w-8 md:hidden lg:inline-flex"
-            >
-              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            </Button>
-            <span className="text-sm font-medium truncate">{headerLabel}</span>
+            {/* Sidebar collapse lives in the sidebar footer so we don't have
+             * two toggles doing the same thing. The page title is enough
+             * for the header's left slot. */}
+            <h1 className="text-sm font-medium truncate">{headerLabel}</h1>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-            <UserMenu />
             <ThemeToggle />
+            <UserMenu />
           </div>
         </header>
 
@@ -364,6 +387,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto max-w-7xl p-6 md:p-8">{children}</div>
         </main>
       </div>
+
+      {showPicker && <WorkspacePickerModal />}
     </div>
   );
 }
