@@ -2,14 +2,31 @@ FROM python:3.11-slim AS base
 
 WORKDIR /app
 
-# System deps: gcc/g++ for faiss-cpu + numpy wheels, libpq for psycopg fallback
-# (asyncpg is used at runtime — libpq stays optional but cheap).
+# System deps:
+#   gcc/g++/libgomp1 — faiss-cpu + numpy wheels.
+#   curl — /health smoke.
+#   libreoffice-core/impress/writer — headless PPTX/DOCX/XLSX/ODP → PDF
+#     conversion for the vision-OCR ingestion path. Imports src.kb.doc_parser
+#     shell out to `soffice --headless --convert-to pdf`. Adds ~600 MB to
+#     the image; the backend and worker share one image so both have it.
+#   fonts-liberation — sans/serif fallback fonts so LibreOffice renders
+#     text even when a source doc's embedded font is missing.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     curl \
     libgomp1 \
+    libreoffice-core \
+    libreoffice-impress \
+    libreoffice-writer \
+    libreoffice-calc \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
+
+# Warmup: prime LibreOffice's per-user profile so the first real convert
+# doesn't pay a ~5s cold-start penalty. --terminate_after_init exits
+# immediately after the profile is created.
+RUN soffice --headless --terminate_after_init || true
 
 # Create a virtual environment to avoid the "root user" warning and isolate deps
 RUN python -m venv /opt/venv

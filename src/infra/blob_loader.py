@@ -77,6 +77,47 @@ def upload_file_bytes(
     return blob_url
 
 
+def upload_raw_document(
+    workspace_id: str,
+    kb_source: str,
+    filename: str,
+    data: bytes,
+    content_type: str,
+    sha256_prefix: str,
+) -> str:
+    """Upload a raw source document (PDF/PPTX/DOCX/…) destined for the
+    vision-OCR ingestion pipeline.
+
+    Path scheme:
+        {BLOB_STORE_PATH}/{workspace_id}/_raw/{kb_source}/{sha256_prefix}_{filename}
+
+    The ``_raw/`` segment keeps these blobs from colliding with the
+    parsed JSON written under ``{kb_source}/{filename}.json``. The
+    sha256 prefix disambiguates when two files happen to share a name.
+    Returns the public Blob URL.
+    """
+    if not BLOB_READ_WRITE_TOKEN:
+        raise RuntimeError("BLOB_READ_WRITE_TOKEN is not set; cannot upload to Vercel Blob.")
+    if kb_source not in ("knowledge", "tool"):
+        raise ValueError(f"kb_source must be 'knowledge' or 'tool', got {kb_source!r}")
+    safe_name = Path(filename).name or "document.bin"
+    short = (sha256_prefix or "")[:8] or "unknown"
+    remote = f"{BLOB_STORE_PATH}/{workspace_id}/_raw/{kb_source}/{short}_{safe_name}"
+    url = f"{_BLOB_API_BASE}/{remote}"
+    headers = _auth_headers(content_type or "application/octet-stream")
+    headers["x-api-blob-store-id"] = _store_id()
+    headers["x-add-random-suffix"] = "0"
+
+    resp = httpx.put(url, content=data, headers=headers, timeout=300)
+    resp.raise_for_status()
+    blob_url: str = resp.json().get("url", url)
+    logger.info(
+        "Uploaded raw doc ws=%s src=%s name=%s size=%d -> %s",
+        workspace_id, kb_source, safe_name, len(data), blob_url,
+    )
+    return blob_url
+
+
 # ---------------------------------------------------------------------------
 # Listing
 # ---------------------------------------------------------------------------

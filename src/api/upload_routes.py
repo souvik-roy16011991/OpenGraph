@@ -1,14 +1,23 @@
 """
-KB JSON upload endpoints — per-workspace, multi-file, cloud-only.
+KB upload endpoints — per-workspace, multi-file, cloud-only.
 
 POST /api/v1/kb/upload (X-Workspace-Id required)
   - Accepts any number of ``knowledge_files`` and any number of ``tool_files``
     in a single multipart request.
-  - Each file is validated, sha256-hashed, uploaded to Vercel Blob at
-    {BLOB_STORE_PATH}/{ws_id}/{kb_source}/{filename}, and recorded as a
-    WorkspaceFile + kb_uploads row in Neon.
-  - Duplicates (same sha256 for same kb_source in this workspace) are
-    silently skipped.
+  - Each file is sniffed by content:
+      * JSON  → validated, sha256-hashed, uploaded to Vercel Blob at
+        {BLOB_STORE_PATH}/{ws_id}/{kb_source}/{filename}, recorded as a
+        WorkspaceFile + kb_uploads row in Neon. Returns the full file
+        info synchronously.
+      * PDF / PPTX / DOCX / XLSX / ODP / ODT / ODS / RTF (etc.) → raw
+        bytes are uploaded to _raw/... in Blob, a ParseJob is enqueued,
+        and the response returns {parse_job_id, status:"queued"}. The
+        vision-OCR worker picks it up, produces the parsed JSON, and
+        inserts the WorkspaceFile row on completion. Frontend polls
+        GET /api/v1/kb/parse-jobs/{job_id}.
+  - JSON dedup by sha256(raw bytes). Raw-doc dedup by sha256 of the
+    source document — same PPTX uploaded twice short-circuits to the
+    existing parsed WorkspaceFile without a second OCR pass.
 
 Nothing is written to the local filesystem — Vercel Blob is the single
 source of truth for uploaded KB content. If the Blob upload fails the whole
@@ -35,6 +44,7 @@ from src.config import BLOB_READ_WRITE_TOKEN
 from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import KbUpload, User, WorkspaceFile
+from src.kb.doc_parser.mime import MIME_BY_KIND, SUPPORTED_DOC_KINDS, sniff
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +52,25 @@ router = APIRouter()
 
 
 class UploadedFileInfo(BaseModel):
-    id: int
+    # For JSON uploads + completed parses, all fields are set. For a
+    # freshly-enqueued raw-doc parse the WorkspaceFile row doesn't exist
+    # yet, so `id` + `chapters` + `title` remain at their placeholder
+    # values and `status` is "queued"; the caller polls `parse_job_id`
+    # to learn when the real WorkspaceFile is ready.
+    id: Optional[int] = None
     kb_source: str
     filename: str
     size_bytes: int
-    chapters: int
+    chapters: int = 0
     title: Optional[str] = None
     sha256: str
-    blob_url: str
+    blob_url: str = ""
     duplicate: bool = False
+    # Set only when the upload went through the raw-doc path. Consumers
+    # use this as the discriminator: if present, render a progress card
+    # instead of a completed file row.
+    parse_job_id: Optional[str] = None
+    status: str = "done"  # "done" | "queued"
 
 
 class UploadResponse(BaseModel):
@@ -60,10 +80,12 @@ class UploadResponse(BaseModel):
     warnings: list[str] = []
 
 
-async def _read_and_validate(file: UploadFile, label: str) -> tuple[bytes, dict[str, Any]]:
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(status_code=400, detail=f"{label} upload is empty")
+# Cap per-file upload. A 100 MB PDF is already a stretch; anything larger
+# is almost certainly a mistake and burns OpenRouter quota if it parses.
+MAX_RAW_DOC_BYTES = 100 * 1024 * 1024
+
+
+def _validate_json_payload(raw: bytes, label: str) -> dict[str, Any]:
     try:
         payload = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -76,24 +98,70 @@ async def _read_and_validate(file: UploadFile, label: str) -> tuple[bytes, dict[
             status_code=400,
             detail=f"{label} JSON must be an object with a top-level `chapters` list",
         )
-    return raw, payload
+    return payload
 
 
-def _safe_filename(filename: Optional[str], kb_source: str, sha: str) -> str:
+def _safe_json_filename(filename: Optional[str], kb_source: str) -> str:
     base = Path(filename or f"{kb_source}.json").name
     if not base.lower().endswith(".json"):
         base += ".json"
     return base
 
 
+def _safe_doc_filename(filename: Optional[str], kb_source: str, kind: str) -> str:
+    """Keep the caller's original filename + extension for UI/debuggability.
+
+    Used for both the raw blob name and the WorkspaceFile.filename once
+    the parse completes. A missing/empty filename falls back to
+    ``{kb_source}.{kind}``.
+    """
+    base = Path(filename or f"{kb_source}.{kind}").name
+    return base or f"{kb_source}.{kind}"
+
+
 async def _persist_one(
     workspace_id: str,
     kb_source: str,
     upload: UploadFile,
+    user: User,
 ) -> UploadedFileInfo:
-    raw, payload = await _read_and_validate(upload, kb_source)
+    raw = await upload.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail=f"{kb_source} upload is empty")
+
+    kind = sniff(raw, upload.filename)
+    if kind == "json":
+        return await _persist_json(workspace_id, kb_source, upload, raw)
+
+    if kind in SUPPORTED_DOC_KINDS:
+        if len(raw) > MAX_RAW_DOC_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"{kb_source} document exceeds the {MAX_RAW_DOC_BYTES // (1024*1024)} MB "
+                    "upload cap. Split it into smaller files."
+                ),
+            )
+        return await _persist_raw_document(workspace_id, kb_source, upload, raw, kind, user)
+
+    raise HTTPException(
+        status_code=415,
+        detail=(
+            f"{kb_source} file type not supported. Accepted: JSON, PDF, PPTX, PPT, "
+            "DOCX, DOC, XLSX, XLS, ODP, ODT, ODS, RTF."
+        ),
+    )
+
+
+async def _persist_json(
+    workspace_id: str,
+    kb_source: str,
+    upload: UploadFile,
+    raw: bytes,
+) -> UploadedFileInfo:
+    payload = _validate_json_payload(raw, kb_source)
     sha = hashlib.sha256(raw).hexdigest()
-    filename = _safe_filename(upload.filename, kb_source, sha)
+    filename = _safe_json_filename(upload.filename, kb_source)
 
     # Dedup by sha inside this workspace
     async with get_session() as s:
@@ -217,6 +285,118 @@ async def _persist_one(
         sha256=sha,
         blob_url=blob_url,
         duplicate=False,
+    )
+
+
+async def _persist_raw_document(
+    workspace_id: str,
+    kb_source: str,
+    upload: UploadFile,
+    raw: bytes,
+    kind: str,
+    user: User,
+) -> UploadedFileInfo:
+    """Enqueue a vision-OCR parse for a non-JSON upload.
+
+    Path: store raw doc in Blob → dedup by source sha256 → enqueue
+    ParseJob → return UploadedFileInfo with parse_job_id + status=queued.
+    The worker picks it up, produces JSON, and inserts the real
+    WorkspaceFile row. The frontend's ParseProgressCard polls
+    /kb/parse-jobs/{id} until status=done.
+    """
+    sha = hashlib.sha256(raw).hexdigest()
+    filename = _safe_doc_filename(upload.filename, kb_source, kind)
+
+    # Dedup by source document sha256. If the same raw PPTX was already
+    # ingested for this (workspace, kb_source), short-circuit to the
+    # existing parsed WorkspaceFile — no OCR, no charge.
+    async with get_session() as s:
+        r = await s.execute(
+            select(WorkspaceFile).where(
+                WorkspaceFile.workspace_id == uuid.UUID(workspace_id),
+                WorkspaceFile.kb_source == kb_source,
+                WorkspaceFile.source_document_sha256 == sha,
+            )
+        )
+        existing = r.scalar_one_or_none()
+        if existing is not None:
+            return UploadedFileInfo(
+                id=existing.id,
+                kb_source=existing.kb_source,
+                filename=existing.filename,
+                size_bytes=existing.size_bytes,
+                chapters=existing.chapters,
+                title=existing.title,
+                sha256=existing.sha256,
+                blob_url=existing.blob_url or "",
+                duplicate=True,
+                status="done",
+            )
+
+    if not BLOB_READ_WRITE_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="BLOB_READ_WRITE_TOKEN is not configured; cannot accept uploads.",
+        )
+
+    content_type = MIME_BY_KIND.get(kind, "application/octet-stream")
+
+    try:
+        from src.infra.blob_loader import upload_raw_document
+        raw_url = upload_raw_document(
+            workspace_id=workspace_id,
+            kb_source=kb_source,
+            filename=filename,
+            data=raw,
+            content_type=content_type,
+            sha256_prefix=sha,
+        )
+    except Exception as exc:
+        logger.error(
+            "Vercel Blob raw upload failed for ws=%s %s/%s: %s",
+            workspace_id, kb_source, filename, exc,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail=f"Vercel Blob upload failed: {exc}",
+        )
+
+    # Enqueue. Worker claims via parse_queue.claim_next.
+    try:
+        from src.api import parse_queue
+        enq = await parse_queue.enqueue(
+            workspace_id=workspace_id,
+            user_id=str(user.id),
+            kb_source=kb_source,
+            filename=filename,
+            source_document_url=raw_url,
+            source_document_sha256=sha,
+            source_document_size=len(raw),
+            source_mime=content_type,
+        )
+    except Exception as exc:
+        logger.error(
+            "ParseJob enqueue failed for ws=%s %s/%s: %s",
+            workspace_id, kb_source, filename, exc,
+        )
+        _best_effort_blob_delete(raw_url)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to enqueue parse job: {exc}",
+        )
+
+    return UploadedFileInfo(
+        id=None,
+        kb_source=kb_source,
+        filename=filename,
+        size_bytes=len(raw),
+        chapters=0,
+        title=None,
+        sha256=sha,
+        blob_url=raw_url,   # raw doc URL until parse completes
+        duplicate=False,
+        parse_job_id=enq["job_id"],
+        status="queued",
     )
 
 
