@@ -91,10 +91,61 @@ services:
       # Legacy singleton name; per-workspace code uses kb-{ws_id_short}.
       - key: QDRANT_COLLECTION_NAME
         value: kb-knowledge-graph
+      # 1M-scale mode: when non-empty, every tenant shares this single
+      # Qdrant collection and reads/writes are filtered by a
+      # ``workspace_id`` payload field. Leave empty to keep the per-
+      # workspace collection layout (which hits Qdrant Cloud's per-account
+      # collection cap around ~1000 workspaces). If you set it, set the
+      # **same** value on the worker service below — mismatched values
+      # mean builds write to one collection and queries read from another.
+      - key: QDRANT_SHARED_COLLECTION
+        value: ""
 
       # --- Neon Postgres (users + workspaces + history + audit log) -----
       - key: DATABASE_URL
         sync: false
+      # Connection-pool tuning per FastAPI worker. Defaults are safe for
+      # Neon Launch (~900 max direct conns). At 10 instances × 2 uvicorn
+      # workers × 12 conns = 240, well under the cap. Raise if the Neon
+      # dashboard shows pool-wait saturation.
+      - key: DB_POOL_SIZE
+        value: "2"
+      - key: DB_MAX_OVERFLOW
+        value: "10"
+      - key: DB_POOL_RECYCLE
+        value: "1800"        # 30 min — stays under Neon's idle kill
+      - key: DB_POOL_TIMEOUT
+        value: "30"
+
+      # --- Caching (per-process, bounded) -------------------------------
+      # sub→User LRU. Bump for high-uniqueness-user traffic.
+      - key: USER_CACHE_TTL_SECONDS
+        value: "300"
+      - key: USER_CACHE_MAX
+        value: "8192"
+      # prefix→ApiKeyContext LRU. Same TTL semantics — a revoked key
+      # stops working within this window (revoke also pushes a local
+      # invalidation).
+      - key: API_KEY_CACHE_TTL_SECONDS
+        value: "300"
+      - key: API_KEY_CACHE_MAX
+        value: "8192"
+
+      # --- Rate limiting (fixed-window on Upstash) ----------------------
+      # Fail-open: when Upstash is unreachable we allow the request and
+      # log a warning. Flip to "1" only if strict enforcement during
+      # cache outage is worth user-facing 5xx.
+      - key: RATE_LIMIT_FAIL_CLOSED
+        value: "0"
+      - key: RATE_LIMIT_VERSION
+        value: "v1"
+
+      # --- Multi-tenant Cypher guard ------------------------------------
+      # Asserts every write/read Cypher binds workspace_id before the
+      # driver sees it. Disable only to debug a specific false positive
+      # and re-enable before shipping.
+      - key: GRAPH_FILTER_GUARD
+        value: "1"
 
       # --- Vercel Blob (durable KB file storage, per workspace) ---------
       - key: BLOB_READ_WRITE_TOKEN
@@ -140,6 +191,16 @@ services:
       # instantiation abuse.
       - key: MAX_WORKSPACES_PER_USER
         value: "25"
+
+      # --- Domain seed (kb-config) --------------------------------------
+      # Pin the disk seed path so a renamed / moved checkout can't
+      # confuse the loader. The Dockerfile copies the repo to /app, so
+      # /app/kb-config always exists. If you deploy the worker from a
+      # different image or without kb-config/, the code falls back to
+      # a synthesized DomainProfile — fine for running, useless for
+      # operator introspection, so prefer keeping the disk seed in place.
+      - key: KB_CONFIG_PATH
+        value: /app/kb-config
 
       # --- CORS --------------------------------------------------------
       # Hard-coded to the frontend's full origin (scheme + host). `fromService`
@@ -216,9 +277,24 @@ services:
         sync: false
       - key: QDRANT_COLLECTION_NAME
         value: kb-knowledge-graph
+      # IMPORTANT: must match the backend's QDRANT_SHARED_COLLECTION value
+      # exactly. Backend reads; worker writes — if these diverge, writes
+      # land in one collection and queries read from another.
+      - key: QDRANT_SHARED_COLLECTION
+        value: ""
       # --- Neon (required — the queue lives here) -----------------------
       - key: DATABASE_URL
         sync: false
+      # Same pool defaults as the backend. Workers only run one build at a
+      # time (module-level cache invariant), so a very small pool is fine.
+      - key: DB_POOL_SIZE
+        value: "2"
+      - key: DB_MAX_OVERFLOW
+        value: "10"
+      - key: DB_POOL_RECYCLE
+        value: "1800"
+      - key: DB_POOL_TIMEOUT
+        value: "30"
       # --- Vercel Blob --------------------------------------------------
       - key: BLOB_READ_WRITE_TOKEN
         sync: false
@@ -232,6 +308,22 @@ services:
       # --- Auth (workers don't mint tokens, but some helpers import it) -
       - key: JWT_SECRET
         sync: false
+      # --- Multi-tenant Cypher guard (same semantics as backend) --------
+      - key: GRAPH_FILTER_GUARD
+        value: "1"
+      # --- Domain seed (kb-config) --------------------------------------
+      # Pin this so a moved/renamed checkout can't derail builds — the
+      # zombie-worker bug we hit in local dev traced to an un-set
+      # KB_CONFIG_PATH combined with a stale __file__ location. In the
+      # Docker image /app/kb-config always exists.
+      - key: KB_CONFIG_PATH
+        value: /app/kb-config
+      # --- Build heartbeat (diff-only + liveness-only updates) ----------
+      # Default 10s balances operator visibility against write load on
+      # build_jobs. At 500 concurrent builds this is already batched by
+      # the worker to only write when the snapshot actually changed.
+      - key: BUILD_HEARTBEAT_INTERVAL_S
+        value: "10"
       # --- Process mode -------------------------------------------------
       - key: APP_MODE
         value: worker

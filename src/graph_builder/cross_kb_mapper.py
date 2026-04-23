@@ -86,7 +86,7 @@ def _load_embedder():
         return _TFIDFEmbedder()
 
     if "/" in EMBEDDING_MODEL:
-        logger.info(f"cross_kb_mapper: using OpenRouter embedding model '{EMBEDDING_MODEL}'…")
+        logger.info(f"cross_kb_mapper: using embedding model '{EMBEDDING_MODEL}'…")
         from src.graph_builder.embeddings import _OpenRouterEmbedder
         return _OpenRouterEmbedder(
             EMBEDDING_MODEL, OPENROUTER_API_KEY, OPENROUTER_BASE_URL, EMBEDDING_DIMENSIONS

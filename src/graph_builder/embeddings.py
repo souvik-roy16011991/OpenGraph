@@ -197,7 +197,7 @@ class EmbeddingPipeline:
                 logger.info("KB_FORCE_TFIDF set – using TF-IDF embedder.")
                 self._model = _TFIDFEmbedder()
             elif "/" in EMBEDDING_MODEL:
-                logger.info(f"Loading OpenRouter embedding model: {EMBEDDING_MODEL}")
+                logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
                 self._model = _OpenRouterEmbedder(
                     EMBEDDING_MODEL, OPENROUTER_API_KEY, OPENROUTER_BASE_URL, EMBEDDING_DIMENSIONS
                 )

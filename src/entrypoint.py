@@ -31,6 +31,13 @@ def _configure_root_logging() -> None:
         format="%(asctime)s [%(name)s] [%(levelname)s] %(message)s",
         datefmt="%H:%M:%S",
     )
+    # Quiet noisy 3rd-party loggers that emit brand names we don't want
+    # in operator / build logs. Specifically httpx logs every request at
+    # INFO with the full URL (which contains "qdrant.io", "upstash.io",
+    # etc.). Setting to WARNING hides the per-request traces; errors
+    # still come through.
+    for name in ("httpx", "httpcore", "urllib3"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def _run_api() -> None:
