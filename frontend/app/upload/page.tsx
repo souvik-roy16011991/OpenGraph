@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KbDropzone, type KbFilePreview } from "@/components/upload/kb-dropzone";
+import { WizardPage } from "@/components/wizard/wizard-page";
 import { api } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
 import { useWizardStore } from "@/store/wizard-store";
@@ -83,17 +84,16 @@ export default function UploadPage() {
   const existingT = existingFiles.filter((f) => f.kb_source === "tool");
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Upload knowledge bases</h1>
-          <p className="text-muted-foreground text-sm">
-            Drop one or more files per category. All files for this workspace are merged into a single
-            graph at build time.
-          </p>
-        </div>
-      </div>
-
+    <WizardPage
+      icon={UploadCloud}
+      title="Upload knowledge bases"
+      description={
+        <>
+          Drop one or more files per category. All files for this workspace
+          are merged into a single graph at build time.
+        </>
+      }
+    >
       {/* Already uploaded */}
       {(existingK.length > 0 || existingT.length > 0) && (
         <Card>
@@ -166,7 +166,7 @@ export default function UploadPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </WizardPage>
   );
 }
 

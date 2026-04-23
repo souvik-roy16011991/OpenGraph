@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ModelSelect } from "@/components/ui/model-select";
+import { WizardPage } from "@/components/wizard/wizard-page";
 import { api } from "@/lib/api";
 import type { GraphConfigPayload } from "@/lib/schema";
 import { useRequireWorkspace } from "@/hooks/use-require-workspace";
@@ -71,19 +72,19 @@ export default function GraphConfigPage() {
   const ex = cfg.extraction;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Sliders className="h-5 w-5" /> Graph configuration
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Tune how the graph is built. Changes in Embeddings / Edges / Cross-KB / Extraction require a rebuild.
-            Traversal &amp; Search apply live.
-          </p>
-        </div>
-      </div>
-
+    <WizardPage
+      icon={Sliders}
+      title="Graph configuration"
+      description={
+        <>
+          Tune how the graph is built. Changes in Embeddings / Edges /
+          Cross-KB / Extraction require a rebuild. Traversal &amp; Search
+          apply live.
+        </>
+      }
+      // Tabs + number sliders + chip editors read better in a wider column.
+      maxWidthClass="max-w-5xl"
+    >
       <Tabs defaultValue="embeddings" className="w-full">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="embeddings">Embeddings</TabsTrigger>
@@ -301,6 +302,6 @@ export default function GraphConfigPage() {
           {mutation.isPending ? "Saving…" : "Save & continue"} <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </WizardPage>
   );
 }
