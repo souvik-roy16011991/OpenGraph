@@ -427,11 +427,11 @@ async def upload_kb_files(
     response = UploadResponse(workspace_id=workspace_id)
 
     for f in knowledge_files or []:
-        info = await _persist_one(workspace_id, "knowledge", f)
+        info = await _persist_one(workspace_id, "knowledge", f, user)
         response.knowledge.append(info)
 
     for f in tool_files or []:
-        info = await _persist_one(workspace_id, "tool", f)
+        info = await _persist_one(workspace_id, "tool", f, user)
         response.tool.append(info)
 
     record_audit(
