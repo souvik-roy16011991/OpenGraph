@@ -19,7 +19,7 @@ from src.billing.enforcement import (
     check_workspace_create_allowed,
 )
 from src.billing.ledger import debit, grant, get_balance
-from src.billing.rate_card import cost_build, cost_chat
+from src.billing.rate_card import cost_build, cost_chat, cost_document_parse
 
 __all__ = [
     "PaymentRequired",
@@ -31,4 +31,5 @@ __all__ = [
     "get_balance",
     "cost_build",
     "cost_chat",
+    "cost_document_parse",
 ]

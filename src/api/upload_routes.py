@@ -434,14 +434,16 @@ async def upload_kb_files(
         info = await _persist_one(workspace_id, "tool", f, user)
         response.tool.append(info)
 
+    all_infos = response.knowledge + response.tool
     record_audit(
         user.id, "file.upload",
         target_type="workspace", target_id=workspace_id,
         workspace_id=workspace_id,
         metadata={
-            "knowledge_added": sum(1 for i in response.knowledge if not i.duplicate),
-            "tool_added": sum(1 for i in response.tool if not i.duplicate),
-            "duplicates": sum(1 for i in response.knowledge + response.tool if i.duplicate),
+            "knowledge_added": sum(1 for i in response.knowledge if not i.duplicate and i.status == "done"),
+            "tool_added": sum(1 for i in response.tool if not i.duplicate and i.status == "done"),
+            "duplicates": sum(1 for i in all_infos if i.duplicate),
+            "parse_jobs_queued": sum(1 for i in all_infos if i.parse_job_id is not None),
         },
     )
     return response
