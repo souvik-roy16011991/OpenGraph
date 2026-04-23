@@ -8,6 +8,8 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { TemplateCard } from "@/components/templates/template-card";
 import { TemplateFormDialog } from "@/components/templates/template-form-dialog";
 import {
@@ -186,7 +188,25 @@ export default function TemplatesPage() {
       )}
 
       {templatesQuery.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading catalog…</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Card key={i}>
+              <CardHeader className="space-y-2">
+                <Skeleton className="h-8 w-8 rounded-md" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex gap-1.5">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-9 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : all.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No templates match that search.

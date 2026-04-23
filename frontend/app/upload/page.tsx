@@ -37,8 +37,20 @@ export default function UploadPage() {
 
   const deleteMut = useMutation({
     mutationFn: ({ ws, id }: { ws: string; id: number }) => api.deleteWorkspaceFile(ws, id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["workspace-files", activeWs] }),
-    onError: (err: Error) => toast.error(err.message),
+    onMutate: async ({ id }) => {
+      const key = ["workspace-files", activeWs] as const;
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<{ files: Array<{ id: number }> }>(key);
+      if (prev) {
+        qc.setQueryData(key, { ...prev, files: prev.files.filter((f) => f.id !== id) });
+      }
+      return { prev };
+    },
+    onError: (err: Error, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["workspace-files", activeWs], ctx.prev);
+      toast.error(err.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["workspace-files", activeWs] }),
   });
 
   const uploadMut = useMutation({

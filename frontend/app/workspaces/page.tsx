@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Plus,
-  Briefcase,
   ArrowRight,
   Trash2,
   FileJson,
@@ -20,18 +19,17 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
 import { api } from "@/lib/api";
 import type { WorkspaceSummary } from "@/lib/schema";
 import { useWorkspaceStore } from "@/store/workspace-store";
@@ -49,31 +47,31 @@ export default function WorkspacesPage() {
   });
 
   const [open, setOpen] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [description, setDescription] = React.useState("");
-
-  const createMut = useMutation({
-    mutationFn: () => api.createWorkspace({ name, description: description || undefined }),
-    onSuccess: (ws) => {
-      toast.success(`Workspace "${ws.name}" created`);
-      qc.invalidateQueries({ queryKey: ["workspaces"] });
-      setActiveId(ws.id);
-      setOpen(false);
-      setName("");
-      setDescription("");
-      setTimeout(() => router.push("/upload"), 300);
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+  const [toDelete, setToDelete] = React.useState<WorkspaceSummary | null>(null);
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.deleteWorkspace(id),
-    onSuccess: (_, id) => {
-      toast.success("Workspace deleted");
-      qc.invalidateQueries({ queryKey: ["workspaces"] });
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ["workspaces"] });
+      const prev = qc.getQueryData<{ workspaces: WorkspaceSummary[] }>(["workspaces"]);
+      if (prev) {
+        qc.setQueryData<{ workspaces: WorkspaceSummary[] }>(["workspaces"], {
+          workspaces: prev.workspaces.filter((w) => w.id !== id),
+        });
+      }
       if (id === activeId) setActiveId(null);
+      return { prev };
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["workspaces"], ctx.prev);
+      toast.error(err.message);
+    },
+    onSuccess: () => {
+      toast.success("Workspace deleted");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["workspaces"] });
+    },
   });
 
   const rows = data?.workspaces ?? [];
@@ -91,52 +89,39 @@ export default function WorkspacesPage() {
             rerun the build to pick up new changes.
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
+        <CreateWorkspaceDialog
+          open={open}
+          onOpenChange={setOpen}
+          trigger={
             <Button size="lg"><Plus className="h-4 w-4" /> New graph</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create graph</DialogTitle>
-              <DialogDescription>
-                Name it after the domain it will hold (e.g. &quot;Loan Assessment&quot;). You can rename it later.
-              </DialogDescription>
-            </DialogHeader>
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                createMut.mutate();
-              }}
-            >
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input
-                  autoFocus
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Loan assessment"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Description (optional)</Label>
-                <Textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What does this workspace cover?"
-                />
-              </div>
-              <Button type="submit" disabled={!name.trim() || createMut.isPending}>
-                {createMut.isPending ? "Creating…" : "Create & start uploading"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+          }
+        />
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading workspaces…</p>}
+      {isLoading && (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-3/5" />
+                <Skeleton className="h-3 w-4/5 mt-2" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-1.5">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-3 w-32" />
+                <div className="flex gap-1.5 pt-2">
+                  <Skeleton className="h-8 flex-1" />
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-8 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
       {isError && <p className="text-sm text-destructive">{(error as Error).message}</p>}
 
       {!isLoading && rows.length === 0 && (
@@ -177,15 +162,58 @@ export default function WorkspacesPage() {
                 // mount instead of requiring another click.
                 router.push("/build?autostart=1");
               }}
-              onDelete={() => {
-                if (confirm(`Delete graph "${w.name}" and all its data?`)) {
-                  deleteMut.mutate(w.id);
-                }
-              }}
+              onDelete={() => setToDelete(w)}
             />
           ))}
         </div>
       )}
+
+      <Dialog open={toDelete !== null} onOpenChange={(o) => !o && setToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete &quot;{toDelete?.name}&quot;?</DialogTitle>
+            <DialogDescription>
+              This permanently removes the graph, all uploaded files, vectors, and build history.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {toDelete && (
+            <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Knowledge files</span>
+                <span className="font-mono">{toDelete.file_counts.knowledge}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tool files</span>
+                <span className="font-mono">{toDelete.file_counts.tool}</span>
+              </div>
+              {toDelete.stats?.total_nodes !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Graph nodes</span>
+                  <span className="font-mono">{toDelete.stats.total_nodes}</span>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setToDelete(null)} disabled={deleteMut.isPending}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMut.isPending}
+              onClick={() => {
+                if (toDelete) {
+                  deleteMut.mutate(toDelete.id);
+                  setToDelete(null);
+                }
+              }}
+            >
+              {deleteMut.isPending ? "Deleting…" : "Delete permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

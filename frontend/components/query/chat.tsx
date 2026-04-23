@@ -214,9 +214,16 @@ export function Chat({ workspaceId }: ChatProps = {}) {
         onSubmit={(e) => { e.preventDefault(); submit(input); }}
       >
         <Input
+          autoFocus
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about the graph…"
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && input.trim() && !mutation.isPending) {
+              e.preventDefault();
+              submit(input);
+            }
+          }}
+          placeholder="Ask a question about the graph… (⌘↵ to send)"
           className="flex-1"
           disabled={mutation.isPending}
         />
