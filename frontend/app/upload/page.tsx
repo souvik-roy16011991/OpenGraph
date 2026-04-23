@@ -20,11 +20,10 @@ export default function UploadPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const markCompleted = useWizardStore((s) => s.markCompleted);
+  // AppShell overlays the workspace-picker modal when this is null, so we
+  // don't redirect away from /upload any more — the user stays here and
+  // picks a workspace in place.
   const activeWs = useWorkspaceStore((s) => s.activeId);
-
-  React.useEffect(() => {
-    if (!activeWs) router.replace("/workspaces");
-  }, [activeWs, router]);
 
   const [knowledge, setKnowledge] = React.useState<KbFilePreview[]>([]);
   const [tool, setTool] = React.useState<KbFilePreview[]>([]);

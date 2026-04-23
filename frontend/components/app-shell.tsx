@@ -31,6 +31,7 @@ import { UserMenu } from "@/components/user-menu";
 import { RouteProgress } from "@/components/route-progress";
 import { CommandPalette } from "@/components/command-palette";
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
+import { WorkspacePickerModal } from "@/components/workspace/workspace-picker-modal";
 import { useWorkspaceStore } from "@/store/workspace-store";
 import { useSidebarStore } from "@/store/sidebar-store";
 
@@ -46,6 +47,27 @@ const WIZARD_ROUTES = ["/upload", "/domain", "/graph-config", "/build", "/explor
 // (/workspaces) and while the user is stepping through any wizard-edit
 // screen for a graph (/upload, /domain, /graph-config, /build, /explore).
 const GRAPH_MATCH_PREFIXES = ["/workspaces", ...WIZARD_ROUTES];
+
+// Every route that assumes an active workspace. When a user lands here
+// without one selected, ``AppShell`` overlays the WorkspacePickerModal
+// so they stay on their intended URL instead of being bounced to
+// /workspaces. Keep in sync with the pages that call useRequireWorkspace.
+//
+// Notable exclusions:
+//   /workspaces → is the picker UI itself.
+//   /templates  → choosing a template auto-creates + activates a workspace.
+//   /playground → uses its own workspace selector (see chat-store).
+//   /            → public landing; works without a workspace.
+const WORKSPACE_SCOPED_ROUTES = [
+  ...WIZARD_ROUTES,
+  "/chat",
+  "/history",
+];
+
+function needsWorkspace(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return WORKSPACE_SCOPED_ROUTES.some((p) => pathname.startsWith(p));
+}
 
 // Primary nav — workspace + developer-surface routes. Billing + Profile
 // moved into the header user menu so the sidebar stops fighting them for
@@ -250,6 +272,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggle = useSidebarStore((s) => s.toggle);
   const setCollapsed = useSidebarStore((s) => s.set);
+  const activeId = useWorkspaceStore((s) => s.activeId);
+
+  // Gate: a page that needs a workspace, with none selected, gets the
+  // picker modal overlaid. The ``mounted`` flag keeps the modal from
+  // flashing before zustand's persist middleware has hydrated — without
+  // it, a freshly-loaded page briefly sees ``activeId=null`` even when
+  // localStorage has a value.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const showPicker = mounted && needsWorkspace(pathname) && !activeId;
 
   // On small screens, force the rail to collapsed on mount.
   React.useEffect(() => {
@@ -355,6 +387,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto max-w-7xl p-6 md:p-8">{children}</div>
         </main>
       </div>
+
+      {showPicker && <WorkspacePickerModal />}
     </div>
   );
 }
