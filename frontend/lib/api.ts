@@ -9,6 +9,7 @@ import type {
   ChatHistoryRow,
   ConfigHistoryRow,
   CreateApiKeyResponse,
+  DeployResponse,
   DomainPayload,
   GraphConfigPayload,
   GraphStats,
@@ -252,6 +253,13 @@ export const api = {
     get<{ files: WorkspaceFileInfo[] }>(`/api/v1/workspaces/${id}/files`, { kb_source }),
   deleteWorkspaceFile: (ws_id: string, file_id: number) =>
     json<{ ok: true }>(`/api/v1/workspaces/${ws_id}/files/${file_id}`, "DELETE"),
+
+  // deploy — mints a scoped API key + flips the workspace into the
+  // /api/v1/ext/* surface. Plaintext key is in the response once.
+  deployWorkspace: (
+    ws_id: string,
+    body: { key_name?: string; rate_limit_rpm?: number } = {},
+  ) => json<DeployResponse>(`/api/v1/workspaces/${ws_id}/deploy`, "POST", body),
 
   // developer API keys — powers /api-keys dashboard
   listApiKeys: () => get<ApiKeyRow[]>("/api/v1/keys"),

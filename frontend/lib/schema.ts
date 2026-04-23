@@ -11,6 +11,24 @@ export interface WorkspaceSummary {
   last_build_at?: string | null;
   last_build_status?: string | null;
   stats?: { total_nodes?: number; total_edges?: number } | null;
+  // Set by ``POST /workspaces/{id}/deploy``. When null the graph is not
+  // reachable via /api/v1/ext/* — the /workspaces UI surfaces a Deploy
+  // CTA so the user can flip this on with a mint of a scoped key.
+  deployed_at?: string | null;
+}
+
+// ---------- Deploy ----------
+export interface DeployResponse {
+  workspace_id: string;
+  workspace_name: string;
+  deployed_at: string;
+  /** Shown exactly once; never recoverable after the success dialog closes. */
+  api_key_plaintext: string;
+  api_key_id: string;
+  api_key_prefix: string;
+  api_key_rate_limit_rpm: number;
+  latest_job_id: string;
+  first_deploy: boolean;
 }
 
 export interface WorkspaceFileInfo {
