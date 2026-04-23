@@ -25,6 +25,7 @@ from src.config import USE_MEMGRAPH, USE_NEON, USE_QDRANT
 from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import (
+    ApiKey,
     BuildJobRow,
     User,
     Workspace,
@@ -101,6 +102,7 @@ async def _summary_for(workspace: Workspace, session) -> dict:
         "last_build_at": last.created_at.isoformat() if last else None,
         "last_build_status": last.status if last else None,
         "stats": last.stats if last else None,
+        "deployed_at": workspace.deployed_at.isoformat() if workspace.deployed_at else None,
     }
 
 
@@ -155,6 +157,7 @@ async def _summaries_for_many(workspaces: list[Workspace], session) -> list[dict
             "last_build_at": last.created_at.isoformat() if last else None,
             "last_build_status": last.status if last else None,
             "stats": last.stats if last else None,
+            "deployed_at": w.deployed_at.isoformat() if w.deployed_at else None,
         })
     return out
 
@@ -554,3 +557,142 @@ async def delete_workspace_file(
         workspace_id=workspace_id,
     )
     return {"ok": True, "deleted_file_id": file_id}
+
+
+# ---------------------------------------------------------------------------
+# Deploy — publish the graph to /api/v1/ext/* and mint a scoped API key
+# ---------------------------------------------------------------------------
+
+class DeployRequest(BaseModel):
+    """Request body for ``POST /workspaces/{id}/deploy``.
+
+    ``key_name`` defaults to ``"{workspace_name} — deploy"``. ``rate_limit_rpm``
+    defaults to 60; trial-tier users can raise this via support once the
+    Team plan ships.
+    """
+    key_name: Optional[str] = Field(default=None, max_length=128)
+    rate_limit_rpm: Optional[int] = Field(default=None, ge=1, le=10_000)
+
+
+class DeployResponse(BaseModel):
+    """Response payload for a successful deploy.
+
+    ``api_key_plaintext`` is shown to the user exactly once; the rest of
+    the fields are safe to persist in the client (they identify the
+    workspace + build that serves queries).
+    """
+    workspace_id: str
+    workspace_name: str
+    deployed_at: datetime
+    api_key_plaintext: str
+    api_key_id: str
+    api_key_prefix: str
+    api_key_rate_limit_rpm: int
+    latest_job_id: str
+    first_deploy: bool
+
+
+@router.post(
+    "/workspaces/{workspace_id}/deploy",
+    response_model=DeployResponse,
+    status_code=201,
+    summary="Publish a built graph to /api/v1/ext/* and mint a scoped API key",
+)
+async def deploy_workspace(
+    workspace_id: uuid.UUID,
+    body: DeployRequest,
+    user: User = Depends(require_user),
+) -> DeployResponse:
+    """Make a workspace queryable through the public API.
+
+    Flow:
+
+      1. Verify ownership + that the workspace has at least one successful
+         build (nothing to serve otherwise).
+      2. Mint a workspace-scoped API key (plaintext returned once, bcrypt
+         hash persisted).
+      3. Stamp ``workspaces.deployed_at`` so the /ext/* surface stops
+         rejecting the workspace's calls.
+
+    Repeat calls mint a fresh key each time; previous keys remain valid
+    until the user revokes them from /api-keys. This matches the
+    "rotate credentials by minting + revoking" pattern used by Stripe,
+    Railway, and GitHub tokens.
+    """
+    import bcrypt as _bcrypt
+    from src.api.api_key_auth import _KEY_MARKER, _PREFIX_LEN
+
+    _require_neon()
+    now = datetime.now(timezone.utc)
+
+    async with get_session() as s:
+        # Ownership + delete-saga filter
+        ws = await _load_owned_workspace(s, workspace_id, user.id)
+
+        # Must have at least one completed build — a deployed graph with
+        # zero nodes is a waste of everyone's time.
+        latest_build = (await s.execute(
+            select(BuildJobRow)
+            .where(
+                BuildJobRow.workspace_id == workspace_id,
+                BuildJobRow.status == "done",
+            )
+            .order_by(BuildJobRow.created_at.desc())
+            .limit(1)
+        )).scalar_one_or_none()
+        if latest_build is None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Deploy requires a successful build. Open the graph, "
+                    "upload KB files, and click Build first."
+                ),
+            )
+
+        # Mint the key. Module-level ``_KEY_MARKER`` / ``_PREFIX_LEN``
+        # come from api_key_auth so the wire format stays in one place.
+        import secrets as _secrets
+        plaintext = _KEY_MARKER + _secrets.token_urlsafe(24)
+        prefix = plaintext[:_PREFIX_LEN]
+        key_hash = _bcrypt.hashpw(plaintext.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
+        key_name = (body.key_name or f"{ws.name} — deploy")[:128]
+
+        new_key = ApiKey(
+            user_id=user.id,
+            workspace_id=workspace_id,
+            name=key_name,
+            prefix=prefix,
+            key_hash=key_hash,
+            scopes=["ext:read"],
+            rate_limit_rpm=body.rate_limit_rpm or 60,
+        )
+        s.add(new_key)
+
+        first_deploy = ws.deployed_at is None
+        ws.deployed_at = now
+        await s.commit()
+        await s.refresh(new_key)
+
+    record_audit(
+        user.id, "workspace.deploy",
+        target_type="workspace", target_id=str(workspace_id),
+        workspace_id=workspace_id,
+        metadata={
+            "first_deploy": first_deploy,
+            "api_key_id": str(new_key.id),
+            "api_key_prefix": new_key.prefix,
+            "latest_job_id": latest_build.job_id,
+        },
+    )
+
+    return DeployResponse(
+        workspace_id=str(workspace_id),
+        workspace_name=ws.name,
+        deployed_at=now,
+        api_key_plaintext=plaintext,
+        api_key_id=str(new_key.id),
+        api_key_prefix=new_key.prefix,
+        api_key_rate_limit_rpm=int(new_key.rate_limit_rpm or 60),
+        latest_job_id=latest_build.job_id,
+        first_deploy=first_deploy,
+    )

@@ -93,6 +93,11 @@ async def _resolve_workspace(
         caller MUST pass a ``workspace_id`` and we verify it's owned by
         ``ctx.user_id``. Non-owned workspaces return 404 (not 403) to
         avoid existence leakage — matches the JWT path.
+      - The target workspace must be *deployed*. An undeployed workspace
+        is hidden from the ext surface with a 409 that points the caller
+        back to the dashboard. This lets the user control API exposure
+        explicitly rather than leaking every owned workspace the moment
+        any key exists.
     """
     if ctx.workspace_id is not None:
         pinned = ctx.workspace_id
@@ -101,6 +106,9 @@ async def _resolve_workspace(
                 status_code=404,
                 detail="Workspace not found.",
             )
+        # Even a pinned key has to respect the deployment gate — e.g. after
+        # an emergency un-deploy the key should stop working.
+        await _require_deployed(pinned)
         return pinned
 
     if not requested_workspace_id:
@@ -124,15 +132,42 @@ async def _resolve_workspace(
         )
 
     async with get_session() as s:
-        owner = (await s.execute(
-            select(Workspace.user_id).where(
+        row = (await s.execute(
+            select(Workspace.user_id, Workspace.deployed_at).where(
                 Workspace.id == wid,
                 Workspace.deleted_at.is_(None),
             )
-        )).scalar_one_or_none()
-    if owner is None or owner != ctx.user_id:
+        )).first()
+    if row is None or row.user_id != ctx.user_id:
         raise HTTPException(status_code=404, detail="Workspace not found.")
+    if row.deployed_at is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Workspace is not deployed to the API. Open the dashboard "
+                "at /workspaces and click Deploy on this graph first."
+            ),
+        )
     return wid
+
+
+async def _require_deployed(wid: uuid.UUID) -> None:
+    """Verify a pinned-key workspace is still in deployed state."""
+    async with get_session() as s:
+        row = (await s.execute(
+            select(Workspace.deployed_at, Workspace.deleted_at)
+            .where(Workspace.id == wid)
+        )).first()
+    if row is None or row.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if row.deployed_at is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Workspace is not deployed to the API. Open the dashboard "
+                "at /workspaces and click Deploy on this graph first."
+            ),
+        )
 
 
 # ---------------------------------------------------------------------------
