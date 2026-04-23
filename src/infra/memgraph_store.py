@@ -46,13 +46,13 @@ class MemgraphGraphStore(Neo4jGraphStore):
                         try:
                             s.run("DROP CONSTRAINT ON (n:KBNode) ASSERT n.node_id IS UNIQUE")
                             logger.info(
-                                "Memgraph: dropped legacy (node_id) unique constraint "
+                                "Graph storage: dropped legacy (node_id) unique constraint "
                                 "— it conflicts with multi-workspace tenancy."
                             )
                         except Exception as exc:
-                            logger.warning("Memgraph: could not drop legacy constraint: %s", exc)
+                            logger.warning("Graph storage: could not drop legacy constraint: %s", exc)
             except Exception as exc:
-                logger.debug("Memgraph: SHOW CONSTRAINT INFO failed: %s", exc)
+                logger.debug("Graph storage: SHOW CONSTRAINT INFO failed: %s", exc)
 
             # 2. Create indexes to speed up MERGE / MATCH by (workspace_id, node_id).
             # Memgraph's standard CONSTRAINT grammar doesn't support composite

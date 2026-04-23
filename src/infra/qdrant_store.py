@@ -95,7 +95,7 @@ class QdrantVectorStore:
         self._ensure_workspace_payload_index()
 
         logger.info(
-            f"QdrantVectorStore connected: collection='{collection_name}', "
+            f"Vector store connected: collection='{collection_name}', "
             f"dim={dimension}, metric={metric}, ws={workspace_id or '<per-collection>'}"
         )
 
@@ -202,7 +202,7 @@ class QdrantVectorStore:
             ]
             self._client.upsert(collection_name=self._collection, points=points, wait=True)
         logger.info(
-            f"Upserted {total} vectors into Qdrant collection '{self._collection}'"
+            f"Upserted {total} vectors into vector store collection '{self._collection}'"
             + (f" (ws={self._workspace_id})" if self._workspace_id else "")
         )
 
@@ -219,7 +219,7 @@ class QdrantVectorStore:
                 self._client.delete_collection(self._collection)
                 self._ensure_collection()
                 logger.info(
-                    f"Recreated Qdrant collection '{self._collection}' (clean slate)."
+                    f"Recreated vector store collection '{self._collection}' (clean slate)."
                 )
             else:
                 from qdrant_client.models import FilterSelector
@@ -233,7 +233,7 @@ class QdrantVectorStore:
                 )
                 logger.info(
                     f"Deleted workspace {self._workspace_id} vectors from shared "
-                    f"collection '{self._collection}' (clean slate)."
+                    f"vector store collection '{self._collection}' (clean slate)."
                 )
         except Exception as exc:
             logger.warning(f"delete_namespace failed: {exc}")
