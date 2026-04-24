@@ -1,7 +1,7 @@
 """
 One-shot wipe: clear every backing store so we can start clean with the
-multi-workspace schema. Runs Memgraph, Qdrant, Vercel Blob, and Neon in
-sequence. Idempotent — safe to re-run.
+multi-workspace schema. Runs Memgraph, Qdrant, Supabase Storage, and Neon
+in sequence. Idempotent — safe to re-run.
 
 Usage:  python3 scripts/wipe_all.py
 """
