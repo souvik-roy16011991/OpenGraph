@@ -64,16 +64,28 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS — driven by CORS_ALLOW_ORIGINS (comma-separated) with a "*" default
-    # suitable for dev. In Render production, set this to the frontend origin
-    # (e.g. https://kb-frontend-xxxx.onrender.com). Credentials can only be
-    # allowed with an exact origin list; with "*" we fall back to no-credentials.
+    # CORS — driven by two env vars:
+    #
+    #   CORS_ALLOW_ORIGINS         comma-separated exact origins
+    #                              (defaults to "*" for convenience in dev).
+    #   CORS_ALLOW_ORIGIN_REGEX    optional regex matched against the whole
+    #                              Origin header. Useful so "any subdomain of
+    #                              opengraph.tech" works without a redeploy
+    #                              every time a new subdomain is added.
+    #
+    # Starlette's CORSMiddleware accepts both simultaneously — a request's
+    # Origin has to match EITHER the exact list OR the regex.
+    #
+    # Credentials can only be allowed with an exact origin list (or regex);
+    # with a literal "*" we fall back to no-credentials to avoid the browser
+    # rejecting the response.
     #
     # Render's `fromService.property: host` returns a bare hostname. Browsers
     # send the full `Origin: https://host` header, so normalise each entry to
     # include a scheme — otherwise every preflight would 400 in production.
     import os as _os
     raw_origins = _os.environ.get("CORS_ALLOW_ORIGINS", "*").strip()
+    origin_regex = _os.environ.get("CORS_ALLOW_ORIGIN_REGEX", "").strip() or None
 
     def _normalise_origin(o: str) -> str:
         o = o.strip()
@@ -84,14 +96,18 @@ def create_app() -> FastAPI:
         return f"https://{o}"
 
     origins = [_normalise_origin(o) for o in raw_origins.split(",") if o.strip()] or ["*"]
-    allow_credentials = origins != ["*"]
+    # Credentials require a concrete origin (exact list or regex). Keep them
+    # off only when the allowlist is the wildcard and no regex is set.
+    allow_credentials = origins != ["*"] or bool(origin_regex)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=origin_regex,
         allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["X-Process-Time"],
+        max_age=600,
     )
 
     # Request timing middleware
