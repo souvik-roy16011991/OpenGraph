@@ -323,27 +323,27 @@ def download_bytes_by_url(blob_url: str) -> bytes:
 # ---------------------------------------------------------------------------
 
 def _delete_keys_batched(keys: list[str]) -> int:
-    """Delete up to N objects using batched DeleteObjects (1000 per call)."""
+    """Delete N objects.
+
+    Supabase's S3-compatible endpoint does NOT implement the
+    Multi-Object Delete operation (DeleteObjects returns
+    ``InvalidRequest: must have required property 'Body'``). Fall back
+    to sequential ``DeleteObject`` calls — slower at high volume but
+    works on every S3-compatible backend we might target. A single
+    workspace wipe is typically dozens to low-hundreds of objects, so
+    the latency hit is acceptable.
+    """
     if not keys:
         return 0
     s3 = _s3_client()
     bucket = _bucket()
     deleted = 0
-    for i in range(0, len(keys), 1000):
-        chunk = keys[i : i + 1000]
-        resp = s3.delete_objects(
-            Bucket=bucket,
-            Delete={"Objects": [{"Key": k} for k in chunk], "Quiet": True},
-        )
-        # Supabase S3 returns Errors only when something failed; count
-        # what did not error rather than relying on Deleted (omitted in
-        # Quiet mode).
-        errors = resp.get("Errors") or []
-        if errors:
-            for err in errors:
-                logger.warning("Delete failed: key=%s code=%s msg=%s",
-                               err.get("Key"), err.get("Code"), err.get("Message"))
-        deleted += len(chunk) - len(errors)
+    for key in keys:
+        try:
+            s3.delete_object(Bucket=bucket, Key=key)
+            deleted += 1
+        except Exception as exc:
+            logger.warning("Delete failed: key=%s err=%s", key, exc)
     return deleted
 
 

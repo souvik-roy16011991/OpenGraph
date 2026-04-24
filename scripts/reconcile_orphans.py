@@ -101,29 +101,17 @@ def _reconcile_blob(live_ids: set[str]) -> list[str]:
 
 
 def _delete_blob_urls(keys: Iterable[str]) -> int:
-    """Batch-delete orphan object keys via S3 DeleteObjects."""
-    from src.config import USE_SUPABASE_STORAGE, SUPABASE_BUCKET
+    """Delete orphan object keys.
+
+    Delegates to the adapter's ``_delete_keys_batched`` which uses
+    sequential ``DeleteObject`` calls (Supabase S3 does not support the
+    Multi-Object Delete operation).
+    """
+    from src.config import USE_SUPABASE_STORAGE
     if not USE_SUPABASE_STORAGE:
         return 0
-    from src.infra.blob_loader import _s3_client  # type: ignore[attr-defined]
-    s3 = _s3_client()
-    key_list = list(keys)
-    if not key_list:
-        return 0
-    deleted = 0
-    for i in range(0, len(key_list), 1000):
-        chunk = key_list[i : i + 1000]
-        resp = s3.delete_objects(
-            Bucket=SUPABASE_BUCKET,
-            Delete={"Objects": [{"Key": k} for k in chunk], "Quiet": True},
-        )
-        errors = resp.get("Errors") or []
-        if errors:
-            for err in errors:
-                logger.warning("Delete failed: key=%s code=%s",
-                               err.get("Key"), err.get("Code"))
-        deleted += len(chunk) - len(errors)
-    return deleted
+    from src.infra.blob_loader import _delete_keys_batched  # type: ignore[attr-defined]
+    return _delete_keys_batched(list(keys))
 
 
 # ---------------------------------------------------------------------------

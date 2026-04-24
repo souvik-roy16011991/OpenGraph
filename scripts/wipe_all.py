@@ -53,11 +53,10 @@ def wipe_blob() -> None:
         logger.info("Supabase Storage disabled; skipping.")
         return
     try:
-        from src.infra.blob_loader import _s3_client  # type: ignore[attr-defined]
+        from src.infra.blob_loader import _delete_keys_batched, _s3_client  # type: ignore[attr-defined]
         s3 = _s3_client()
 
-        # Walk the whole bucket and collect every key, then delete in
-        # chunks of 1000 (S3 DeleteObjects max).
+        # Walk the whole bucket and collect every key.
         all_keys: list[str] = []
         token = None
         while True:
@@ -77,13 +76,10 @@ def wipe_blob() -> None:
             logger.info("No Supabase Storage objects to wipe.")
             return
 
-        for i in range(0, len(all_keys), 1000):
-            chunk = all_keys[i : i + 1000]
-            s3.delete_objects(
-                Bucket=SUPABASE_BUCKET,
-                Delete={"Objects": [{"Key": k} for k in chunk], "Quiet": True},
-            )
-        logger.info("Deleted %d objects from Supabase Storage.", len(all_keys))
+        # Supabase S3 doesn't support Multi-Object Delete; the adapter
+        # falls back to sequential DeleteObject.
+        n = _delete_keys_batched(all_keys)
+        logger.info("Deleted %d/%d objects from Supabase Storage.", n, len(all_keys))
     except Exception as exc:
         logger.warning("Supabase Storage wipe failed: %s", exc)
 
