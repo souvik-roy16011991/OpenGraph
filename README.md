@@ -77,7 +77,7 @@ local disk. No per-tenant state in the container.
 | **Neon Postgres** | users, workspaces, build jobs, chat history, config versions, upload metadata | row-level via FK + owner check |
 | **Memgraph Cloud** | graph nodes + edges (labels, types, properties) | `workspace_id` property on every node + edge |
 | **Qdrant Cloud** | embedding vectors | 1 collection per workspace (`kb-{wid-short}`) |
-| **Vercel Blob** | uploaded KB JSON files (authoritative) | path prefix `{BLOB_STORE_PATH}/{ws_id}/…` |
+| **Supabase Storage** (S3-compatible) | uploaded KB JSON files + raw source docs (authoritative) | path prefix `{ws_id}/…` inside a public bucket |
 | **Upstash Redis** | JWKS cache, LLM cross-link cache, OpenRouter model catalog cache | keyed by `{wid}` / `{project_id}` |
 
 ### Auth & tenancy model
@@ -119,10 +119,31 @@ local disk. No per-tenant state in the container.
 - Python 3.12
 - Node 20
 - Credentials for: Neon (required), OpenRouter (required), Memgraph +
-  Qdrant + Vercel Blob + Upstash (required for production behaviour; the
-  app degrades to partial functionality if any are missing).
+  Qdrant + Supabase Storage + Upstash (required for production behaviour;
+  the app degrades to partial functionality if any are missing).
 - A 48-byte `JWT_SECRET` (required):
   `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+
+### One-liner — `bin/dev`
+
+Once dependencies are installed and `.env` + `frontend/.env.local` are
+filled in, just run:
+
+```bash
+bin/dev
+```
+
+It starts the three processes you need — the FastAPI API, the
+parse/build worker (`APP_MODE=worker`), and the Next.js frontend — with
+interleaved tagged logs and a single Ctrl-C to stop them all. Skipping
+the worker is the #1 source of "my DOCX upload is stuck at queued
+forever" locally, and `bin/dev` removes that footgun.
+
+Pass a component name to run just one: `bin/dev backend`, `bin/dev
+worker`, or `bin/dev frontend`.
+
+If you prefer separate terminals, the manual instructions below still
+work.
 
 ### Backend
 
@@ -139,8 +160,12 @@ MEMGRAPH_USERNAME=...
 MEMGRAPH_PASSWORD=...
 QDRANT_URL=https://...qdrant.cloud
 QDRANT_API_KEY=...
-BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
-BLOB_STORE_PATH=your-store-id/kb-config
+SUPABASE_S3_ENDPOINT=https://<project>.storage.supabase.co/storage/v1/s3
+SUPABASE_S3_REGION=ap-northeast-1
+SUPABASE_S3_ACCESS_KEY_ID=...
+SUPABASE_S3_SECRET_ACCESS_KEY=...
+SUPABASE_BUCKET=opengraph-kb
+SUPABASE_PUBLIC_URL_BASE=https://<project>.supabase.co/storage/v1/object/public
 UPSTASH_REDIS_REST_URL=https://...upstash.io
 UPSTASH_REDIS_REST_TOKEN=...
 EOF
@@ -181,7 +206,7 @@ npm run dev
 |---|---|
 | `MEMGRAPH_URI` / `MEMGRAPH_USERNAME` / `MEMGRAPH_PASSWORD` / `MEMGRAPH_DATABASE` | Graph store |
 | `QDRANT_URL` / `QDRANT_API_KEY` / `QDRANT_COLLECTION_NAME` | Vector store |
-| `BLOB_READ_WRITE_TOKEN` / `BLOB_STORE_PATH` | Vercel Blob (file store) |
+| `SUPABASE_S3_ENDPOINT` / `SUPABASE_S3_REGION` / `SUPABASE_S3_ACCESS_KEY_ID` / `SUPABASE_S3_SECRET_ACCESS_KEY` / `SUPABASE_BUCKET` / `SUPABASE_PUBLIC_URL_BASE` | Supabase Storage (file store; S3-compatible, public bucket) |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Redis REST (caches) |
 
 ### Auth (first-party JWT)
@@ -252,7 +277,7 @@ OpenAPI spec: `GET /openapi.json`; Swagger UI at `GET /docs`.
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| `GET` | `/health` | public | `{status, service, backends: {neon, memgraph, qdrant, vercel_blob, upstash}}` |
+| `GET` | `/health` | public | `{status, service, backends: {neon, memgraph, qdrant, file_storage, upstash}}` |
 
 ### Templates (public catalog)
 

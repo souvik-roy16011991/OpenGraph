@@ -14,21 +14,28 @@ Phase 2 adds ``stripe_client``. Phase 4 adds ``secrets`` (Fernet for BYOK).
 
 from src.billing.enforcement import (
     PaymentRequired,
+    USER_DAILY_PARSE_USD,
+    USER_PARSE_QUEUE_CAP,
     check_build_allowed,
     check_chat_allowed,
+    check_document_parse_allowed,
     check_workspace_create_allowed,
 )
 from src.billing.ledger import debit, grant, get_balance
-from src.billing.rate_card import cost_build, cost_chat
+from src.billing.rate_card import cost_build, cost_chat, cost_document_parse
 
 __all__ = [
     "PaymentRequired",
+    "USER_DAILY_PARSE_USD",
+    "USER_PARSE_QUEUE_CAP",
     "check_build_allowed",
     "check_chat_allowed",
+    "check_document_parse_allowed",
     "check_workspace_create_allowed",
     "debit",
     "grant",
     "get_balance",
     "cost_build",
     "cost_chat",
+    "cost_document_parse",
 ]

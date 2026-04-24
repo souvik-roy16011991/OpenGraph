@@ -15,7 +15,7 @@ interface FlowStep {
 }
 
 const STEPS: FlowStep[] = [
-  { step: "upload",       href: "/upload",       label: "Upload KB",    requires: [] },
+  { step: "upload",       href: "/upload",       label: "Upload",       requires: [] },
   { step: "domain",       href: "/domain",       label: "Domain",       requires: ["upload"] },
   { step: "graph-config", href: "/graph-config", label: "Graph Config", requires: ["upload", "domain"] },
   { step: "build",        href: "/build",        label: "Build",        requires: ["upload", "domain"] },

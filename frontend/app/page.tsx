@@ -9,10 +9,10 @@ import { BrandMark } from "@/components/brand";
 import { useWorkspaceStore } from "@/store/workspace-store";
 
 const STEPS = [
-  { n: 1, href: "/upload", icon: Upload, title: "Upload KB files", desc: "Drop one or more knowledge and/or tool files." },
+  { n: 1, href: "/upload", icon: Upload, title: "Upload knowledge base files", desc: "Drop one or more knowledge and/or tool files." },
   { n: 2, href: "/domain", icon: Tag, title: "Configure domain", desc: "Name the domain, organization, and focus areas." },
   { n: 3, href: "/graph-config", icon: Sliders, title: "Tune graph knobs", desc: "Adjust how dense, how deep, how precise the graph should be." },
-  { n: 4, href: "/build", icon: Hammer, title: "Run the build", desc: "Embeddings, edges, cross-KB links. Watch it happen." },
+  { n: 4, href: "/build", icon: Hammer, title: "Run the build", desc: "Embeddings, edges, cross-knowledge base links. Watch it happen." },
   { n: 5, href: "/explore", icon: Network, title: "Explore visually", desc: "Zoom, filter, and inspect every node of the finished graph." },
   { n: 6, href: "/chat", icon: MessageSquareText, title: "Chat with it", desc: "Pick any workspace, pick any model, and query it in natural language." },
 ];
@@ -61,7 +61,7 @@ export default function Home() {
                 <Link href="/templates"><LayoutGrid className="h-4 w-4" /> Browse templates</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/upload"><Upload className="h-4 w-4" /> Upload KB files</Link>
+                <Link href="/upload"><Upload className="h-4 w-4" /> Upload knowledge base files</Link>
               </Button>
             </>
           )}

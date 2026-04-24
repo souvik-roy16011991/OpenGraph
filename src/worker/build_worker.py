@@ -29,12 +29,13 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Optional
 
-from src.api import build_queue
+from src.api import build_queue, parse_queue
 from src.api.build_queue import (
     CLAIM_POLL_INTERVAL_SECONDS,
     ClaimedJob,
     make_worker_id,
 )
+from src.api.parse_queue import ClaimedParseJob
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,21 @@ logger = logging.getLogger(__name__)
 # at the start of each build. Running two builds concurrently in the same
 # process would race on those clears.
 _build_semaphore = asyncio.Semaphore(1)
+
+# Parse jobs are I/O-bound (OpenRouter round-trips dominate) with no
+# module-level cache contention, so they scale horizontally within
+# one worker. Default 6 concurrent parses: each holds one PyMuPDF doc
+# (~50-300 MB peak depending on page size) so 6 × ~150 MB avg ≈ 1 GB —
+# within Render starter worker (2 GB) with room for the base process +
+# LibreOffice conversion scratch. Per-user fairness is enforced
+# upstream by VISION_RPM_PER_USER, not here.
+#
+# Scaling knobs (all via env):
+#   PARSE_CONCURRENCY — per-process; raise if memory permits.
+#   (Scale out horizontally by adding more worker instances in
+#   render.yaml — SELECT FOR UPDATE SKIP LOCKED makes claims
+#   contention-free across N workers.)
+_parse_semaphore = asyncio.Semaphore(int(os.environ.get("PARSE_CONCURRENCY", "6")))
 
 # Drain flag: set by the SIGTERM handler. While draining, the claim loop
 # stops taking new jobs; the in-flight build (if any) runs to completion.
@@ -652,6 +668,260 @@ def _run_sync_build(job: ClaimedJob, metrics, state: _WorkerLogState) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Vision-OCR parse job runner
+# ---------------------------------------------------------------------------
+# Parse jobs are structurally simpler than builds:
+#   1. Download raw doc from Blob.
+#   2. Run the sync vision pipeline in a thread.
+#   3. Upload the parsed JSON to the canonical Blob path.
+#   4. INSERT a WorkspaceFile row (or short-circuit on a sha256 race).
+#   5. parse_queue.complete(status="done", result_file_id, tokens…).
+#
+# The pipeline reports progress via a callback; we bridge it back onto
+# the main event loop with run_coroutine_threadsafe so the ParseJob row's
+# percent/pages_done update without blocking the build thread.
+
+async def run_parse_job(job: ClaimedParseJob, *, worker_id: str) -> None:
+    import hashlib
+    import json as _json
+    import uuid as _uuid
+
+    from sqlalchemy import select
+    from sqlalchemy.exc import IntegrityError
+
+    from src.infra.blob_loader import (
+        download_bytes_by_url,
+        upload_file_bytes,
+    )
+    from src.infra.db import get_session
+    from src.infra.db_models import KbUpload, WorkspaceFile
+    from src.kb.doc_parser.mime import sniff
+    from src.kb.doc_parser.pipeline import (
+        CancelledError,
+        TooManyPages,
+        parse_document,
+    )
+
+    loop = asyncio.get_running_loop()
+    heartbeat_stop = asyncio.Event()
+
+    # Bump heartbeat_at every 10s so the sweeper doesn't flag us as a
+    # zombie during a long OCR pass. The build_worker's touch_heartbeat
+    # pattern is reused verbatim.
+    async def _heartbeat() -> None:
+        while not heartbeat_stop.is_set():
+            try:
+                await parse_queue.touch_heartbeat(job.job_id)
+            except Exception as exc:
+                logger.warning("parse heartbeat failed job=%s: %s", job.job_id, exc)
+            try:
+                await asyncio.wait_for(heartbeat_stop.wait(), timeout=10.0)
+            except asyncio.TimeoutError:
+                pass
+
+    hb_task = asyncio.create_task(_heartbeat())
+
+    # Progress bridging: callback from the pipeline thread schedules an
+    # async UPDATE onto the main loop. Fire-and-forget: the pipeline
+    # can't help us if the progress write fails, only log it.
+    def progress_cb(pages_done: int, pages_total: int) -> None:
+        asyncio.run_coroutine_threadsafe(
+            parse_queue.update_progress(job.job_id, pages_done, pages_total),
+            loop,
+        )
+
+    # Cooperative cancel: re-read the row every time pages advance.
+    # Cheap (one SELECT) and keeps the job honest about deletes.
+    def cancel_check() -> bool:
+        fut = asyncio.run_coroutine_threadsafe(
+            parse_queue.get_job_by_id(job.job_id), loop,
+        )
+        try:
+            row = fut.result(timeout=10.0)
+        except Exception:
+            return False
+        return bool(row and row.status == "cancelled")
+
+    try:
+        # 1. Fetch raw doc. download_bytes_by_url already handles redirects.
+        try:
+            raw = await asyncio.to_thread(download_bytes_by_url, job.source_document_url)
+        except Exception as exc:
+            await parse_queue.complete(
+                job.job_id, status="error",
+                error=f"failed to download source document: {exc}",
+            )
+            return
+
+        # 2. Re-sniff to be defensive — the raw blob is trusted but
+        # renames happen. Fall back to the stored mime when sniff is
+        # indecisive.
+        kind = sniff(raw, job.filename)
+        if kind == "unknown":
+            await parse_queue.complete(
+                job.job_id, status="error",
+                error="source document kind could not be determined",
+            )
+            return
+
+        # 3. Run the pipeline in a thread — it's sync (PyMuPDF + httpx.Client).
+        try:
+            result = await asyncio.to_thread(
+                parse_document,
+                raw_bytes=raw,
+                filename=job.filename,
+                kind=kind,
+                progress_cb=progress_cb,
+                cancel_check=cancel_check,
+                user_id=job.user_id,
+            )
+        except CancelledError:
+            await parse_queue.complete(
+                job.job_id, status="cancelled",
+                error="cancelled by caller",
+            )
+            return
+        except TooManyPages as exc:
+            await parse_queue.complete(
+                job.job_id, status="error", error=str(exc),
+            )
+            return
+        except Exception as exc:
+            logger.error("parse_document raised for job=%s: %s\n%s",
+                         job.job_id, exc, traceback.format_exc())
+            await parse_queue.complete(
+                job.job_id, status="error", error=f"{type(exc).__name__}: {exc}",
+            )
+            return
+
+        # 4. Serialize the JSON and upload it to the canonical blob path
+        # that the rest of the system reads from.
+        json_bytes = _json.dumps(result.json_payload, ensure_ascii=False).encode("utf-8")
+        json_sha = hashlib.sha256(json_bytes).hexdigest()
+        # Output filename: replace the original extension with .json so
+        # the WorkspaceFile row matches the existing naming convention.
+        from pathlib import Path as _Path
+        json_filename = _Path(job.filename).with_suffix(".json").name or f"{job.kb_source}.json"
+
+        try:
+            blob_url = await asyncio.to_thread(
+                upload_file_bytes,
+                job.workspace_id, job.kb_source, json_filename, json_bytes,
+            )
+        except Exception as exc:
+            await parse_queue.complete(
+                job.job_id, status="error",
+                error=f"failed to upload parsed JSON: {exc}",
+            )
+            return
+
+        # 5. INSERT WorkspaceFile. Dedup on json_sha is handled by the
+        # existing uq_workspace_files_sha index; on conflict we point
+        # the ParseJob at the winner and return duplicate=True semantics.
+        wf_id: Optional[int] = None
+        ws_uuid = _uuid.UUID(job.workspace_id)
+        async with get_session() as s:
+            wf = WorkspaceFile(
+                workspace_id=ws_uuid,
+                kb_source=job.kb_source,
+                filename=json_filename,
+                size_bytes=len(json_bytes),
+                chapters=result.chapters,
+                title=result.title,
+                sha256=json_sha,
+                blob_url=blob_url,
+                local_path=None,
+                source_document_url=job.source_document_url,
+                source_document_sha256=job.source_document_sha256,
+                active=True,
+            )
+            s.add(wf)
+            s.add(KbUpload(
+                workspace_id=ws_uuid,
+                kb_source=job.kb_source,
+                filename=json_filename,
+                size_bytes=len(json_bytes),
+                chapters=result.chapters,
+                title=result.title,
+                sha256=json_sha,
+                blob_url=blob_url,
+                blob_error=None,
+            ))
+            try:
+                await s.commit()
+                await s.refresh(wf)
+                wf_id = wf.id
+            except IntegrityError:
+                # Another upload produced identical parsed JSON first.
+                # Fall back to whoever won the sha256 race.
+                await s.rollback()
+                r = await s.execute(
+                    select(WorkspaceFile).where(
+                        WorkspaceFile.workspace_id == ws_uuid,
+                        WorkspaceFile.kb_source == job.kb_source,
+                        WorkspaceFile.sha256 == json_sha,
+                    )
+                )
+                winner = r.scalar_one_or_none()
+                if winner is not None:
+                    wf_id = winner.id
+
+        # 6. Record billing. Follows the same credit-integer conversion
+        # used by builds + chats. BYOK-style key-level overrides aren't
+        # wired for vision yet, so has_byok=False.
+        try:
+            from src.billing import cost_document_parse, debit
+            credits = cost_document_parse(
+                tokens_in=result.tokens_in,
+                tokens_out=result.tokens_out,
+                has_byok=False,
+            )
+            await debit(
+                _uuid.UUID(job.user_id),
+                credits,
+                reason="document_parse",
+                source_type="parse_job",
+                source_id=job.job_id,
+                actor_type="system",
+                metadata={
+                    "workspace_id": job.workspace_id,
+                    "filename": job.filename,
+                    "pages": result.pages_processed,
+                    "tokens_in": result.tokens_in,
+                    "tokens_out": result.tokens_out,
+                    "vision_model": result.vision_model,
+                },
+            )
+        except Exception as exc:
+            # Billing failures must not fail the job — the parsed JSON
+            # is already in the workspace and useful. Log and move on;
+            # the reconciler will pick up missing ledger rows later.
+            logger.warning("billing debit failed job=%s: %s", job.job_id, exc)
+
+        await parse_queue.complete(
+            job.job_id,
+            status="done",
+            result_file_id=wf_id,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
+            cost_usd=result.running_cost_usd,
+            pages_total=result.total_pages,
+            pages_done=result.total_pages,
+        )
+        logger.info(
+            "parse job %s done: pages=%d tokens_in=%d tokens_out=%d cost=$%.4f result_file=%s",
+            job.job_id, result.total_pages, result.tokens_in, result.tokens_out,
+            result.running_cost_usd, wf_id,
+        )
+    finally:
+        heartbeat_stop.set()
+        try:
+            await hb_task
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
 
@@ -677,7 +947,17 @@ async def worker_main() -> None:
 
     # Initialise Neon engine + ensure tables/columns/indexes exist. Harmless
     # if the API already did this on another instance; idempotent.
-    await _db.init_db()
+    #
+    # Wrapped to match the API's lifespan behaviour (src/api/server.py:37-40):
+    # on Render, Neon can be briefly unreachable during a rolling deploy, and
+    # crashing the worker here turns a transient outage into a restart storm
+    # that blocks the service from coming up. The claim loop below handles
+    # DB errors per-iteration via ``claim_next``; treating startup the same
+    # way keeps the worker in a drain-and-retry posture instead of dying.
+    try:
+        await _db.init_db()
+    except Exception as exc:
+        logger.warning("Neon init failed (continuing, claim loop will retry): %s", exc)
 
     # The existing _collect_workspace_sources() at src/api/build_jobs.py:345
     # uses ``run_coroutine_threadsafe(_fetch(), get_main_loop())`` to hop
@@ -703,7 +983,40 @@ async def worker_main() -> None:
     last_deletion_sweep_ts = 0.0
     deletion_sweep_interval = 60.0
 
+    last_parse_sweep_ts = 0.0
+    parse_sweep_interval = 30.0
+
     while not _draining:
+        # Try a parse-job claim first. Parses are I/O-bound (cheap
+        # semaphore, concurrent), so the check is fast and non-blocking
+        # for the build pipeline that follows.
+        if _parse_semaphore.locked() is False or _parse_semaphore._value > 0:
+            parse_job: Optional[ClaimedParseJob] = None
+            try:
+                parse_job = await parse_queue.claim_next(worker_id)
+            except Exception as exc:
+                logger.warning("parse claim_next failed: %s", exc)
+
+            if parse_job is not None:
+                logger.info(
+                    "Claimed parse job %s ws=%s file=%s (attempt %d)",
+                    parse_job.job_id, parse_job.workspace_id,
+                    parse_job.filename, parse_job.attempt_count,
+                )
+                # Fire-and-forget: the _parse_semaphore bounds concurrency.
+                async def _run_parse(j: ClaimedParseJob) -> None:
+                    async with _parse_semaphore:
+                        try:
+                            await run_parse_job(j, worker_id=worker_id)
+                        except Exception as exc:
+                            logger.error(
+                                "run_parse_job crashed for %s: %s\n%s",
+                                j.job_id, exc, traceback.format_exc(),
+                            )
+                asyncio.create_task(_run_parse(parse_job))
+                # Loop back without sleeping — maybe more parse work is queued.
+                continue
+
         async with _build_semaphore:
             try:
                 job = await build_queue.claim_next(worker_id)
@@ -729,6 +1042,15 @@ async def worker_main() -> None:
             except Exception as exc:
                 logger.warning("sweep_stale failed: %s", exc)
             last_sweep_ts = now
+
+        if now - last_parse_sweep_ts >= parse_sweep_interval:
+            try:
+                n = await parse_queue.sweep_stale()
+                if n:
+                    logger.info("parse sweep_stale: recovered %d zombie parse job(s)", n)
+            except Exception as exc:
+                logger.warning("parse sweep_stale failed: %s", exc)
+            last_parse_sweep_ts = now
 
         # Daily storage proration. Idempotent via per-(workspace, day)
         # dedupe; running every 30 min means we pick up new workspaces

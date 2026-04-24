@@ -157,6 +157,37 @@ def cost_chat(
 
 
 # ---------------------------------------------------------------------------
+# Document-parse cost (vision OCR ingestion)
+# ---------------------------------------------------------------------------
+
+DOC_PARSE_BASELINE_CREDITS = _env_int("RATE_DOC_PARSE_BASELINE", 2)
+
+
+def cost_document_parse(
+    *,
+    tokens_in: int,
+    tokens_out: int,
+    has_byok: bool = False,
+) -> int:
+    """Credit cost of one vision-OCR parse job.
+
+    Vision models charge via the same ``/chat/completions`` endpoint, so
+    the same per-1K-token rates apply. A small baseline covers the
+    job-queue overhead + Blob storage of the raw doc.
+    """
+    if has_byok:
+        return DOC_PARSE_BASELINE_CREDITS
+
+    input_k = Decimal(int(tokens_in or 0)) / Decimal(1000)
+    output_k = Decimal(int(tokens_out or 0)) / Decimal(1000)
+    token_credits = (
+        input_k * LLM_INPUT_CREDIT_PER_1K
+        + output_k * LLM_OUTPUT_CREDIT_PER_1K
+    )
+    return _round(token_credits) + DOC_PARSE_BASELINE_CREDITS
+
+
+# ---------------------------------------------------------------------------
 # Daily storage cost (called by sweeper; one call per workspace per day)
 # ---------------------------------------------------------------------------
 

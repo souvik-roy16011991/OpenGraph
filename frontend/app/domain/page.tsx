@@ -94,7 +94,7 @@ export default function DomainPage() {
           <CardContent className="grid gap-4">
             <Field
               label="Knowledge focus examples"
-              hint="Topics covered by the knowledge KB (policies, rules, concepts)"
+              hint="Topics covered by the knowledge base (policies, rules, concepts)"
             >
               <Textarea
                 rows={3}
@@ -105,7 +105,7 @@ export default function DomainPage() {
             </Field>
             <Field
               label="Tool focus examples"
-              hint="Systems / integrations covered by the tool KB"
+              hint="Systems / integrations covered by the tool knowledge base"
             >
               <Textarea
                 rows={3}

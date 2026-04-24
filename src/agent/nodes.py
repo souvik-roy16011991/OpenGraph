@@ -163,13 +163,22 @@ def locate_entry_nodes(state: GraphAgentState, kg: KnowledgeGraph) -> dict[str, 
     # Semantic + keyword hybrid search
     candidates = kg.hybrid_search(augmented_query, top_k=TOP_K_ENTRY_NODES * 3)
 
-    # Filter by kb_focus
+    # Filter by kb_focus. ``hybrid_search`` can return ids that exist in the
+    # vector store but not in the in-memory ``kg.nodes`` dict (stale Qdrant
+    # vectors from a prior build, or a row that was filtered out of the
+    # extractor after its embedding was computed). Guard with ``.get()`` or
+    # the whole chat turn crashes with a bare ``KeyError('tool:ch15:...')``
+    # that renders as "Error: <node_id>" to the user.
+    def _kb_source_is(nid: str, src: KBSource) -> bool:
+        node = kg.nodes.get(nid)
+        return node is not None and node.kb_source == src
+
     if kb_focus == "knowledge":
         candidates = [(nid, s) for nid, s in candidates
-                      if kg.nodes[nid].kb_source == KBSource.KNOWLEDGE]
+                      if _kb_source_is(nid, KBSource.KNOWLEDGE)]
     elif kb_focus == "tool":
         candidates = [(nid, s) for nid, s in candidates
-                      if kg.nodes[nid].kb_source == KBSource.TOOL]
+                      if _kb_source_is(nid, KBSource.TOOL)]
 
     # Boost ChapterNode and SectionNode for explore/process intents
     boosted: list[tuple[str, float]] = []

@@ -114,6 +114,11 @@ def create_app() -> FastAPI:
     app.include_router(keys_router, prefix="/api/v1")
     app.include_router(ext_router, prefix="/api/v1")
 
+    # Vision-OCR parse-job status endpoint — called by the frontend
+    # ParseProgressCard to poll progress for raw-document uploads.
+    from src.api.parse_jobs_routes import router as parse_jobs_router
+    app.include_router(parse_jobs_router, prefix="/api/v1")
+
     # ---- Custom OpenAPI override ----
     # FastAPI's auto-generated spec has no security scheme; we inject one
     # here so SDK codegen (datamodel-code-generator, openapi-typescript)
@@ -171,17 +176,17 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["health"])
     async def health():
         from src.config import (
-            USE_BLOB_STORAGE,
             USE_MEMGRAPH,
             USE_NEON,
             USE_QDRANT,
+            USE_SUPABASE_STORAGE,
             USE_UPSTASH,
         )
         backends = {
             "neon": USE_NEON,
             "memgraph": USE_MEMGRAPH,
             "qdrant": USE_QDRANT,
-            "vercel_blob": USE_BLOB_STORAGE,
+            "file_storage": USE_SUPABASE_STORAGE,
             "upstash": USE_UPSTASH,
         }
         return {"status": "ok", "service": "kb-knowledge-graph", "backends": backends}

@@ -17,7 +17,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from src.api.auth import require_user
@@ -26,6 +26,7 @@ from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import (
     BuildJobRow,
+    ParseJobRow,
     User,
     Workspace,
     WorkspaceFile,
@@ -385,6 +386,20 @@ async def delete_workspace_cascade(workspace_id: uuid.UUID) -> bool:
             return True  # already gone — idempotent
         if ws.deleted_at is None:
             ws.deleted_at = datetime.now(timezone.utc)
+            # Cancel every in-flight parse job for this workspace. If we
+            # don't, the worker will burn a claim cycle on each only to
+            # fail at the Supabase download (source objects are about to
+            # disappear), and the frontend — which keeps polling by
+            # parse_job_id — stays on "queued" until the worker gets
+            # around to it.
+            await s.execute(
+                update(ParseJobRow)
+                .where(
+                    ParseJobRow.workspace_id == workspace_id,
+                    ParseJobRow.status.in_(("queued", "running", "retry")),
+                )
+                .values(status="cancelled", error="workspace deleted")
+            )
             await s.commit()
 
     error = await _try_side_store_cleanup(workspace_id)
@@ -546,6 +561,24 @@ async def delete_workspace_file(
                 delete_blob(wf.blob_url)
         except Exception as exc:
             logger.warning("Blob delete failed for file=%s: %s", file_id, exc)
+
+        # Cancel any still-pending parse job that was targeting this
+        # file's source document. Match is by (workspace_id, sha256) —
+        # the same pair the parse worker uses to deduplicate. Without
+        # this, the worker will eventually claim the job, fail to
+        # download (the source blob is gone), and mark it errored; in
+        # the meantime the frontend polls a "queued" row that will
+        # never succeed.
+        if wf.source_document_sha256:
+            await s.execute(
+                update(ParseJobRow)
+                .where(
+                    ParseJobRow.workspace_id == workspace_id,
+                    ParseJobRow.source_document_sha256 == wf.source_document_sha256,
+                    ParseJobRow.status.in_(("queued", "running", "retry")),
+                )
+                .values(status="cancelled", error="source file deleted by user")
+            )
 
         await s.delete(wf)
         await s.commit()

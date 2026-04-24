@@ -360,9 +360,11 @@ async def github_callback(request: Request) -> RedirectResponse:
         pass
 
     app_token = create_access_token(user)
-    # Token travels in the URL; the frontend /auth/complete page immediately
-    # stores it and navigates away, stripping it from history.
-    return _frontend_redirect(
-        "/auth/complete",
-        {"token": app_token, "return_to": return_to},
-    )
+    # Put the JWT in the URL fragment, not the query string. Fragments are
+    # never sent to the server (so Render access logs never see the token)
+    # and aren't included in the Referer header when /auth/complete makes its
+    # follow-up fetch. return_to stays in the query string — it's not
+    # sensitive, and keeping it server-visible helps debug redirect loops.
+    qs = urlencode({"return_to": return_to})
+    url = f"{FRONTEND_URL}/auth/complete?{qs}#token={app_token}"
+    return RedirectResponse(url, status_code=302)

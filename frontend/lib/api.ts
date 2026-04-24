@@ -21,6 +21,8 @@ import type {
   EmbeddingModelsResponse,
   MeResponse,
   NodeDetail,
+  ParseJob,
+  ParseJobsList,
   PutGraphConfigResponse,
   QueryRequest,
   QueryResponse,
@@ -142,9 +144,97 @@ async function handle<T>(res: Response): Promise<T> {
         }
       }
     }
+    // 402 Payment Required — the backend's billing enforcement surfaces
+    // trial caps, queue caps, daily cost ceilings, and overdraft floors
+    // through this status. Show a sonner toast with a Book-a-call action
+    // so the user always has a path forward to Enterprise without
+    // having to navigate to /billing. Fire-and-forget: don't block the
+    // thrown Error path since per-caller handlers may still want to
+    // react (e.g. disable a submit button).
+    if (res.status === 402) {
+      showUpgradeToast(detail);
+    }
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
   return res.json() as Promise<T>;
+}
+
+// --- 402 → Book-a-call toast ------------------------------------------------
+// Dynamic imports so api.ts doesn't gain a static dependency on sonner /
+// plans — this module is imported by server components in some code
+// paths and we want those to stay lightweight.
+
+let _recentUpgradeToastAt = 0;
+
+function showUpgradeToast(detail: unknown): void {
+  if (typeof window === "undefined") return;
+  // Sonner's action toast shows a single action button; we point it at
+  // the Cal.com booking link. Debounce so a 200-file batch that all
+  // get 402'd doesn't spam the user — once every 4 s max.
+  const now = Date.now();
+  if (now - _recentUpgradeToastAt < 4000) return;
+  _recentUpgradeToastAt = now;
+
+  const reason = extractReason(detail);
+  const message = headlineFor(reason);
+  const description =
+    typeof detail === "string"
+      ? detail
+      : reason
+        ? descriptionFor(reason)
+        : "Your current plan can't accept this action.";
+
+  void Promise.all([import("sonner"), import("@/lib/plans")]).then(
+    ([{ toast }, { openBooking }]) => {
+      toast.error(message, {
+        description,
+        action: { label: "Book a call", onClick: () => openBooking() },
+        duration: 10_000,
+      });
+    },
+  );
+}
+
+function extractReason(detail: unknown): string | null {
+  if (detail && typeof detail === "object" && "reason" in detail) {
+    const r = (detail as { reason?: unknown }).reason;
+    return typeof r === "string" ? r : null;
+  }
+  return null;
+}
+
+function headlineFor(reason: string | null): string {
+  switch (reason) {
+    case "trial_cap_exceeded":
+      return "Free trial limit reached";
+    case "workspace_cap_exceeded":
+      return "Workspace limit reached";
+    case "parse_queue_cap_exceeded":
+      return "Parse queue full";
+    case "daily_parse_cost_exceeded":
+      return "Daily parse budget reached";
+    case "insufficient_credits":
+      return "Plan balance too low";
+    default:
+      return "Plan limit reached";
+  }
+}
+
+function descriptionFor(reason: string): string {
+  switch (reason) {
+    case "trial_cap_exceeded":
+      return "You've used everything the free trial includes. Book a 15-minute call to switch to Enterprise.";
+    case "workspace_cap_exceeded":
+      return "The free trial allows one workspace. Enterprise unlocks unlimited workspaces — book a call to upgrade.";
+    case "parse_queue_cap_exceeded":
+      return "Too many parses in flight for your plan. Enterprise raises this limit.";
+    case "daily_parse_cost_exceeded":
+      return "Today's parse budget is spent. Enterprise removes the daily ceiling.";
+    case "insufficient_credits":
+      return "Your balance is below the overdraft floor. Book a call to top up on an Enterprise plan.";
+    default:
+      return "Book a call to go Enterprise and keep going.";
+  }
 }
 
 /** Wrap `fetch` so the browser's opaque "TypeError: Failed to fetch" becomes
@@ -230,7 +320,11 @@ export const api = {
   stats: () => get<GraphStats>("/api/v1/graph/stats"),
   statsFor: (ws_id: string) => getWithWorkspace<GraphStats>("/api/v1/graph/stats", ws_id),
 
-  // upload — accepts multiple `knowledge_files` + multiple `tool_files`
+  // upload — accepts multiple `knowledge_files` + multiple `tool_files`.
+  // Mixes JSON (processed sync) and raw docs (PDF/PPTX/DOCX/...) — the
+  // response fans out: JSON files come back with status="done" and a
+  // WorkspaceFile `id`; raw docs come back with status="queued" and a
+  // `parse_job_id` the UI polls via `getParseJob`.
   uploadKB: async (form: FormData): Promise<UploadResponse> => {
     const res = await safeFetch(`${BASE}/api/v1/kb/upload`, {
       method: "POST",
@@ -240,6 +334,26 @@ export const api = {
     });
     return handle<UploadResponse>(res);
   },
+
+  // Vision-OCR parse job status. Poll this every ~3s from the upload
+  // UI while a raw-doc ingestion is in flight; stop polling once status
+  // reaches a terminal value (done / error / cancelled).
+  getParseJob: (job_id: string) =>
+    get<ParseJob>(`/api/v1/kb/parse-jobs/${encodeURIComponent(job_id)}`),
+
+  // Batched parse-job listing — one request returns every active job
+  // the caller owns, optionally scoped to a workspace and status set.
+  // Drops polling volume from O(N jobs) to O(1) at the dropzone.
+  listParseJobs: (args: {
+    workspace_id?: string;
+    status?: Array<"queued" | "running" | "done" | "error" | "cancelled">;
+    limit?: number;
+  } = {}) =>
+    get<ParseJobsList>("/api/v1/kb/parse-jobs", {
+      workspace_id: args.workspace_id,
+      status: args.status?.join(","),
+      limit: args.limit,
+    }),
 
   // workspaces
   listWorkspaces: () => get<{ workspaces: WorkspaceSummary[] }>("/api/v1/workspaces"),
