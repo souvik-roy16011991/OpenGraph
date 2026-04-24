@@ -106,8 +106,22 @@ def convert_to_pdf(data: bytes, kind: DocKind) -> bytes:
         src_path = tmp / f"source{ext}"
         src_path.write_bytes(data)
 
+        # Per-call LibreOffice user profile. Without this flag, soffice
+        # uses the OS user's shared profile dir (~/.config/libreoffice
+        # on Linux, ~/Library/Application Support/LibreOffice on macOS).
+        # Two concurrent conversions then race on the profile's lock
+        # files — one wins, the other silently returns exit 0 with NO
+        # output PDF, which shows up to the caller as a generic
+        # ConversionError. Giving every call its own UserInstallation
+        # is LibreOffice's documented mechanism for safe concurrent
+        # invocation, and lets us keep PARSE_CONCURRENCY > 1.
+        # Reference: https://wiki.documentfoundation.org/UserProfile
+        user_profile = tmp / "user-profile"
+        user_profile.mkdir()
+
         cmd = [
             soffice,
+            f"-env:UserInstallation=file://{user_profile}",
             "--headless",
             "--norestore",
             "--nologo",

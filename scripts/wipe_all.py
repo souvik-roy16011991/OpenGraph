@@ -1,7 +1,7 @@
 """
 One-shot wipe: clear every backing store so we can start clean with the
-multi-workspace schema. Runs Memgraph, Qdrant, Vercel Blob, and Neon in
-sequence. Idempotent — safe to re-run.
+multi-workspace schema. Runs Memgraph, Qdrant, Supabase Storage, and Neon
+in sequence. Idempotent — safe to re-run.
 
 Usage:  python3 scripts/wipe_all.py
 """
@@ -48,29 +48,40 @@ def wipe_qdrant() -> None:
 
 
 def wipe_blob() -> None:
-    from src.config import BLOB_READ_WRITE_TOKEN, BLOB_STORE_PATH, USE_BLOB_STORAGE
-    if not USE_BLOB_STORAGE:
-        logger.info("Vercel Blob disabled; skipping.")
+    from src.config import SUPABASE_BUCKET, USE_SUPABASE_STORAGE
+    if not USE_SUPABASE_STORAGE:
+        logger.info("Supabase Storage disabled; skipping.")
         return
     try:
-        import httpx
-        base = "https://blob.vercel-storage.com"
-        headers = {"Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}"}
-        # List all blobs under the prefix
-        r = httpx.get(f"{base}?prefix={BLOB_STORE_PATH}/", headers=headers, timeout=30)
-        r.raise_for_status()
-        blobs = r.json().get("blobs", [])
-        if not blobs:
-            logger.info("No Vercel Blob objects to wipe.")
+        from src.infra.blob_loader import _delete_keys_batched, _s3_client  # type: ignore[attr-defined]
+        s3 = _s3_client()
+
+        # Walk the whole bucket and collect every key.
+        all_keys: list[str] = []
+        token = None
+        while True:
+            kwargs: dict = {"Bucket": SUPABASE_BUCKET, "MaxKeys": 1000}
+            if token is not None:
+                kwargs["ContinuationToken"] = token
+            resp = s3.list_objects_v2(**kwargs)
+            for obj in resp.get("Contents", []) or []:
+                all_keys.append(obj["Key"])
+            if not resp.get("IsTruncated"):
+                break
+            token = resp.get("NextContinuationToken")
+            if not token:
+                break
+
+        if not all_keys:
+            logger.info("No Supabase Storage objects to wipe.")
             return
-        # Batch delete
-        urls = [b.get("url") for b in blobs if b.get("url")]
-        if urls:
-            rr = httpx.post(f"{base}/delete", json={"urls": urls}, headers={**headers, "Content-Type": "application/json"}, timeout=60)
-            rr.raise_for_status()
-            logger.info("Deleted %d blobs from Vercel Blob.", len(urls))
+
+        # Supabase S3 doesn't support Multi-Object Delete; the adapter
+        # falls back to sequential DeleteObject.
+        n = _delete_keys_batched(all_keys)
+        logger.info("Deleted %d/%d objects from Supabase Storage.", n, len(all_keys))
     except Exception as exc:
-        logger.warning("Vercel Blob wipe failed: %s", exc)
+        logger.warning("Supabase Storage wipe failed: %s", exc)
 
 
 async def wipe_neon() -> None:

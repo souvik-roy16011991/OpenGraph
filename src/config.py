@@ -122,9 +122,22 @@ MEMGRAPH_USERNAME: str = os.environ.get("MEMGRAPH_USERNAME", "")
 MEMGRAPH_PASSWORD: str = os.environ.get("MEMGRAPH_PASSWORD", "")
 MEMGRAPH_DATABASE: str = os.environ.get("MEMGRAPH_DATABASE", "memgraph")
 
-# Vercel Blob storage
-BLOB_READ_WRITE_TOKEN: str = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
-BLOB_STORE_PATH: str = os.environ.get("BLOB_STORE_PATH", "v0-it-support-automation-blob/kb-config")
+# Supabase Storage (S3-compatible, public bucket). See src/infra/blob_loader.py.
+# SUPABASE_S3_ENDPOINT          S3-compatible endpoint for writes/lists/deletes.
+#                               e.g. https://<project>.storage.supabase.co/storage/v1/s3
+# SUPABASE_S3_REGION            Supabase-configured region (e.g. ap-northeast-1).
+# SUPABASE_S3_ACCESS_KEY_ID     S3 access key id (Supabase dashboard → Project
+#                               Settings → Storage → S3 Connection).
+# SUPABASE_S3_SECRET_ACCESS_KEY S3 secret access key (same source).
+# SUPABASE_BUCKET               Bucket name. Must be created + marked public.
+# SUPABASE_PUBLIC_URL_BASE      Public object URL base. Supabase convention:
+#                               https://<project>.supabase.co/storage/v1/object/public
+SUPABASE_S3_ENDPOINT: str = os.environ.get("SUPABASE_S3_ENDPOINT", "")
+SUPABASE_S3_REGION: str = os.environ.get("SUPABASE_S3_REGION", "")
+SUPABASE_S3_ACCESS_KEY_ID: str = os.environ.get("SUPABASE_S3_ACCESS_KEY_ID", "")
+SUPABASE_S3_SECRET_ACCESS_KEY: str = os.environ.get("SUPABASE_S3_SECRET_ACCESS_KEY", "")
+SUPABASE_BUCKET: str = os.environ.get("SUPABASE_BUCKET", "")
+SUPABASE_PUBLIC_URL_BASE: str = os.environ.get("SUPABASE_PUBLIC_URL_BASE", "").rstrip("/")
 
 # Neon Postgres (application data: build jobs, chat history, config versions, uploads)
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
@@ -192,7 +205,13 @@ USE_PINECONE: bool = bool(PINECONE_API_KEY)
 USE_QDRANT: bool = bool(QDRANT_URL and QDRANT_API_KEY)
 USE_NEO4J: bool = bool(NEO4J_URI)
 USE_MEMGRAPH: bool = bool(MEMGRAPH_URI)
-USE_BLOB_STORAGE: bool = bool(BLOB_READ_WRITE_TOKEN)
+USE_SUPABASE_STORAGE: bool = bool(
+    SUPABASE_S3_ENDPOINT
+    and SUPABASE_S3_ACCESS_KEY_ID
+    and SUPABASE_S3_SECRET_ACCESS_KEY
+    and SUPABASE_BUCKET
+    and SUPABASE_PUBLIC_URL_BASE
+)
 USE_NEON: bool = bool(DATABASE_URL)
 USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
 USE_AUTH: bool = bool(JWT_SECRET)

@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Local-dev single-command launcher.
+#
+# Starts the three processes that make up the app:
+#   1. FastAPI backend      (uvicorn, src.api.server:app on :8000)
+#   2. Parse/build worker   (src.entrypoint with APP_MODE=worker)
+#   3. Next.js frontend     (frontend/, on :3000)
+#
+# On Render these are three separate services (see render.yaml). Locally,
+# forgetting to start the worker is the #1 source of "my DOCX upload is
+# stuck at queued forever" — this script removes that footgun.
+#
+# Ctrl-C once kills all three. Logs interleave on stdout tagged with the
+# process name so you can tell who said what.
+#
+# Usage:  bin/dev           — start everything
+#         bin/dev backend   — only backend
+#         bin/dev worker    — only worker
+#         bin/dev frontend  — only frontend
+
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+# Tagged-output helper: prefix every line from a subcommand with a short
+# label + color so interleaved logs are legible. Uses awk so it streams
+# without buffering (unlike shell read-line loops).
+#   tag <label> <color-code> <command...>
+tag() {
+  local label=$1 color=$2
+  shift 2
+  "$@" 2>&1 | awk -v label="$label" -v color="$color" '
+    BEGIN { reset = "\033[0m" }
+    { printf "\033[%sm[%s]\033[0m %s\n", color, label, $0; fflush() }
+  '
+}
+
+run_backend() {
+  tag "api " "36" python3 -m uvicorn src.api.server:app --port 8000 --reload
+}
+run_worker() {
+  # WEB_CONCURRENCY is only read by the API path in src/entrypoint.py —
+  # the worker ignores it.
+  APP_MODE=worker tag "work" "33" python3 -m src.entrypoint
+}
+run_frontend() {
+  cd frontend && tag "fe  " "35" npm run dev
+}
+
+# Graceful shutdown: propagate Ctrl-C to the whole process group so all
+# three children (and their grandchildren like `next dev`) exit cleanly.
+trap 'trap - INT TERM; kill -- -$$' INT TERM EXIT
+
+case "${1:-all}" in
+  all)
+    run_backend &
+    run_worker &
+    run_frontend &
+    wait
+    ;;
+  backend)  run_backend ;;
+  worker)   run_worker ;;
+  frontend) run_frontend ;;
+  *)
+    echo "usage: $0 [all|backend|worker|frontend]" >&2
+    exit 2
+    ;;
+esac

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Upload local KB JSON files to Vercel Blob storage.
+Upload local KB JSON files to Supabase Storage (the object store).
 
 Run this once after initial setup, or whenever KB files change.
 
@@ -9,11 +9,11 @@ Usage
     python scripts/upload_kb.py              # upload both
     python scripts/upload_kb.py --source knowledge
     python scripts/upload_kb.py --source tool
-    python scripts/upload_kb.py --list       # list existing blobs
+    python scripts/upload_kb.py --list       # list existing objects
 
 Requirements
 ------------
-    BLOB_READ_WRITE_TOKEN must be set in .env
+    The six SUPABASE_* env vars must be set — see src/config.py.
 """
 
 import argparse
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Upload KB files to Vercel Blob")
+    parser = argparse.ArgumentParser(description="Upload KB files to Supabase Storage")
     parser.add_argument(
         "--source",
         choices=["knowledge", "tool"],
@@ -43,30 +43,36 @@ def main() -> None:
     parser.add_argument(
         "--list",
         action="store_true",
-        help="List existing blobs and exit",
+        help="List existing objects and exit",
     )
     args = parser.parse_args()
 
-    from src.config import BLOB_READ_WRITE_TOKEN, BLOB_STORE_PATH
+    from src.config import SUPABASE_BUCKET, USE_SUPABASE_STORAGE
 
-    if not BLOB_READ_WRITE_TOKEN:
+    if not USE_SUPABASE_STORAGE:
         logger.error(
-            "BLOB_READ_WRITE_TOKEN is not set. "
-            "Add it to .env before running this script."
+            "Supabase Storage is not configured. "
+            "Set the SUPABASE_* env vars in .env before running this script."
         )
         sys.exit(1)
 
+    # NOTE: This is a legacy single-KB helper predating the multi-tenant
+    # upload flow. For new uploads prefer POST /api/v1/kb/upload (see the
+    # frontend upload page or the public SDK). The functions referenced
+    # below (list_kb_blobs / upload_kb_file / upload_kb_files) were
+    # retired alongside the multi-workspace refactor; this CLI stays for
+    # archival use against the (rare) deployments that still import them.
     from src.infra.blob_loader import list_kb_blobs, upload_kb_file, upload_kb_files
 
     if args.list:
         blobs = list_kb_blobs()
         if blobs:
-            logger.info(f"Found {len(blobs)} blob(s) under prefix '{BLOB_STORE_PATH}':")
+            logger.info(f"Found {len(blobs)} object(s) in bucket '{SUPABASE_BUCKET}':")
             for b in blobs:
                 size_kb = b.get("size", 0) / 1024
-                logger.info(f"  {b.get('pathname', '?')}  ({size_kb:.1f} KB)  {b.get('url', '')}")
+                logger.info(f"  {b.get('pathname', b.get('key', '?'))}  ({size_kb:.1f} KB)  {b.get('url', '')}")
         else:
-            logger.info("No blobs found.")
+            logger.info("No objects found.")
         return
 
     if args.source:

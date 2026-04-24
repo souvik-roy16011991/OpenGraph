@@ -23,7 +23,8 @@
 #     DATABASE_URL                 (Neon pooled connection string)
 #     MEMGRAPH_URI / _USERNAME / _PASSWORD
 #     QDRANT_URL / QDRANT_API_KEY
-#     BLOB_READ_WRITE_TOKEN
+#     SUPABASE_S3_ACCESS_KEY_ID    (Supabase dashboard → Project Settings →
+#     SUPABASE_S3_SECRET_ACCESS_KEY Storage → S3 Connection → Generate)
 #     UPSTASH_REDIS_REST_URL / _TOKEN
 #     JWT_SECRET                   (generate with `python -c "import secrets;
 #                                   print(secrets.token_urlsafe(48))"`).
@@ -164,11 +165,23 @@ services:
       - key: USER_DAILY_PARSE_USD
         value: "20.00"
 
-      # --- Vercel Blob (durable KB file storage, per workspace) ---------
-      - key: BLOB_READ_WRITE_TOKEN
+      # --- Supabase Storage (durable KB file storage, per workspace) ----
+      # S3-compatible API used for write/list/delete; reads are public URL
+      # GETs (bucket must be marked public). Must match values set on the
+      # opengraph-build-worker service below — both services read + write
+      # the same bucket. See src/infra/blob_loader.py for the adapter.
+      - key: SUPABASE_S3_ENDPOINT
+        value: https://eaxceyittlbldulejccn.storage.supabase.co/storage/v1/s3
+      - key: SUPABASE_S3_REGION
+        value: ap-northeast-1
+      - key: SUPABASE_S3_ACCESS_KEY_ID
         sync: false
-      - key: BLOB_STORE_PATH
-        value: v0-it-support-automation-blob/kb-config
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: opengraph-kb
+      - key: SUPABASE_PUBLIC_URL_BASE
+        value: https://eaxceyittlbldulejccn.supabase.co/storage/v1/object/public
 
       # --- Upstash Redis (JWKS cache, cross-link cache, catalog cache) --
       - key: UPSTASH_REDIS_REST_URL
@@ -312,11 +325,21 @@ services:
         value: "1800"
       - key: DB_POOL_TIMEOUT
         value: "30"
-      # --- Vercel Blob --------------------------------------------------
-      - key: BLOB_READ_WRITE_TOKEN
+      # --- Supabase Storage ---------------------------------------------
+      # Mirror of the backend block — both services write into the same
+      # bucket. If you rotate the S3 credential in Supabase, update both.
+      - key: SUPABASE_S3_ENDPOINT
+        value: https://eaxceyittlbldulejccn.storage.supabase.co/storage/v1/s3
+      - key: SUPABASE_S3_REGION
+        value: ap-northeast-1
+      - key: SUPABASE_S3_ACCESS_KEY_ID
         sync: false
-      - key: BLOB_STORE_PATH
-        value: v0-it-support-automation-blob/kb-config
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: opengraph-kb
+      - key: SUPABASE_PUBLIC_URL_BASE
+        value: https://eaxceyittlbldulejccn.supabase.co/storage/v1/object/public
       # --- Upstash Redis ------------------------------------------------
       - key: UPSTASH_REDIS_REST_URL
         sync: false

@@ -5,23 +5,23 @@ POST /api/v1/kb/upload (X-Workspace-Id required)
   - Accepts any number of ``knowledge_files`` and any number of ``tool_files``
     in a single multipart request.
   - Each file is sniffed by content:
-      * JSON  → validated, sha256-hashed, uploaded to Vercel Blob at
-        {BLOB_STORE_PATH}/{ws_id}/{kb_source}/{filename}, recorded as a
+      * JSON  → validated, sha256-hashed, uploaded to Supabase Storage at
+        {bucket}/{ws_id}/{kb_source}/{filename}, recorded as a
         WorkspaceFile + kb_uploads row in Neon. Returns the full file
         info synchronously.
       * PDF / PPTX / DOCX / XLSX / ODP / ODT / ODS / RTF (etc.) → raw
-        bytes are uploaded to _raw/... in Blob, a ParseJob is enqueued,
-        and the response returns {parse_job_id, status:"queued"}. The
-        vision-OCR worker picks it up, produces the parsed JSON, and
+        bytes are uploaded to _raw/... in Supabase Storage, a ParseJob is
+        enqueued, and the response returns {parse_job_id, status:"queued"}.
+        The vision-OCR worker picks it up, produces the parsed JSON, and
         inserts the WorkspaceFile row on completion. Frontend polls
         GET /api/v1/kb/parse-jobs/{job_id}.
   - JSON dedup by sha256(raw bytes). Raw-doc dedup by sha256 of the
     source document — same PPTX uploaded twice short-circuits to the
     existing parsed WorkspaceFile without a second OCR pass.
 
-Nothing is written to the local filesystem — Vercel Blob is the single
-source of truth for uploaded KB content. If the Blob upload fails the whole
-request fails; there is no local fallback to drift out of sync.
+Nothing is written to the local filesystem — Supabase Storage is the single
+source of truth for uploaded KB content. If the storage upload fails the
+whole request fails; there is no local fallback to drift out of sync.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ from sqlalchemy.exc import IntegrityError
 
 from src.api.auth import require_user
 from src.api.deps import require_workspace_id
-from src.config import BLOB_READ_WRITE_TOKEN
+from src.config import USE_SUPABASE_STORAGE
 from src.infra.audit import record_audit
 from src.infra.db import get_session
 from src.infra.db_models import KbUpload, User, WorkspaceFile
@@ -215,18 +215,18 @@ async def _persist_json(
                 duplicate=True,
             )
 
-    # Upload to Vercel Blob — the single source of truth. Fail the request
-    # if this fails; we will not silently fall back to local disk.
-    if not BLOB_READ_WRITE_TOKEN:
+    # Upload to Supabase Storage — the single source of truth. Fail the
+    # request if this fails; we will not silently fall back to local disk.
+    if not USE_SUPABASE_STORAGE:
         raise HTTPException(
             status_code=503,
-            detail="BLOB_READ_WRITE_TOKEN is not configured; cannot accept uploads.",
+            detail="Supabase Storage is not configured; cannot accept uploads.",
         )
     try:
         from src.infra.blob_loader import upload_file_bytes
         blob_url = upload_file_bytes(workspace_id, kb_source, filename, raw)
     except Exception as exc:
-        logger.error("Vercel Blob upload failed for ws=%s %s/%s: %s", workspace_id, kb_source, filename, exc)
+        logger.error("Supabase Storage upload failed for ws=%s %s/%s: %s", workspace_id, kb_source, filename, exc)
         raise HTTPException(
             status_code=502,
             detail=f"Vercel Blob upload failed: {exc}",
@@ -410,10 +410,10 @@ async def _persist_raw_document(
                 status="queued",
             )
 
-    if not BLOB_READ_WRITE_TOKEN:
+    if not USE_SUPABASE_STORAGE:
         raise HTTPException(
             status_code=503,
-            detail="BLOB_READ_WRITE_TOKEN is not configured; cannot accept uploads.",
+            detail="Supabase Storage is not configured; cannot accept uploads.",
         )
 
     content_type = MIME_BY_KIND.get(kind, "application/octet-stream")
@@ -431,7 +431,7 @@ async def _persist_raw_document(
         )
     except Exception as exc:
         logger.error(
-            "Vercel Blob raw upload failed for ws=%s %s/%s: %s",
+            "Supabase Storage raw upload failed for ws=%s %s/%s: %s",
             workspace_id, kb_source, filename, exc,
         )
         raise HTTPException(

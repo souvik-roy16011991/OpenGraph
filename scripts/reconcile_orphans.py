@@ -1,17 +1,18 @@
 """Find and optionally purge storage artifacts that Neon doesn't know about.
 
 At 1M workspaces, silent divergence between Neon (source of truth for
-metadata) and the side stores (Vercel Blob / Qdrant / Memgraph) will leak
-storage + cost. This script surfaces every orphan in one pass:
+metadata) and the side stores (Supabase Storage / Qdrant / Memgraph) will
+leak storage + cost. This script surfaces every orphan in one pass:
 
-    Vercel Blob:  any object under ``{BLOB_STORE_PATH}/{ws_id}/...`` whose
-                  ``ws_id`` is not the id of a live Neon workspace row.
-    Qdrant:       any collection named ``kb-{wid-short}`` whose wid-short
-                  doesn't resolve to a live Neon workspace (legacy mode),
-                  OR in shared-collection mode, any ``workspace_id`` payload
-                  value present in the collection that isn't a live row.
-    Memgraph:     any DISTINCT workspace_id value across KBNode nodes that
-                  isn't a live Neon workspace.
+    Supabase Storage: any object whose top-level key segment ``{ws_id}`` is
+                      not the id of a live Neon workspace row.
+    Qdrant:           any collection named ``kb-{wid-short}`` whose wid-short
+                      doesn't resolve to a live Neon workspace (legacy mode),
+                      OR in shared-collection mode, any ``workspace_id``
+                      payload value present in the collection that isn't a
+                      live row.
+    Memgraph:         any DISTINCT workspace_id value across KBNode nodes
+                      that isn't a live Neon workspace.
 
 Dry run by default. Pass ``--delete`` to actually purge — the script will
 refuse to delete more than 100 artifacts in a single invocation unless
@@ -20,7 +21,7 @@ healthy cluster).
 
 Usage:
     python -m scripts.reconcile_orphans                # dry run, all stores
-    python -m scripts.reconcile_orphans --only blob    # only Blob
+    python -m scripts.reconcile_orphans --only blob    # only object storage
     python -m scripts.reconcile_orphans --delete       # purge (small sets)
     python -m scripts.reconcile_orphans --delete --force
 """
@@ -58,75 +59,59 @@ def _short_wid(wid: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Blob reconciliation
+# Object-storage reconciliation (Supabase Storage, S3-compatible)
 # ---------------------------------------------------------------------------
 
 def _reconcile_blob(live_ids: set[str]) -> list[str]:
-    """List all blob prefixes under BLOB_STORE_PATH, return orphaned URLs."""
-    from src.config import BLOB_READ_WRITE_TOKEN, BLOB_STORE_PATH
-    if not BLOB_READ_WRITE_TOKEN:
-        logger.info("Blob: BLOB_READ_WRITE_TOKEN not set — skipping.")
+    """Walk the Supabase bucket, return orphaned object keys.
+
+    Object-storage keys follow ``{workspace_id}/...``. An orphan is any
+    key whose leading segment is not a live workspace id.
+    """
+    from src.config import USE_SUPABASE_STORAGE, SUPABASE_BUCKET
+    if not USE_SUPABASE_STORAGE:
+        logger.info("Storage: Supabase Storage not configured — skipping.")
         return []
 
-    import httpx
-    api_base = "https://blob.vercel-storage.com"
+    from src.infra.blob_loader import _s3_client  # type: ignore[attr-defined]
+    s3 = _s3_client()
+
     orphans: list[str] = []
-    cursor = None
     seen = 0
+    token = None
     while True:
-        qs = f"?prefix={BLOB_STORE_PATH}/&limit=1000"
-        if cursor:
-            qs += f"&cursor={cursor}"
-        resp = httpx.get(
-            f"{api_base}{qs}",
-            headers={"authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}"},
-            timeout=60,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        for b in data.get("blobs", []):
+        kwargs: dict = {"Bucket": SUPABASE_BUCKET, "MaxKeys": 1000}
+        if token is not None:
+            kwargs["ContinuationToken"] = token
+        resp = s3.list_objects_v2(**kwargs)
+        for obj in resp.get("Contents", []) or []:
             seen += 1
-            path = b.get("pathname", "")
-            # Expect: "{BLOB_STORE_PATH}/{wid}/{kb_source}/{filename}"
-            parts = path.split("/")
-            if len(parts) < 3:
-                continue
-            wid_candidate = parts[-3] if path.startswith(BLOB_STORE_PATH + "/") else None
-            # Guard: the prefix itself may have multiple segments.
-            prefix_len = len(BLOB_STORE_PATH.split("/"))
-            if len(parts) <= prefix_len:
-                continue
-            wid_candidate = parts[prefix_len]
+            key = obj["Key"]
+            parts = key.split("/", 1)
+            wid_candidate = parts[0] if parts else ""
             if wid_candidate and wid_candidate not in live_ids:
-                url = b.get("url")
-                if url:
-                    orphans.append(url)
-        cursor = data.get("cursor")
-        if not cursor:
+                orphans.append(key)
+        if not resp.get("IsTruncated"):
             break
-    logger.info("Blob: scanned %d blobs, %d orphans.", seen, len(orphans))
+        token = resp.get("NextContinuationToken")
+        if not token:
+            break
+    logger.info("Storage: scanned %d objects, %d orphans.", seen, len(orphans))
     return orphans
 
 
-def _delete_blob_urls(urls: Iterable[str]) -> int:
-    """Issue a batched delete against the Vercel Blob REST API."""
-    from src.config import BLOB_READ_WRITE_TOKEN
-    import httpx
-    api_base = "https://blob.vercel-storage.com"
-    url_list = list(urls)
-    if not url_list:
+def _delete_blob_urls(keys: Iterable[str]) -> int:
+    """Delete orphan object keys.
+
+    Delegates to the adapter's ``_delete_keys_batched`` which uses
+    sequential ``DeleteObject`` calls (Supabase S3 does not support the
+    Multi-Object Delete operation).
+    """
+    from src.config import USE_SUPABASE_STORAGE
+    if not USE_SUPABASE_STORAGE:
         return 0
-    resp = httpx.post(
-        f"{api_base}/delete",
-        json={"urls": url_list},
-        headers={
-            "authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}",
-            "Content-Type": "application/json",
-        },
-        timeout=120,
-    )
-    resp.raise_for_status()
-    return len(url_list)
+    from src.infra.blob_loader import _delete_keys_batched  # type: ignore[attr-defined]
+    return _delete_keys_batched(list(keys))
 
 
 # ---------------------------------------------------------------------------
@@ -295,12 +280,12 @@ async def main() -> int:
         if args.delete and blob_orphans:
             if len(blob_orphans) > _DELETE_CAP and not args.force:
                 logger.warning(
-                    "Blob: refusing to delete %d orphans without --force "
+                    "Storage: refusing to delete %d orphans without --force "
                     "(cap=%d).", len(blob_orphans), _DELETE_CAP,
                 )
             else:
                 n = _delete_blob_urls(blob_orphans)
-                logger.info("Blob: purged %d orphan blobs.", n)
+                logger.info("Storage: purged %d orphan objects.", n)
 
     if args.only in (None, "qdrant"):
         qdrant_cols, qdrant_ws = _reconcile_qdrant(live)

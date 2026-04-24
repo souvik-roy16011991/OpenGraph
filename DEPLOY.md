@@ -30,7 +30,7 @@ Render runs your code; everything else comes from these SaaS vendors.
 | **Neon** (Postgres) | users, workspaces, builds, chats, configs, audit, build queue, API keys, billing | neon.tech | `DATABASE_URL` |
 | **Memgraph Cloud** | knowledge graph nodes + edges | memgraph.com/cloud | `MEMGRAPH_URI`, `_USERNAME`, `_PASSWORD` |
 | **Qdrant Cloud** | embedding vectors | qdrant.tech | `QDRANT_URL`, `QDRANT_API_KEY` |
-| **Vercel Blob** | uploaded KB JSONs (authoritative file store) | vercel.com/dashboard/stores | `BLOB_READ_WRITE_TOKEN` |
+| **Supabase Storage** (S3-compatible) | uploaded KB JSONs + raw source docs (authoritative file store) | supabase.com → Storage. Create a bucket, mark it **public**. Then Project Settings → Storage → S3 Connection → *Generate new credentials*. | `SUPABASE_S3_ENDPOINT`, `SUPABASE_S3_REGION`, `SUPABASE_S3_ACCESS_KEY_ID`, `SUPABASE_S3_SECRET_ACCESS_KEY`, `SUPABASE_BUCKET`, `SUPABASE_PUBLIC_URL_BASE` |
 | **OpenRouter** | LLM + embedding API (342+ models) | openrouter.ai | `OPENROUTER_API_KEY` |
 | **Upstash Redis** | JWKS cache, cross-link cache, model-catalog cache, rate-limit counters | upstash.com | `UPSTASH_REDIS_REST_URL`, `_TOKEN` |
 
@@ -82,16 +82,24 @@ The first deploy will **fail** on the backend + worker because the
 
 ```ini
 # Core app
-OPENROUTER_API_KEY        = sk-or-v1-...
-DATABASE_URL              = postgresql://<user>:<pw>@<host>.neon.tech/<db>?sslmode=require
-MEMGRAPH_URI              = bolt+ssc://<host>:7687
-MEMGRAPH_USERNAME         = <user>
-MEMGRAPH_PASSWORD         = <pw>
-QDRANT_URL                = https://<cluster>.qdrant.io:6333
-QDRANT_API_KEY            = eyJhbGci...
-BLOB_READ_WRITE_TOKEN     = vercel_blob_rw_...
-UPSTASH_REDIS_REST_URL    = https://<name>.upstash.io
-UPSTASH_REDIS_REST_TOKEN  = <token>
+OPENROUTER_API_KEY              = sk-or-v1-...
+DATABASE_URL                    = postgresql://<user>:<pw>@<host>.neon.tech/<db>?sslmode=require
+MEMGRAPH_URI                    = bolt+ssc://<host>:7687
+MEMGRAPH_USERNAME               = <user>
+MEMGRAPH_PASSWORD               = <pw>
+QDRANT_URL                      = https://<cluster>.qdrant.io:6333
+QDRANT_API_KEY                  = eyJhbGci...
+
+# Supabase Storage (S3-compatible; see "Provision managed stores" above)
+SUPABASE_S3_ENDPOINT            = https://<project>.storage.supabase.co/storage/v1/s3
+SUPABASE_S3_REGION              = ap-northeast-1
+SUPABASE_S3_ACCESS_KEY_ID       = ...
+SUPABASE_S3_SECRET_ACCESS_KEY   = ...
+SUPABASE_BUCKET                 = opengraph-kb
+SUPABASE_PUBLIC_URL_BASE        = https://<project>.supabase.co/storage/v1/object/public
+
+UPSTASH_REDIS_REST_URL          = https://<name>.upstash.io
+UPSTASH_REDIS_REST_TOKEN        = <token>
 
 # Auth (REQUIRED)
 JWT_SECRET                = <48-byte urlsafe string>
@@ -104,10 +112,10 @@ GITHUB_CLIENT_SECRET      = ...
 ### Required secrets — `opengraph-build-worker`
 
 The worker needs **every** secret the backend has — same Neon, same
-Memgraph, same Qdrant, same Blob, same Upstash, same `JWT_SECRET`
-(the worker imports auth helpers that reference it, even though it
-never mints tokens). Use Render's **Link Environment Groups** feature
-or just paste them again.
+Memgraph, same Qdrant, same Supabase Storage credentials, same Upstash,
+same `JWT_SECRET` (the worker imports auth helpers that reference it,
+even though it never mints tokens). Use Render's **Link Environment
+Groups** feature or just paste them again.
 
 ### Required secrets — `opengraph-frontend`
 
@@ -258,7 +266,11 @@ docker run --rm -p 8000:8000 \
   -e MEMGRAPH_URI=bolt+ssc://... \
   -e MEMGRAPH_USERNAME=... -e MEMGRAPH_PASSWORD=... \
   -e QDRANT_URL=https://... -e QDRANT_API_KEY=... \
-  -e BLOB_READ_WRITE_TOKEN=... \
+  -e SUPABASE_S3_ENDPOINT=https://<project>.storage.supabase.co/storage/v1/s3 \
+  -e SUPABASE_S3_REGION=ap-northeast-1 \
+  -e SUPABASE_S3_ACCESS_KEY_ID=... -e SUPABASE_S3_SECRET_ACCESS_KEY=... \
+  -e SUPABASE_BUCKET=opengraph-kb \
+  -e SUPABASE_PUBLIC_URL_BASE=https://<project>.supabase.co/storage/v1/object/public \
   -e UPSTASH_REDIS_REST_URL=... -e UPSTASH_REDIS_REST_TOKEN=... \
   -e JWT_SECRET=... \
   opengraph-backend
@@ -329,3 +341,21 @@ On macOS `host.docker.internal` reaches the backend on the host.
 - **CORS errors after a custom-domain switch** — update
   `CORS_ALLOW_ORIGINS` on the backend. The value is a literal origin
   list, not a wildcard pattern.
+- **Uploads 503 with `Supabase Storage is not configured`** — one of the
+  six `SUPABASE_*` env vars is missing on the backend. Verify all of
+  `SUPABASE_S3_ENDPOINT`, `SUPABASE_S3_REGION`, `SUPABASE_S3_ACCESS_KEY_ID`,
+  `SUPABASE_S3_SECRET_ACCESS_KEY`, `SUPABASE_BUCKET`, and
+  `SUPABASE_PUBLIC_URL_BASE` are set; `/health` reports
+  `"file_storage": true` once they're all present.
+- **Build worker can't download files (403 Forbidden on GET)** — the
+  Supabase bucket is not marked public. Go to Supabase → Storage →
+  (your bucket) → Settings → toggle *Public*. Reads go through the
+  public object URL; without the public flag, every GET returns 403.
+- **Uploads succeed but the object is not in the bucket you expect** —
+  `SUPABASE_BUCKET` does not match the bucket name in the Supabase
+  dashboard exactly (case-sensitive). boto3 signed the request for the
+  value you configured; fix the env and redeploy both services.
+- **`NoCredentialsError` on upload** — the S3 access key id or secret
+  is empty/whitespace. These are *sync: false* in render.yaml; regenerate
+  from Supabase → Project Settings → Storage → S3 Connection and paste
+  both values into Render.
