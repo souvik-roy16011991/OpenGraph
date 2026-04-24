@@ -240,16 +240,60 @@ against Neon.
 
 ## 7. Tightening CORS
 
-`render.yaml` wires `CORS_ALLOW_ORIGINS` to `https://opengraph.tech`
-plus the frontend's `.onrender.com` host. If you deploy to a different
-domain, update the value to your exact origin (scheme + host) — the
-backend compares the `Origin:` header string-for-string.
+Two env vars control the backend's CORS policy; both are already in
+`render.yaml` and both belong on the backend service.
 
-Browser SDK callers on a domain other than the frontend's origin will
-be blocked by CORS. For third-party browser users of your API,
-either (a) widen `CORS_ALLOW_ORIGINS` to `*` (drops credential
-support) or (b) keep browser usage to the same-origin frontend and
-recommend the Python/TS SDKs for everyone else.
+| Var | Default | Shape |
+|---|---|---|
+| `CORS_ALLOW_ORIGINS` | `*` | Comma-separated **exact** origins (scheme + host), e.g. `https://opengraph.tech,https://www.opengraph.tech,https://opengraph-frontend.onrender.com` |
+| `CORS_ALLOW_ORIGIN_REGEX` | *(unset)* | Optional regex matched against the `Origin` header, e.g. `^https://([a-z0-9-]+\.)?opengraph\.tech$` (apex + any single-subdomain). |
+
+A request passes CORS if its `Origin` header matches **either** the
+exact list or the regex. Set both so a new subdomain (`app.`,
+`staging.`, etc.) works without a redeploy.
+
+Credentials (non-HttpOnly `auth_token` cookie) require a concrete
+allowlist — credentials are automatically turned off only when the
+exact list is literally `*` and no regex is set.
+
+### The classic footgun: forgetting `www.`
+
+Browsers exact-match the `Origin` header. `https://opengraph.tech`
+and `https://www.opengraph.tech` are two distinct origins. If the
+allowlist has only the apex, every preflight from the `www` version
+returns 400 and the browser silently drops the real request — the
+user sees a form that just doesn't submit. Always list both, or cover
+them with the regex.
+
+### Verifying after a deploy
+
+```bash
+for origin in https://opengraph.tech \
+              https://www.opengraph.tech \
+              https://opengraph-frontend.onrender.com ; do
+  echo "=== $origin ==="
+  curl -sI -X OPTIONS \
+    -H "Origin: $origin" \
+    -H "Access-Control-Request-Method: POST" \
+    -H "Access-Control-Request-Headers: authorization,content-type" \
+    https://<backend>.onrender.com/api/v1/auth/signup \
+    | grep -i '^HTTP\|^access-control'
+done
+```
+
+Every origin should respond `HTTP/2 200` with a matching
+`access-control-allow-origin` header. A `HTTP/2 400` means that
+specific origin isn't covered — add it to the exact list or widen the
+regex.
+
+### Same-domain frontend + API (optional hardening)
+
+You can also sidestep CORS entirely by putting the backend behind the
+same custom domain as the frontend (e.g. `api.opengraph.tech` pointing
+at `opengraph-backend.onrender.com` and serving the UI from
+`www.opengraph.tech`). The frontend's `lib/api.ts` already supports
+a same-origin base URL — just change `NEXT_PUBLIC_API_BASE` to the
+same origin the frontend runs on. No CORS hop at all.
 
 ---
 

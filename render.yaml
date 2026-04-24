@@ -233,14 +233,27 @@ services:
         value: /app/kb-config
 
       # --- CORS --------------------------------------------------------
-      # Hard-coded to the frontend's full origin (scheme + host). `fromService`
-      # with `property: host` has been observed returning the service *name*
-      # (`opengraph-frontend`) instead of the hostname on Docker blueprints,
-      # which breaks every preflight because browsers send the full
-      # `Origin: https://<host>` header. Keep this literal; update if the
-      # frontend service is renamed or moved to a custom domain.
+      # Hard-coded to each full origin (scheme + host) the frontend is reachable
+      # from. `fromService` with `property: host` has been observed returning
+      # the service *name* (`opengraph-frontend`) instead of the hostname on
+      # Docker blueprints, which breaks every preflight because browsers send
+      # the full `Origin: https://<host>` header — so keep these literal.
+      #
+      # EVERY distinct host the frontend can be served from MUST be listed,
+      # because browsers exact-match the Origin header. Missing the `www.`
+      # subdomain is the classic cause of "my sign-up form just fails silently"
+      # — the apex works, www doesn't, and the preflight 400 isn't user-visible
+      # unless you open DevTools Network.
       - key: CORS_ALLOW_ORIGINS
-        value: https://opengraph.tech,https://opengraph-frontend.onrender.com
+        value: https://opengraph.tech,https://www.opengraph.tech,https://opengraph-frontend.onrender.com,www.opengraph.tech
+
+      # Optional regex allowlist in addition to the exact list above. Set to
+      # e.g. `^https://([a-z0-9-]+\.)?opengraph\.tech$` to let ANY subdomain of
+      # opengraph.tech through without needing a redeploy when you add
+      # app.opengraph.tech, staging.opengraph.tech, etc. Leave empty if you
+      # prefer strict exact-matching.
+      - key: CORS_ALLOW_ORIGIN_REGEX
+        value: ^https://([a-z0-9-]+\.)?opengraph\.tech$
 
       # --- Process mode -------------------------------------------------
       # src/entrypoint.py inspects APP_MODE and starts uvicorn (api) or the
