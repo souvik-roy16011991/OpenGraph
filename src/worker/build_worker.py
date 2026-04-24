@@ -947,7 +947,17 @@ async def worker_main() -> None:
 
     # Initialise Neon engine + ensure tables/columns/indexes exist. Harmless
     # if the API already did this on another instance; idempotent.
-    await _db.init_db()
+    #
+    # Wrapped to match the API's lifespan behaviour (src/api/server.py:37-40):
+    # on Render, Neon can be briefly unreachable during a rolling deploy, and
+    # crashing the worker here turns a transient outage into a restart storm
+    # that blocks the service from coming up. The claim loop below handles
+    # DB errors per-iteration via ``claim_next``; treating startup the same
+    # way keeps the worker in a drain-and-retry posture instead of dying.
+    try:
+        await _db.init_db()
+    except Exception as exc:
+        logger.warning("Neon init failed (continuing, claim loop will retry): %s", exc)
 
     # The existing _collect_workspace_sources() at src/api/build_jobs.py:345
     # uses ``run_coroutine_threadsafe(_fetch(), get_main_loop())`` to hop
