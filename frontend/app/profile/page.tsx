@@ -45,7 +45,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   "config.domain.update":     { label: "Edited domain config",   color: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   "config.graph.update":      { label: "Edited graph config",    color: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
   "build.start":              { label: "Started build",          color: "bg-violet-500/15 text-violet-700 dark:text-violet-400" },
-  "file.upload":              { label: "Uploaded KB files",      color: "bg-teal-500/15 text-teal-700 dark:text-teal-400" },
+  "file.upload":              { label: "Uploaded knowledge base files", color: "bg-teal-500/15 text-teal-700 dark:text-teal-400" },
   "file.delete":              { label: "Deleted file",           color: "bg-rose-500/15 text-rose-700 dark:text-rose-400" },
   "chat.query":               { label: "Asked the agent",        color: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400" },
   "llm.preference.change":    { label: "Changed LLM preference", color: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-400" },

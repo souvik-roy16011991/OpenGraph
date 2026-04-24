@@ -159,6 +159,13 @@ class WorkspaceFile(Base):
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     blob_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     local_path: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    # Raw source document tracking — populated only for files derived from
+    # the vision-OCR pipeline (uploaded PDF/PPTX/DOCX). NULL for hand-
+    # authored JSON uploads. source_document_sha256 provides the dedup key
+    # that lets a re-upload of the same raw doc short-circuit to the
+    # already-parsed WorkspaceFile without re-running OCR.
+    source_document_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    source_document_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -170,6 +177,16 @@ class WorkspaceFile(Base):
         CheckConstraint("kb_source IN ('knowledge','tool')", name="ck_workspace_files_source"),
         UniqueConstraint("workspace_id", "kb_source", "sha256", name="uq_workspace_files_sha"),
         Index("ix_workspace_files_workspace_id", "workspace_id"),
+        # Dedup index for raw documents — a repeat upload of the same PPTX
+        # under the same (ws, kb_source) returns the existing parsed
+        # WorkspaceFile without a second OCR pass. Partial: rows without a
+        # raw source document (plain JSON uploads) are excluded.
+        Index(
+            "ix_workspace_files_source_sha",
+            "workspace_id", "kb_source", "source_document_sha256",
+            unique=True,
+            postgresql_where=text("source_document_sha256 IS NOT NULL"),
+        ),
     )
 
 
@@ -218,6 +235,92 @@ class BuildJobRow(Base):
     __table_args__ = (
         CheckConstraint("status IN ('queued','running','done','error')", name="ck_build_jobs_status"),
         Index("ix_build_jobs_workspace_created", "workspace_id", "created_at"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# parse_jobs — vision-OCR ingestion queue
+# ---------------------------------------------------------------------------
+# Distinct from build_jobs because:
+#   - No per-workspace single-flight: a user can drop 10 PDFs at once and
+#     they should parse concurrently (up to worker parallelism).
+#   - Runtime is OpenRouter-bound, not CPU-bound — a different concurrency
+#     profile means a different semaphore on the worker.
+#   - Result is a single new workspace_files row, not a graph build.
+# Mirrors the heartbeat / attempt_count / worker_id fields of BuildJobRow
+# so the same sweeper pattern applies.
+
+class ParseJobRow(Base):
+    __tablename__ = "parse_jobs"
+
+    job_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Denormalised for fast billing debit on completion (avoids a
+    # workspaces join on every progress write).
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kb_source: Mapped[str] = mapped_column(String(16), nullable=False)  # knowledge|tool
+    filename: Mapped[str] = mapped_column(String(256), nullable=False)
+    # The raw uploaded doc (PDF/PPTX/DOCX/…) lives here; the worker
+    # downloads it, runs the vision pipeline, and writes the parsed JSON
+    # back to a separate canonical blob path.
+    source_document_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    source_document_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_document_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    source_mime: Mapped[str] = mapped_column(String(128), nullable=False)
+
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
+    percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pages_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pages_done: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Worker liveness (same semantics as build_jobs).
+    heartbeat_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    worker_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # Populated on successful completion — the workspace_files row that
+    # now holds the parsed JSON. Used by the frontend to navigate from a
+    # completed parse card to the file it produced.
+    result_file_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        ForeignKey("workspace_files.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # Billing + cost telemetry. tokens_in/out come from OpenRouter's usage
+    # object on every chat-completion response; cost_usd is computed at
+    # completion using the per-model rate in src/config.py.
+    tokens_in: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    tokens_out: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    cost_usd: Mapped[Optional[float]] = mapped_column(nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('queued','running','done','error','cancelled')",
+            name="ck_parse_jobs_status",
+        ),
+        CheckConstraint(
+            "kb_source IN ('knowledge','tool')",
+            name="ck_parse_jobs_source",
+        ),
+        Index("ix_parse_jobs_workspace_created", "workspace_id", "created_at"),
+        Index("ix_parse_jobs_user_created", "user_id", "created_at"),
     )
 
 

@@ -289,7 +289,42 @@ async def init_db() -> None:
             SELECT id, 'payg', 0, 0, 0, 0, -200 FROM users
             ON CONFLICT (user_id) DO NOTHING
         """))
-    logger.info("Neon tables ensured (users, workspaces, build_jobs, chat_*, kb_uploads, audit, billing_accounts).")
+        # --- workspace_files: raw-document tracking -----------------------
+        # The vision-OCR ingestion path (PDF/PPTX/DOCX upload → Qwen VL →
+        # parsed JSON) persists the raw source doc's blob URL and SHA-256
+        # on the resulting workspace_files row. Plain JSON uploads leave
+        # both columns NULL. The partial unique index defends re-upload of
+        # the same raw doc — it short-circuits to the existing parsed row
+        # instead of re-paying an OCR pass.
+        await conn.execute(text(
+            "ALTER TABLE workspace_files ADD COLUMN IF NOT EXISTS "
+            "source_document_url VARCHAR(1024)"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE workspace_files ADD COLUMN IF NOT EXISTS "
+            "source_document_sha256 VARCHAR(64)"
+        ))
+        await conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_workspace_files_source_sha "
+            "ON workspace_files (workspace_id, kb_source, source_document_sha256) "
+            "WHERE source_document_sha256 IS NOT NULL"
+        ))
+        # --- parse_jobs table ---------------------------------------------
+        # Durable queue for the vision ingestion worker loop. Columns
+        # mirror the ORM model in src/infra/db_models.py::ParseJobRow. No
+        # per-workspace single-flight — users can upload multiple docs in
+        # parallel. create_all() above already created the table; the
+        # explicit index/constraint statements below stay idempotent for
+        # deployments mid-upgrade.
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_parse_jobs_workspace_created "
+            "ON parse_jobs (workspace_id, created_at)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_parse_jobs_user_created "
+            "ON parse_jobs (user_id, created_at)"
+        ))
+    logger.info("Neon tables ensured (users, workspaces, build_jobs, parse_jobs, chat_*, kb_uploads, audit, billing_accounts).")
 
 
 # ---------------------------------------------------------------------------

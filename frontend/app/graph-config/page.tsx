@@ -78,8 +78,8 @@ export default function GraphConfigPage() {
       description={
         <>
           Tune how the graph is built. Changes in Embeddings / Edges /
-          Cross-KB / Extraction require a rebuild. Traversal &amp; Search
-          apply live.
+          Cross-knowledge base / Extraction require a rebuild. Traversal
+          &amp; Search apply live.
         </>
       }
       // Tabs + number sliders + chip editors read better in a wider column.
@@ -89,7 +89,7 @@ export default function GraphConfigPage() {
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="embeddings">Embeddings</TabsTrigger>
           <TabsTrigger value="edges">Edges</TabsTrigger>
-          <TabsTrigger value="cross_kb">Cross-KB</TabsTrigger>
+          <TabsTrigger value="cross_kb">Cross-linking</TabsTrigger>
           <TabsTrigger value="traversal">Traversal <Badge variant="success" className="ml-2 text-[9px]">live</Badge></TabsTrigger>
           <TabsTrigger value="search">Search <Badge variant="success" className="ml-2 text-[9px]">live</Badge></TabsTrigger>
           <TabsTrigger value="extraction">Extraction</TabsTrigger>
@@ -160,7 +160,7 @@ export default function GraphConfigPage() {
               <FormField label="INTEGRATES_WITH weight" hint="Tool → tool (from Connected Systems).">
                 <NumberSlider value={w.integrates_with} min={0} max={2} step={0.05} onChange={(v) => patch("edges", { weights: { ...w, integrates_with: v } })} />
               </FormField>
-              <FormField label="IMPLEMENTS weight" hint="Tool chapter → knowledge chapter (cross-KB).">
+              <FormField label="IMPLEMENTS weight" hint="Tool chapter → knowledge chapter (cross-knowledge base).">
                 <NumberSlider value={w.implements} min={0} max={2} step={0.05} onChange={(v) => patch("edges", { weights: { ...w, implements: v } })} />
               </FormField>
               <FormField label="USES_TOOL weight" hint="Knowledge section → tool (text mention).">
@@ -179,7 +179,7 @@ export default function GraphConfigPage() {
         <TabsContent value="cross_kb">
           <Card>
             <CardHeader>
-              <CardTitle>Cross-KB IMPLEMENTS links</CardTitle>
+              <CardTitle>Cross-knowledge base IMPLEMENTS links</CardTitle>
               <CardDescription>Balance precision vs recall when linking tool chapters to knowledge chapters.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-5 md:grid-cols-2">
@@ -201,7 +201,7 @@ export default function GraphConfigPage() {
               <FormField label="Min tool name length" hint="For the co-occurrence signal; filters tiny noise names.">
                 <NumberSlider value={x.min_tool_name_length} min={1} max={20} onChange={(v) => patch("cross_kb", { min_tool_name_length: v })} />
               </FormField>
-              <FormField label="Skip chapter headings" hint="Chapters excluded from cross-KB mapping." className="md:col-span-2">
+              <FormField label="Skip chapter headings" hint="Chapters excluded from cross-knowledge base mapping." className="md:col-span-2">
                 <ChipsEditor values={x.skip_chapter_headings} onChange={(v) => patch("cross_kb", { skip_chapter_headings: v })} placeholder="Add heading…" />
               </FormField>
               <FormField label="LLM max tokens" hint="Budget for cross-link refinement call.">

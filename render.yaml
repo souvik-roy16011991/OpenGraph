@@ -147,6 +147,23 @@ services:
       - key: GRAPH_FILTER_GUARD
         value: "1"
 
+      # --- Upload request concurrency -----------------------------------
+      # Per-request cap on concurrent per-file blob-PUT + dedup + INSERT
+      # tasks inside upload_routes. 8 saturates Vercel Blob without
+      # exhausting the Neon pool (DB_POOL_SIZE=2, MAX_OVERFLOW=10).
+      # Raise with the DB pool if you bump it.
+      - key: UPLOAD_CONCURRENCY
+        value: "8"
+
+      # --- Vision-OCR ingestion guardrails ------------------------------
+      # Must match the opengraph-build-worker values — the backend
+      # enforces queue cap and daily ceiling at enqueue time; the worker
+      # enforces the OpenRouter rate limit at OCR time.
+      - key: USER_PARSE_QUEUE_CAP
+        value: "50"
+      - key: USER_DAILY_PARSE_USD
+        value: "20.00"
+
       # --- Vercel Blob (durable KB file storage, per workspace) ---------
       - key: BLOB_READ_WRITE_TOKEN
         sync: false
@@ -324,6 +341,42 @@ services:
       # the worker to only write when the snapshot actually changed.
       - key: BUILD_HEARTBEAT_INTERVAL_S
         value: "10"
+
+      # --- Parse (vision OCR) concurrency -------------------------------
+      # Per-process cap on concurrent vision-OCR parse jobs claimed
+      # from parse_jobs. Each in-flight parse holds one PyMuPDF doc in
+      # memory (~50-300 MB peak); 6 concurrent × 150 MB avg ≈ 1 GB
+      # plus soffice scratch, which fits starter (2 GB RAM) with
+      # headroom. Raise to 8-10 on standard plan (4 GB).
+      #
+      # Scale horizontally: add another `type: worker` service in this
+      # file with the same image + envs — SELECT FOR UPDATE SKIP LOCKED
+      # makes multi-worker claims contention-free. One worker parses
+      # ~60 pages/minute; four workers = ~240 pages/minute total.
+      - key: PARSE_CONCURRENCY
+        value: "6"
+
+      # Per-user minute budget against OpenRouter's vision model. Stops
+      # one user's 200-doc burst from starving other users of OCR
+      # capacity. 120 rpm = 2 qps per user — comfortable for a single
+      # batch (3 parses concurrent × ~2 pages/sec each = 6 req/sec
+      # already over the limit, so pages serialise cleanly). Lower for
+      # stricter fairness, set to 0 to disable.
+      - key: VISION_RPM_PER_USER
+        value: "120"
+
+      # Per-user daily USD ceiling on document_parse debits. Prevents a
+      # runaway burst from turning into a surprise bill. Breach returns
+      # 402 on the NEXT enqueue; in-flight jobs run to completion.
+      - key: USER_DAILY_PARSE_USD
+        value: "20.00"
+
+      # Max queued-or-running parse jobs per user. The 51st enqueue
+      # returns 402 with reason=parse_queue_cap_exceeded. The user can
+      # resume as the queue drains.
+      - key: USER_PARSE_QUEUE_CAP
+        value: "50"
+
       # --- Process mode -------------------------------------------------
       - key: APP_MODE
         value: worker
