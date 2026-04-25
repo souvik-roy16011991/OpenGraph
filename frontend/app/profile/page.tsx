@@ -38,6 +38,7 @@ import type { AuditEntry, MeResponse } from "@/lib/schema";
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   "auth.signup":              { label: "Signed up",              color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" },
+  "auth.signup.otp_verified": { label: "Verified email & signed up", color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" },
   "workspace.create":         { label: "Created workspace",      color: "bg-sky-500/15 text-sky-700 dark:text-sky-400" },
   "workspace.update":         { label: "Updated workspace",      color: "bg-sky-500/15 text-sky-700 dark:text-sky-400" },
   "workspace.delete":         { label: "Deleted workspace",      color: "bg-rose-500/15 text-rose-700 dark:text-rose-400" },

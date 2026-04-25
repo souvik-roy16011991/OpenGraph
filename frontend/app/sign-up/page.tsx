@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { githubLoginUrl, signup } from "@/lib/auth";
+import {
+  HttpError,
+  githubLoginUrl,
+  resendSignupOtp,
+  startSignup,
+  verifySignupOtp,
+} from "@/lib/auth";
 
 function GitHubMark({ className }: { className?: string }) {
   return (
@@ -27,6 +33,10 @@ import { BrandMark } from "@/components/brand";
 import { CAL_BOOKING_URL } from "@/lib/plans";
 
 const MIN_PASSWORD = 8;
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_S = 30;
+
+type Step = "details" | "otp";
 
 export default function SignUpPage() {
   return (
@@ -49,7 +59,25 @@ function SignUpPageInner() {
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  const [step, setStep] = React.useState<Step>("details");
+  const [ticket, setTicket] = React.useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = React.useState("");
+  const [otp, setOtp] = React.useState("");
+  const [resendCooldown, setResendCooldown] = React.useState(0);
+  const [resending, setResending] = React.useState(false);
+
+  // Tick the resend cooldown down to zero. One interval, cleared on unmount
+  // or when the cooldown finishes — keeps the "Resend code" button accurate
+  // without a per-render timer.
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = window.setInterval(() => {
+      setResendCooldown((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [resendCooldown]);
+
+  async function onSubmitDetails(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (password.length < MIN_PASSWORD) {
@@ -62,18 +90,83 @@ function SignUpPageInner() {
     }
     setSubmitting(true);
     try {
-      await signup({
+      const res = await startSignup({
         email: email.trim().toLowerCase(),
         password,
         display_name: displayName.trim() || undefined,
       });
-      router.replace(returnTo);
-      router.refresh();
+      setTicket(res.ticket);
+      setPendingEmail(res.email);
+      setOtp("");
+      setStep("otp");
+      setResendCooldown(RESEND_COOLDOWN_S);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-up failed.");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function onSubmitOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!ticket) return;
+    const code = otp.trim();
+    if (code.length !== OTP_LENGTH || !/^\d+$/.test(code)) {
+      setError(`Enter the ${OTP_LENGTH}-digit code from your email.`);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await verifySignupOtp({ ticket, otp: code });
+      router.replace(returnTo);
+      router.refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Verification failed.";
+      // 410 = ticket expired or attempts exhausted. Bounce back to step 1
+      // (preserving the typed email/password) so the user can retry.
+      if (err instanceof HttpError && err.status === 410) {
+        setStep("details");
+        setTicket(null);
+        setOtp("");
+        setError("That code expired or was used too many times. Try again.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function onResend() {
+    if (!ticket || resending || resendCooldown > 0) return;
+    setError(null);
+    setResending(true);
+    try {
+      const res = await resendSignupOtp(ticket);
+      setTicket(res.ticket);
+      setOtp("");
+      setResendCooldown(RESEND_COOLDOWN_S);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Couldn't resend the code.";
+      if (err instanceof HttpError && err.status === 410) {
+        setStep("details");
+        setTicket(null);
+        setOtp("");
+        setError("That signup expired. Start again.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setResending(false);
+    }
+  }
+
+  function backToDetails() {
+    setStep("details");
+    setTicket(null);
+    setOtp("");
+    setError(null);
   }
 
   return (
@@ -115,122 +208,187 @@ function SignUpPageInner() {
       {/* Form Section (Right/Bottom) */}
       <section className="flex-1 flex items-center justify-center p-6 md:p-12 overflow-y-auto">
         <Card className="w-full max-w-sm border-none shadow-none bg-transparent my-auto">
-          <CardHeader className="px-0 pt-0">
-            <CardTitle className="text-2xl">Create an account</CardTitle>
-            <CardDescription>Each email is its own private workspace tenant.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="w-full mb-4"
-              disabled={submitting}
-              onClick={() => {
-                window.location.href = githubLoginUrl(rawReturn);
-              }}
-            >
-              <GitHubMark className="h-4 w-4 mr-2" />
-              Continue with GitHub
-            </Button>
-            <div className="relative my-4" aria-hidden="true">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or</span>
-              </div>
-            </div>
-            <form onSubmit={onSubmit} className="space-y-4" noValidate>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="name@company.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+          {step === "details" ? (
+            <>
+              <CardHeader className="px-0 pt-0">
+                <CardTitle className="text-2xl">Create an account</CardTitle>
+                <CardDescription>Each email is its own private workspace tenant.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="w-full mb-4"
                   disabled={submitting}
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="display_name">Display name (optional)</Label>
-                <Input
-                  id="display_name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder="Jane Doe"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={submitting}
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={MIN_PASSWORD}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={submitting}
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="confirm">Confirm password</Label>
-                <Input
-                  id="confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={MIN_PASSWORD}
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  disabled={submitting}
-                  className="bg-background"
-                />
-              </div>
-              {error ? (
-                <p className="text-xs text-destructive" role="alert">{error}</p>
-              ) : null}
-              <Button type="submit" className="w-full" size="lg" disabled={submitting}>
-                {submitting ? "Creating account…" : "Create account"}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center pb-2">
-                Already have an account?{" "}
-                <Link
-                  href={`/sign-in${rawReturn ? `?return_to=${encodeURIComponent(rawReturn)}` : ""}`}
-                  className="underline hover:text-foreground font-medium"
+                  onClick={() => {
+                    window.location.href = githubLoginUrl(rawReturn);
+                  }}
                 >
-                  Sign in
-                </Link>
-              </p>
-              {/* Two-plan footer — see frontend/lib/plans.ts. Sign-up lands
-                  every user on the free trial; if they already know they
-                  need Enterprise (SSO, higher limits, support channel),
-                  the Cal.com link goes straight to the co-founder. */}
-              <p className="text-[11px] text-muted-foreground text-center pb-4">
-                You&apos;ll start on the <span className="font-medium">free trial</span>.
-                {" "}Need Enterprise?{" "}
-                <a
-                  href={CAL_BOOKING_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-foreground font-medium"
-                >
-                  Book a call
-                </a>
-                .
-              </p>
-            </form>
-          </CardContent>
+                  <GitHubMark className="h-4 w-4 mr-2" />
+                  Continue with GitHub
+                </Button>
+                <div className="relative my-4" aria-hidden="true">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
+                <form onSubmit={onSubmitDetails} className="space-y-4" noValidate>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="name@company.com"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={submitting}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="display_name">Display name (optional)</Label>
+                    <Input
+                      id="display_name"
+                      type="text"
+                      autoComplete="name"
+                      placeholder="Jane Doe"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      disabled={submitting}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={MIN_PASSWORD}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={submitting}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirm">Confirm password</Label>
+                    <Input
+                      id="confirm"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={MIN_PASSWORD}
+                      value={confirm}
+                      onChange={(e) => setConfirm(e.target.value)}
+                      disabled={submitting}
+                      className="bg-background"
+                    />
+                  </div>
+                  {error ? (
+                    <p className="text-xs text-destructive" role="alert">{error}</p>
+                  ) : null}
+                  <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+                    {submitting ? "Sending code…" : "Create account"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center pb-2">
+                    Already have an account?{" "}
+                    <Link
+                      href={`/sign-in${rawReturn ? `?return_to=${encodeURIComponent(rawReturn)}` : ""}`}
+                      className="underline hover:text-foreground font-medium"
+                    >
+                      Sign in
+                    </Link>
+                  </p>
+                  {/* Two-plan footer — see frontend/lib/plans.ts. Sign-up lands
+                      every user on the free trial; if they already know they
+                      need Enterprise (SSO, higher limits, support channel),
+                      the Cal.com link goes straight to the co-founder. */}
+                  <p className="text-[11px] text-muted-foreground text-center pb-4">
+                    You&apos;ll start on the <span className="font-medium">free trial</span>.
+                    {" "}Need Enterprise?{" "}
+                    <a
+                      href={CAL_BOOKING_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-foreground font-medium"
+                    >
+                      Book a call
+                    </a>
+                    .
+                  </p>
+                </form>
+              </CardContent>
+            </>
+          ) : (
+            <>
+              <CardHeader className="px-0 pt-0">
+                <CardTitle className="text-2xl">Check your email</CardTitle>
+                <CardDescription>
+                  We sent a {OTP_LENGTH}-digit code to{" "}
+                  <span className="font-medium text-foreground">{pendingEmail}</span>.
+                  Enter it below to finish creating your account.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-0">
+                <form onSubmit={onSubmitOtp} className="space-y-4" noValidate>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="otp">Verification code</Label>
+                    <Input
+                      id="otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]*"
+                      maxLength={OTP_LENGTH}
+                      placeholder="123456"
+                      required
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH))}
+                      disabled={submitting}
+                      autoFocus
+                      className="bg-background tracking-[0.4em] font-mono text-center text-lg"
+                    />
+                  </div>
+                  {error ? (
+                    <p className="text-xs text-destructive" role="alert">{error}</p>
+                  ) : null}
+                  <Button type="submit" className="w-full" size="lg" disabled={submitting || otp.length !== OTP_LENGTH}>
+                    {submitting ? "Verifying…" : "Verify and create account"}
+                  </Button>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+                    <button
+                      type="button"
+                      onClick={backToDetails}
+                      className="underline hover:text-foreground"
+                      disabled={submitting}
+                    >
+                      Edit email or password
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onResend}
+                      className="underline hover:text-foreground disabled:no-underline disabled:opacity-60"
+                      disabled={submitting || resending || resendCooldown > 0}
+                    >
+                      {resendCooldown > 0
+                        ? `Resend in ${resendCooldown}s`
+                        : resending
+                          ? "Resending…"
+                          : "Resend code"}
+                    </button>
+                  </div>
+                </form>
+              </CardContent>
+            </>
+          )}
         </Card>
       </section>
     </div>

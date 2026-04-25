@@ -502,6 +502,7 @@ from src.api.llm_routes import router as llm_router              # noqa: E402
 from src.api.template_routes import router as template_router    # noqa: E402
 from src.api.me_routes import router as me_router                # noqa: E402
 from src.api.auth_routes import router as auth_router            # noqa: E402
+from src.api.signup_otp import router as signup_otp_router       # noqa: E402
 from src.api.oauth_github import router as oauth_github_router   # noqa: E402
 
 router.include_router(workspace_router, tags=["workspace"])
@@ -513,5 +514,6 @@ router.include_router(history_router, tags=["history"])
 router.include_router(llm_router, tags=["llm"])
 router.include_router(template_router, tags=["templates"])
 router.include_router(me_router, tags=["me"])
+router.include_router(signup_otp_router)
 router.include_router(auth_router)
 router.include_router(oauth_github_router)
