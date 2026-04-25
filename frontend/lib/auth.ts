@@ -89,7 +89,21 @@ const API_BASE = RAW_API_BASE && !/^https?:\/\//i.test(RAW_API_BASE)
   ? `https://${RAW_API_BASE}`
   : RAW_API_BASE;
 
-async function authFetch(path: string, body: unknown): Promise<AuthResponse> {
+/**
+ * Generic JSON POST that matches the backend's `{detail: string}` error envelope.
+ * Used by every auth helper. The status code is exposed via the thrown
+ * ``HttpError`` so callers can distinguish 410 (ticket expired) from 401
+ * (wrong code) without parsing the message string.
+ */
+export class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
@@ -100,30 +114,65 @@ async function authFetch(path: string, body: unknown): Promise<AuthResponse> {
     });
   } catch (err) {
     if (err instanceof TypeError) {
-      throw new Error("Can't reach the server right now — please check your internet connection and try again.");
+      throw new HttpError("Can't reach the server right now — please check your internet connection and try again.", 0);
     }
     throw err;
   }
   if (!res.ok) {
     let detail: unknown = res.statusText;
     try { detail = (await res.json()).detail ?? detail; } catch { /* ignore */ }
-    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    throw new HttpError(
+      typeof detail === "string" ? detail : JSON.stringify(detail),
+      res.status,
+    );
   }
-  return res.json() as Promise<AuthResponse>;
+  return res.json() as Promise<T>;
 }
 
-export async function signup(input: {
+export type SignupTicket = {
+  ticket: string;
+  email: string;
+  expires_in: number;
+};
+
+/**
+ * Step 1 of email/password signup. Validates the input on the server, parks
+ * a pending-signup ticket in Redis, sends a 6-digit OTP via Resend, and
+ * returns the ticket id. The ``User`` row is NOT created yet — call
+ * ``verifySignupOtp`` next to finish.
+ */
+export async function startSignup(input: {
   email: string;
   password: string;
   display_name?: string;
+}): Promise<SignupTicket> {
+  return postJson<SignupTicket>("/api/v1/auth/signup", input);
+}
+
+/**
+ * Step 2 of email/password signup. On success the backend creates the
+ * ``User`` row, mints the app JWT, and returns it; we drop it into the
+ * shared session store so the next page load sees the auth cookie.
+ */
+export async function verifySignupOtp(input: {
+  ticket: string;
+  otp: string;
 }): Promise<AuthResponse> {
-  const out = await authFetch("/api/v1/auth/signup", input);
+  const out = await postJson<AuthResponse>("/api/v1/auth/signup/verify", input);
   setSession(out.token, out.user);
   return out;
 }
 
+/**
+ * Re-issue the OTP for a pending ticket. The old ticket is burned; the
+ * caller must use the new ticket id from the response on the next verify.
+ */
+export async function resendSignupOtp(ticket: string): Promise<SignupTicket> {
+  return postJson<SignupTicket>("/api/v1/auth/signup/resend", { ticket });
+}
+
 export async function login(input: { email: string; password: string }): Promise<AuthResponse> {
-  const out = await authFetch("/api/v1/auth/login", input);
+  const out = await postJson<AuthResponse>("/api/v1/auth/login", input);
   setSession(out.token, out.user);
   return out;
 }

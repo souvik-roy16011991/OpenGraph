@@ -200,6 +200,19 @@ OAUTH_STATE_SECRET: str = os.environ.get("OAUTH_STATE_SECRET", "") or JWT_SECRET
 # When unset/empty, the full OpenRouter catalog is exposed via /api/v1/llm/models.
 OPENROUTER_ALLOWED_MODELS: str = os.environ.get("OPENROUTER_ALLOWED_MODELS", "")
 
+# ---------------------------------------------------------------------------
+# Resend (signup OTP delivery) — required to gate password signup.
+# Generate a key at https://resend.com/api-keys and verify the sending
+# domain (DKIM/SPF) before pointing real users at it. Email/password signup
+# returns 503 if the key isn't set; GitHub OAuth signup is unaffected.
+# ---------------------------------------------------------------------------
+RESEND_API_KEY: str = os.environ.get("RESEND_API_KEY", "")
+EMAIL_FROM: str = os.environ.get("EMAIL_FROM", "OpenGraph <hey@mail.opengraph.tech>")
+OTP_TTL_SECONDS: int = int(os.environ.get("OTP_TTL_SECONDS", "600"))
+OTP_LENGTH: int = int(os.environ.get("OTP_LENGTH", "6"))
+OTP_MAX_ATTEMPTS: int = int(os.environ.get("OTP_MAX_ATTEMPTS", "5"))
+OTP_MAX_RESENDS: int = int(os.environ.get("OTP_MAX_RESENDS", "3"))
+
 # Feature flags — auto-detected from credential presence
 USE_PINECONE: bool = bool(PINECONE_API_KEY)
 USE_QDRANT: bool = bool(QDRANT_URL and QDRANT_API_KEY)
@@ -216,3 +229,4 @@ USE_NEON: bool = bool(DATABASE_URL)
 USE_UPSTASH: bool = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
 USE_AUTH: bool = bool(JWT_SECRET)
 USE_GITHUB_OAUTH: bool = bool(GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET and OAUTH_STATE_SECRET)
+USE_RESEND: bool = bool(RESEND_API_KEY)

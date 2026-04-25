@@ -216,6 +216,15 @@ services:
       - key: FRONTEND_URL
         value: https://opengraph.tech
 
+      # --- Resend (signup OTP delivery) ---------------------------------
+      # Required for password signup. GitHub OAuth signup is unaffected
+      # if this is missing. Verify the sending domain (DKIM/SPF) on the
+      # Resend dashboard before pointing real users at this.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: OpenGraph <hey@mail.opengraph.tech>
+
       # --- Guardrails ---------------------------------------------------
       # Caps each user at this many workspaces — prevents template-
       # instantiation abuse.
