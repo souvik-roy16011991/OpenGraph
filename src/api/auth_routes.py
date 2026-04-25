@@ -1,24 +1,26 @@
 """
-Signup / login / logout endpoints.
+Login / logout endpoints.
 
-    POST /api/v1/auth/signup  { email, password, display_name? } -> { token, user }
-    POST /api/v1/auth/login   { email, password }                -> { token, user }
-    POST /api/v1/auth/logout                                      -> { ok: true }
+    POST /api/v1/auth/login   { email, password }   -> { token, user }
+    POST /api/v1/auth/logout                          -> { ok: true }
 
 The token returned is an HS256 JWT (see ``src.api.auth``). Clients should
 send it back in ``Authorization: Bearer <token>`` on protected routes.
+
+Signup lives in ``src.api.signup_otp`` — email/password signup is gated
+behind a 6-digit OTP delivered via Resend. GitHub OAuth signup is in
+``src.api.oauth_github`` and is not gated.
 
 Logout is a no-op server-side — JWTs are stateless. Clients drop the token
 locally; rotating ``JWT_SECRET`` is the lever to invalidate everyone at once.
 
 Tenant isolation: each email maps to exactly one ``User`` row; every
-downstream query scopes by ``User.id``. Duplicate-email signup returns 409.
+downstream query scopes by ``User.id``.
 """
 
 from __future__ import annotations
 
 import logging
-import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,15 +29,13 @@ from pydantic import BaseModel, EmailStr, Field
 from src.api.auth import (
     create_access_token,
     get_user_by_email,
-    hash_password,
     invalidate_user_cache,
     normalize_email,
     require_user,
     verify_password,
 )
-from src.config import PASSWORD_MIN_LENGTH, USE_AUTH, USE_NEON
+from src.config import USE_AUTH, USE_NEON
 from src.infra.audit import record_audit
-from src.infra.db import get_session
 from src.infra.db_models import User
 
 logger = logging.getLogger(__name__)
@@ -46,12 +46,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
-
-class SignupRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=1, max_length=256)
-    display_name: Optional[str] = Field(default=None, min_length=1, max_length=256)
-
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -92,53 +86,6 @@ def _user_payload(user: User) -> UserPayload:
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
-
-@router.post("/signup", response_model=TokenResponse, summary="Create a new account")
-async def signup(body: SignupRequest) -> TokenResponse:
-    _guard()
-    if len(body.password) < PASSWORD_MIN_LENGTH:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Password must be at least {PASSWORD_MIN_LENGTH} characters.",
-        )
-
-    email = normalize_email(body.email)
-    # Case-insensitive duplicate check — prevents `Foo@x.com` vs `foo@x.com`
-    # collisions.
-    existing = await get_user_by_email(email)
-    if existing is not None:
-        raise HTTPException(status_code=409, detail="An account with that email already exists.")
-
-    display = body.display_name or email.split("@", 1)[0]
-    pw_hash = hash_password(body.password)
-
-    async with get_session() as s:
-        user = User(email=email, display_name=display, password_hash=pw_hash)
-        s.add(user)
-        try:
-            await s.commit()
-        except Exception as exc:
-            await s.rollback()
-            # Race: another signup for the same email raced us to the unique
-            # index. Surface as 409 rather than 500.
-            if "unique" in str(exc).lower() or "duplicate" in str(exc).lower():
-                raise HTTPException(status_code=409, detail="An account with that email already exists.")
-            logger.exception("signup failed for %s", email)
-            raise HTTPException(status_code=500, detail="Signup failed.")
-        await s.refresh(user)
-
-    try:
-        record_audit(
-            user.id, "auth.signup",
-            target_type="user", target_id=str(user.id),
-            metadata={"email": email},
-        )
-    except Exception:
-        pass
-
-    token = create_access_token(user)
-    return TokenResponse(token=token, user=_user_payload(user))
-
 
 @router.post("/login", response_model=TokenResponse, summary="Log in with email + password")
 async def login(body: LoginRequest) -> TokenResponse:
