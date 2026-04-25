@@ -165,7 +165,17 @@ def _enforce_rate_limit(response: Response, scope: str, subject: str, limit: int
     decision = rate_limit.check(scope=scope, subject=subject, limit=limit)
     rate_limit.apply_headers(response, decision)
     if not decision.allowed:
-        raise HTTPException(status_code=429, detail=message)
+        # FastAPI discards Response.headers when an HTTPException is raised,
+        # so we re-attach the rate-limit headers on the exception itself.
+        raise HTTPException(
+            status_code=429,
+            detail=message,
+            headers={
+                "X-RateLimit-Limit": str(decision.limit),
+                "X-RateLimit-Remaining": str(decision.remaining),
+                "X-RateLimit-Reset": str(decision.reset_at_unix),
+            },
+        )
 
 
 # ---------------------------------------------------------------------------

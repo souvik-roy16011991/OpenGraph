@@ -223,7 +223,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
-        value: OpenGraph <hey@mail.opengraph.tech>
+        value: Hey <otp@mail.opengraph.tech>
 
       # --- Guardrails ---------------------------------------------------
       # Caps each user at this many workspaces — prevents template-
