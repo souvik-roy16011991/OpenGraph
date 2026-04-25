@@ -22,7 +22,7 @@ function GitHubMark({ className }: { className?: string }) {
   );
 }
 
-import { AuthAnimation } from "@/components/auth/auth-animation";
+import Image from "next/image";
 import { BrandMark } from "@/components/brand";
 import { CAL_BOOKING_URL } from "@/lib/plans";
 
@@ -48,9 +48,6 @@ function SignUpPageInner() {
   const [confirm, setConfirm] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
-
-  // Calculate density based on form completion
-  const density = (email.length > 3 ? 0.2 : 0) + (displayName.length > 2 ? 0.2 : 0) + (password.length > 0 ? 0.2 : 0) + 0.4;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -83,22 +80,30 @@ function SignUpPageInner() {
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Overview Section (Left/Top) */}
       <section className="relative w-full md:w-1/2 lg:w-3/5 bg-muted/30 overflow-hidden border-b md:border-b-0 md:border-r flex flex-col p-8 md:p-12 justify-between">
-        <AuthAnimation density={density} />
+        <Image
+          src="/signup-hero.png"
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 1024px) 60vw, (min-width: 768px) 50vw, 100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
 
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-2 group">
             <div className="h-8 w-8 rounded-md border bg-white flex items-center justify-center shadow-sm group-hover:shadow transition-shadow">
               <BrandMark size={18} />
             </div>
-            <span className="font-semibold text-xl tracking-tight">OpenGraph</span>
+            <span className="font-semibold text-xl tracking-tight text-white drop-shadow">OpenGraph</span>
           </Link>
         </div>
 
         <div className="relative z-10 max-w-md">
-          <h2 className="text-3xl font-semibold tracking-tight mb-4">
+          <h2 className="text-3xl font-semibold tracking-tight mb-4 text-white drop-shadow">
             One workspace per tenant.
           </h2>
-          <p className="text-muted-foreground leading-relaxed">
+          <p className="text-white/90 leading-relaxed drop-shadow">
             Create an account to start building your own private knowledge graphs.
             Each email address is isolated into its own secure environment with dedicated
             vector and graph storage.
