@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
  * which is where auth actually lives.
  */
 
-const INFRA_PREFIXES = ["/_next", "/favicon", "/opengraph-mark.svg"];
+const INFRA_PREFIXES = ["/_next", "/favicon", "/opengraph-mark.svg", "/signin-hero.png", "/signup-hero.png"];
 const AUTH_PAGE_PREFIXES = ["/sign-in", "/sign-up"];
 // `/auth/complete` is the landing page for the backend OAuth callback. It
 // receives the JWT as a query param, stores it, and navigates away — so it
