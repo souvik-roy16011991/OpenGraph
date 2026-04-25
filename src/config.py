@@ -208,7 +208,7 @@ OPENROUTER_ALLOWED_MODELS: str = os.environ.get("OPENROUTER_ALLOWED_MODELS", "")
 # ---------------------------------------------------------------------------
 RESEND_API_KEY: str = os.environ.get("RESEND_API_KEY", "")
 EMAIL_FROM: str = os.environ.get("EMAIL_FROM", "Hey <otp@mail.opengraph.tech>")
-OTP_TTL_SECONDS: int = int(os.environ.get("OTP_TTL_SECONDS", "600"))
+OTP_TTL_SECONDS: int = int(os.environ.get("OTP_TTL_SECONDS", "300"))
 OTP_LENGTH: int = int(os.environ.get("OTP_LENGTH", "6"))
 OTP_MAX_ATTEMPTS: int = int(os.environ.get("OTP_MAX_ATTEMPTS", "5"))
 OTP_MAX_RESENDS: int = int(os.environ.get("OTP_MAX_RESENDS", "3"))
