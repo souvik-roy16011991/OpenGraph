@@ -20,7 +20,9 @@ ENV/
 *.egg-info/
 .eggs/
 dist/
-build/
+# Anchored to repo root: matches Python setuptools build/ artifacts only.
+# Unanchored "build/" silently swallowed frontend/app/build/ for months.
+/build/
 *.egg
 
 # Test / type / lint caches
