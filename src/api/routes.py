@@ -259,6 +259,90 @@ async def query_graph(
     )
 
 
+def _preview_for(stage: str, state: dict[str, Any]) -> tuple[str, str]:
+    """Map a LangGraph node name to a (label, preview) pair for the
+    streaming UI. Pure string formatting — must never raise so that a
+    bad state shape can't kill an in-flight chat turn."""
+    try:
+        if stage == "classify_intent":
+            intent = state.get("intent") or "?"
+            focus = state.get("kb_focus") or "?"
+            return ("Understanding question", f"intent: {intent} · focus: {focus}")
+        if stage == "locate_entry_nodes":
+            n = len(state.get("entry_nodes") or [])
+            return ("Locating entry points", f"{n} entry node{'s' if n != 1 else ''}")
+        if stage == "traverse_graph":
+            visited = len(state.get("traversal_path") or [])
+            depth = state.get("traversal_depth") or 0
+            return ("Exploring the graph", f"{visited} nodes visited · depth {depth}")
+        if stage == "build_steps":
+            n = len(state.get("steps") or [])
+            return ("Drafting plan", f"{n} step{'s' if n != 1 else ''}")
+        if stage == "resolve_tools":
+            n = len(state.get("tools_referenced") or [])
+            return ("Resolving tools", f"{n} tool{'s' if n != 1 else ''} matched")
+        if stage == "synthesize_response":
+            chars = len(state.get("response") or "")
+            return ("Writing answer", f"{chars} chars")
+    except Exception:  # noqa: BLE001 — defensive; never break the stream
+        pass
+    return (stage.replace("_", " ").title() or stage, "")
+
+
+@router.post("/query/stream", summary="Query the knowledge graph (SSE)")
+async def query_graph_stream(
+    req: QueryRequest,
+    workspace_id: str = Depends(require_workspace_id),
+    user: User = Depends(require_user),
+):
+    """Server-Sent-Events variant of :func:`query_graph`.
+
+    Emits one ``data:`` frame per LangGraph node completion (intent
+    classify → entry-node lookup → graph traversal → step build → tool
+    resolve → response synthesis), terminating in either a ``done``
+    frame whose ``result`` field embeds the same :class:`QueryResponse`
+    that the JSON endpoint would return, or an ``error`` frame.
+
+    Auth, persistence, audit and billing are byte-identical to
+    ``POST /query`` — see :func:`src.api.query_service.run_query_streaming`.
+    """
+    from src.api.query_service import run_query_streaming
+    import json as _json
+
+    async def _gen():
+        # SSE comment line as a "stream is open" prelude. Forces L7
+        # proxies (Render edge / Cloudflare) to flush headers + start
+        # chunked transfer immediately instead of waiting for the first
+        # data frame, which our pipeline doesn't produce until
+        # classify_intent finishes its LLM call ~1-3s in. Comments are
+        # ignored by SSE clients so this is invisible to the UI.
+        yield ": ready\n\n"
+        try:
+            async for evt in run_query_streaming(
+                workspace_id=workspace_id,
+                req=req,
+                owner_user_id=user.id,
+                actor_type="user",
+                audit_action="chat.query",
+            ):
+                yield f"data: {_json.dumps(evt)}\n\n"
+        except Exception as exc:  # noqa: BLE001 — last-resort guard
+            logger.exception("query/stream wrapper crashed")
+            yield f"data: {_json.dumps({'stage': 'error', 'error': str(exc)})}\n\n"
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            # Disable nginx / proxy buffering so frames reach the client
+            # the moment uvicorn flushes them.
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 async def _persist_chat_turn(
     workspace_id: str,
     session_id: str,

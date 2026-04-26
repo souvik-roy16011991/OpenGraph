@@ -68,7 +68,7 @@ export default function ChatPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Playground</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Chat</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Chat with a built knowledge graph. Choose a workspace, pick a model,
             and watch the agent reason through each step.

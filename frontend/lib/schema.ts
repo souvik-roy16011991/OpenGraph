@@ -536,6 +536,13 @@ export interface QueryRequest {
   session_id?: string;
   llm_model?: string | null;
 }
+export interface ChatUsage {
+  llm_prompt_tokens: number;
+  llm_completion_tokens: number;
+  llm_total_tokens: number;
+  llm_calls: number;
+  model?: string | null;
+}
 export interface QueryResponse {
   query: string;
   intent: string;
@@ -551,4 +558,18 @@ export interface QueryResponse {
   duration_ms?: number | null;
   error?: string | null;
   llm_model?: string | null;
+  usage?: ChatUsage | null;
+  history_persisted?: boolean;
 }
+
+/** A single frame from the SSE chat stream (POST /api/v1/query/stream).
+ *
+ *  Stage frames carry per-LangGraph-node progress; the run terminates in
+ *  exactly one of `done` (success, full QueryResponse embedded) or
+ *  `error`. `status` is forwarded from server-side HTTPExceptions so the
+ *  client can route 402 quota errors to the upgrade toast.
+ */
+export type QueryStreamFrame =
+  | { stage: "done"; result: QueryResponse }
+  | { stage: "error"; error: string; status?: number }
+  | { stage: string; label: string; preview?: string };
