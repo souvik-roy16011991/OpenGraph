@@ -137,7 +137,7 @@ export default function GraphConfigPage() {
               <FormField label="Local batch size" hint="sentence-transformers encode batch.">
                 <NumberSlider value={e.local_batch_size} min={1} max={512} onChange={(v) => patch("embeddings", { local_batch_size: v })} />
               </FormField>
-              <FormField label="OpenRouter batch size" hint="Remote API batch.">
+              <FormField label="Model batch size" hint="Remote API batch.">
                 <NumberSlider value={e.openrouter_batch_size} min={1} max={128} onChange={(v) => patch("embeddings", { openrouter_batch_size: v })} />
               </FormField>
             </CardContent>
