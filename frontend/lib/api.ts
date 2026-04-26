@@ -26,6 +26,7 @@ import type {
   PutGraphConfigResponse,
   QueryRequest,
   QueryResponse,
+  QueryStreamFrame,
   SearchResponse,
   StartBuildRequest,
   UploadHistoryRow,
@@ -44,6 +45,22 @@ const RAW_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
 const BASE = RAW_BASE && !/^https?:\/\//i.test(RAW_BASE)
   ? `https://${RAW_BASE}`
   : RAW_BASE;
+
+/** Always-absolute version of {@link BASE} for use in user-visible code
+ *  snippets (deploy dialog, /api-docs). When `NEXT_PUBLIC_API_BASE` is set
+ *  (every Render-deployed env, every local dev), returns it normalised.
+ *  Empty-base same-origin mode falls back to the current page origin so we
+ *  never render `http://opengraph.tech:8000/...` (the historical bug —
+ *  hardcoded :8000 against `window.location.hostname` produced a URL that
+ *  didn't exist on the prod frontend host).
+ *
+ *  Server-side rendering (no `window`) returns the empty-string-fallback
+ *  placeholder; the consumer rerenders client-side anyway. */
+export function publicApiBaseUrl(): string {
+  if (BASE) return BASE;
+  if (typeof window !== "undefined") return window.location.origin;
+  return "https://api.opengraph.example";
+}
 
 /** Read the active workspace id from the persisted zustand store at call time. */
 function activeWorkspaceId(): string | null {
@@ -408,6 +425,81 @@ export const api = {
     workspaceIdOverride
       ? jsonWithWorkspace<QueryResponse>("/api/v1/query", "POST", r, workspaceIdOverride)
       : json<QueryResponse>("/api/v1/query", "POST", r),
+
+  /** SSE chat stream. Calls `onEvent` once per agent-pipeline progress
+   *  frame, terminating in exactly one `done` or `error` frame.
+   *
+   *  We use `fetch` + ReadableStream rather than the browser's built-in
+   *  `EventSource` because EventSource can't attach the
+   *  `Authorization: Bearer …` and `X-Workspace-Id` headers the rest of
+   *  the API depends on. Pass `signal` from an `AbortController` so the
+   *  caller can cancel a hung stream cleanly. */
+  streamQuery: async (
+    r: QueryRequest,
+    workspaceIdOverride: string | undefined,
+    onEvent: (evt: QueryStreamFrame) => void,
+    signal?: AbortSignal,
+  ): Promise<void> => {
+    const h = new Headers(withHeaders({
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    }));
+    if (workspaceIdOverride) h.set("X-Workspace-Id", workspaceIdOverride);
+
+    const res = await safeFetch(`${BASE}/api/v1/query/stream`, {
+      method: "POST",
+      headers: h,
+      body: JSON.stringify(r),
+      cache: "no-store",
+      signal,
+    });
+
+    if (!res.ok) {
+      let detail: unknown = res.statusText;
+      try { detail = (await res.json()).detail ?? detail; } catch { /* ignore */ }
+      if (res.status === 402) showUpgradeToast(detail);
+      throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+    if (!res.body) throw new Error("Streaming response has no body");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        // Split on the SSE frame separator (blank line between events).
+        let idx: number;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          for (const line of frame.split("\n")) {
+            if (!line.startsWith("data:")) continue;
+            const payload = line.slice(5).trim();
+            if (!payload) continue;
+            try {
+              const evt = JSON.parse(payload) as QueryStreamFrame;
+              onEvent(evt);
+              if (
+                evt.stage === "error" &&
+                "status" in evt &&
+                evt.status === 402
+              ) {
+                showUpgradeToast(evt.error);
+              }
+            } catch {
+              // Skip malformed frames rather than aborting the stream.
+            }
+          }
+        }
+      }
+    } finally {
+      try { reader.releaseLock(); } catch { /* ignore */ }
+    }
+  },
 
   // Current user + audit trail
   me: () => get<MeResponse>("/api/v1/me"),
