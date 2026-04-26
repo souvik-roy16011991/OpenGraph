@@ -46,6 +46,22 @@ const BASE = RAW_BASE && !/^https?:\/\//i.test(RAW_BASE)
   ? `https://${RAW_BASE}`
   : RAW_BASE;
 
+/** Always-absolute version of {@link BASE} for use in user-visible code
+ *  snippets (deploy dialog, /api-docs). When `NEXT_PUBLIC_API_BASE` is set
+ *  (every Render-deployed env, every local dev), returns it normalised.
+ *  Empty-base same-origin mode falls back to the current page origin so we
+ *  never render `http://opengraph.tech:8000/...` (the historical bug —
+ *  hardcoded :8000 against `window.location.hostname` produced a URL that
+ *  didn't exist on the prod frontend host).
+ *
+ *  Server-side rendering (no `window`) returns the empty-string-fallback
+ *  placeholder; the consumer rerenders client-side anyway. */
+export function publicApiBaseUrl(): string {
+  if (BASE) return BASE;
+  if (typeof window !== "undefined") return window.location.origin;
+  return "https://api.opengraph.example";
+}
+
 /** Read the active workspace id from the persisted zustand store at call time. */
 function activeWorkspaceId(): string | null {
   if (typeof window === "undefined") return null;
