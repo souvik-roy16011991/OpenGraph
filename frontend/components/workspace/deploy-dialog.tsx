@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { CodeSnippet } from "@/components/api-docs/code-snippet";
-import { api } from "@/lib/api";
+import { api, publicApiBaseUrl } from "@/lib/api";
 import type { ApiKeyRow, DeployResponse, WorkspaceSummary } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 
@@ -58,9 +58,12 @@ export function DeployDialog({ workspace, open, onOpenChange }: Props) {
   const [result, setResult] = React.useState<DeployResponse | null>(null);
   const [selectedKeyId, setSelectedKeyId] = React.useState<string | null>(null);
 
-  const base = typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:8000`
-    : "https://api.opengraph.example";
+  // Resolved client-side from NEXT_PUBLIC_API_BASE so the snippet shows
+  // the actual backend URL the caller will hit (prod: opengraph-backend
+  // .onrender.com; local: localhost:8000). The previous heuristic
+  // hardcoded `:8000` against window.location.hostname which only worked
+  // by accident in local dev and produced an unreachable URL in prod.
+  const base = publicApiBaseUrl();
   const endpoint = `${base}/api/v1/ext/query`;
 
   const reset = React.useCallback(() => {

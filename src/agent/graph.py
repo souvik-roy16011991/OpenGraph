@@ -110,7 +110,10 @@ class KBGraphAgent:
         runnable = build_agent_graph(kg)
         return cls(runnable, kg)
 
-    def _initial_state(self, query: str, llm_model: str | None) -> GraphAgentState:
+    def initial_state(self, query: str, llm_model: str | None = None) -> GraphAgentState:
+        """Build the seed state for an agent run. Public so streaming
+        callers can drive ``self._runnable.astream`` directly with the
+        same starting shape as ``query()``."""
         return {
             "query": query,
             "intent": "",
@@ -131,6 +134,10 @@ class KBGraphAgent:
             "llm_model": llm_model,
         }
 
+    # Back-compat alias — callers in this package historically used the
+    # underscore-prefixed name. Keep it pointing at the public method.
+    _initial_state = initial_state
+
     def query(self, query: str, llm_model: str | None = None) -> GraphAgentState:
         """
         Run the agent on a user query.
@@ -146,10 +153,24 @@ class KBGraphAgent:
         """
         logger.info(f"Running agent query: {query[:80]} (llm={llm_model or 'default'})")
         final_state: GraphAgentState = self._runnable.invoke(
-            self._initial_state(query, llm_model)
+            self.initial_state(query, llm_model)
         )
         return final_state
 
     def stream(self, query: str, llm_model: str | None = None):
-        """Stream intermediate states for progressive UI updates."""
-        yield from self._runnable.stream(self._initial_state(query, llm_model))
+        """Stream intermediate states (sync). Yields one
+        ``{node_name: state_delta}`` dict per node completion."""
+        yield from self._runnable.stream(self.initial_state(query, llm_model))
+
+    async def astream(self, query: str, llm_model: str | None = None):
+        """Async-stream intermediate node deltas in ``"updates"`` mode.
+
+        Used by the SSE chat endpoint. Each yielded item is a
+        ``{node_name: state_delta_dict}`` dict — exactly what LangGraph's
+        ``astream`` produces. The caller is responsible for merging the
+        deltas if it needs the cumulative state."""
+        async for chunk in self._runnable.astream(
+            self.initial_state(query, llm_model),
+            stream_mode="updates",
+        ):
+            yield chunk

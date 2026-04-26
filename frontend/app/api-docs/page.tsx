@@ -7,7 +7,7 @@ import { ExternalLink, KeyRound, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CodeSnippet } from "@/components/api-docs/code-snippet";
-import { api } from "@/lib/api";
+import { api, publicApiBaseUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_KEY_PLACEHOLDER = "og_live_<your key>";
@@ -25,9 +25,11 @@ type Tab = "curl" | "python" | "typescript" | "node";
  * a shadcn Card. Cards here added weight without adding information.
  */
 export default function ApiDocsPage() {
-  const base = typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:8000`
-    : "https://api.opengraph.example";
+  // Resolved client-side from NEXT_PUBLIC_API_BASE so snippets show the
+  // actual backend URL the caller will hit (prod: opengraph-backend
+  // .onrender.com; local: localhost:8000). See note in
+  // components/workspace/deploy-dialog.tsx — same fix.
+  const base = publicApiBaseUrl();
 
   const keysQuery = useQuery({ queryKey: ["api-keys"], queryFn: api.listApiKeys });
   const workspacesQuery = useQuery({
