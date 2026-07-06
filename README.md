@@ -518,3 +518,6 @@ Planned follow-ups (not shipped):
 - **Per-message LLM tracking** — add `llm_model` column to
   `chat_messages` so the history page can show which model answered
   each historical turn.
+
+  <img width="1536" height="1024" alt="email" src="https://github.com/user-attachments/assets/d439f021-1db7-452a-8dde-62596a0c31ef" />
+
